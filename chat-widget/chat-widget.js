@@ -186,7 +186,12 @@
       messagesContainer.appendChild(welcomeDiv);
     }
 
+    var lastTimestamp = 0;
     state.messages.forEach(function (msg) {
+      if (msg.time && msg.time - lastTimestamp > 5 * 60 * 1000) {
+        messagesContainer.appendChild(el('div', { className: 'woo-chat-time' }, formatTimestamp(msg.time)));
+      }
+      lastTimestamp = msg.time || lastTimestamp;
       messagesContainer.appendChild(createMessageBubble(msg));
     });
 
@@ -237,7 +242,7 @@
 
     // Toggle button
     var toggleClasses = 'woo-chat-toggle' + (state.open ? ' open' : '');
-    if (state._hasRead) toggleClasses += ' has-read';
+    if (state._hasUnread && !state.open) toggleClasses += ' has-unread';
     var toggleBtn = el('button', {
       className: toggleClasses,
       'aria-label': state.open ? 'U\u017edaryti pokalb\u012F' : 'Atidaryti pokalb\u012F',
@@ -300,8 +305,8 @@
     var ALLOWED_TAGS = ['div', 'span', 'p', 'br', 'strong', 'em', 'b', 'i', 'a', 'button',
       'input', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
     var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
-      'type', 'min', 'value', 'disabled', 'href', 'target', 'rel', 'src', 'alt', 'style',
-      'placeholder', 'id', 'role', 'tabindex'];
+      'data-chat-retry', 'type', 'min', 'value', 'disabled', 'href', 'target', 'rel', 'src',
+      'alt', 'style', 'placeholder', 'id', 'role', 'tabindex'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
     var tmp = document.createElement('div');
@@ -379,6 +384,24 @@
       });
   }
 
+  function formatTimestamp(ts) {
+    var d = new Date(ts);
+    var now = new Date();
+    var hours = String(d.getHours()).padStart(2, '0');
+    var mins = String(d.getMinutes()).padStart(2, '0');
+    var time = hours + ':' + mins;
+    if (d.toDateString() === now.toDateString()) {
+      return time;
+    }
+    var yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return (state.language === 'en' ? 'Yesterday' : 'Vakar') + ', ' + time;
+    }
+    var month = d.toLocaleDateString(state.language === 'en' ? 'en-US' : 'lt-LT', { month: 'short', day: 'numeric' });
+    return month + ', ' + time;
+  }
+
   function adjustColor(hex, amount) {
     hex = hex.replace('#', '');
     var r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
@@ -390,14 +413,33 @@
   // --- Actions ---
 
   function toggleChat() {
-    state.open = !state.open;
-    if (state.open && !state._hasRead) {
-      state._hasRead = true;
+    if (state._animating) return;
+    if (state.open) {
+      var win = document.querySelector('.woo-chat-window');
+      if (win) {
+        state._animating = true;
+        var closed = false;
+        function doClose() {
+          if (closed) return;
+          closed = true;
+          state.open = false;
+          state.animatedOpen = false;
+          state._animating = false;
+          render();
+        }
+        win.classList.add('woo-animate-out');
+        win.addEventListener('animationend', doClose, { once: true });
+        setTimeout(doClose, 300);
+      } else {
+        state.open = false;
+        state.animatedOpen = false;
+        render();
+      }
+    } else {
+      state.open = true;
+      state._hasUnread = false;
+      render();
     }
-    if (!state.open) {
-      state.animatedOpen = false;
-    }
-    render();
   }
 
   function scrollToBottom() {
@@ -423,6 +465,7 @@
   // --- Shared webhook send logic ---
 
   function _sendToWebhook(text) {
+    state._lastSentText = text;
     state.sending = true;
 
     var sendBtn = document.getElementById('woo-chat-send-btn');
@@ -455,7 +498,7 @@
       })
       .catch(function () {
         showTyping(false);
-        addMessage('system', 'Ry\u0161io klaida. Pabandykite dar kart\u0105.');
+        addMessage('system', '{{HTML}}Ry\u0161io klaida.<br><button class="woo-chat-retry" data-chat-retry>Bandyti dar kart\u0105</button>');
       })
       .finally(function () {
         state.sending = false;
@@ -492,6 +535,22 @@
     _sendToWebhook('Nor\u0117\u010Diau pasikalb\u0117ti su \u017emogumi.');
   }
 
+  // --- Persist interactive state back to stored messages ---
+
+  function persistInteractionState(chatBubble) {
+    var container = document.getElementById('woo-chat-messages');
+    if (!container || !chatBubble) return;
+    var bubbles = Array.from(container.querySelectorAll('.woo-chat-msg'));
+    var index = bubbles.indexOf(chatBubble);
+    if (index >= 0 && index < state.messages.length) {
+      var msg = state.messages[index];
+      if (msg.text && msg.text.indexOf('{{HTML}}') === 0) {
+        state.messages[index].text = '{{HTML}}' + chatBubble.innerHTML;
+        saveSession();
+      }
+    }
+  }
+
   // --- Event Delegation for Interactive HTML ---
 
   var _delegationAttached = false;
@@ -520,6 +579,8 @@
             btn.disabled = true;
           });
           optBtn.classList.add('selected');
+          var chatBubble = optBtn.closest('.woo-chat-msg');
+          if (chatBubble) persistInteractionState(chatBubble);
         }
         var value = optBtn.getAttribute('data-chat-option');
         quickSend(value);
@@ -544,15 +605,55 @@
               if (btn.tagName === 'BUTTON') btn.disabled = true;
             });
           }
+          var dateBubble = dateConfirmBtn.closest('.woo-chat-msg');
+          if (dateBubble) persistInteractionState(dateBubble);
           quickSend(dateInput.value);
         }
         return;
       }
     });
 
+    document.addEventListener('click', function (e) {
+      var retryBtn = e.target.closest('[data-chat-retry]');
+      if (retryBtn && !state.sending) {
+        var textToRetry = state._lastSentText;
+        if (!textToRetry) {
+          for (var i = state.messages.length - 1; i >= 0; i--) {
+            if (state.messages[i].role === 'customer') {
+              textToRetry = state.messages[i].text;
+              break;
+            }
+          }
+        }
+        if (!textToRetry) return;
+        var systemBubble = retryBtn.closest('.woo-chat-msg');
+        if (systemBubble) {
+          var container = document.getElementById('woo-chat-messages');
+          var bubbles = Array.from(container.querySelectorAll('.woo-chat-msg'));
+          var domIdx = bubbles.indexOf(systemBubble);
+          if (domIdx >= 0 && domIdx < state.messages.length && state.messages[domIdx].role === 'system') {
+            state.messages.splice(domIdx, 1);
+            saveSession();
+          }
+        }
+        _sendToWebhook(textToRetry);
+        render();
+      }
+    });
+
     document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && state.open) {
+        var active = document.activeElement;
+        var tag = active ? active.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+          active.blur();
+          return;
+        }
+        toggleChat();
+        return;
+      }
       if (e.key === 'Enter' || e.key === ' ') {
-        var optBtn = e.target.closest('[data-chat-option][role="button"]');
+        var optBtn = e.target.closest('div[data-chat-option][role="button"]');
         if (optBtn) {
           e.preventDefault();
           optBtn.click();
@@ -587,6 +688,20 @@
       initSession();
       attachDelegation();
       render();
+
+      // Proactive greeting for new sessions (no existing messages)
+      if (state.messages.length === 0) {
+        setTimeout(function () {
+          if (state.open || state.messages.length > 0) return;
+          var greeting = state.language === 'en'
+            ? 'Hi! Planning an event? I can help with trampoline rental and prices.'
+            : 'Sveiki! Planuojate renginį? Galiu padėti su batutų nuoma ir kainomis.';
+          state.messages.push({ role: 'agent', text: greeting, time: Date.now() });
+          state._hasUnread = true;
+          saveSession();
+          render();
+        }, 6000);
+      }
     },
 
     open: function () {
