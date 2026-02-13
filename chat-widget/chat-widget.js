@@ -501,15 +501,26 @@
     _delegationAttached = true;
 
     document.addEventListener('click', function (e) {
-      // Option buttons
+      // Option buttons (pill buttons and trampoline cards)
       var optBtn = e.target.closest('[data-chat-option]');
       if (optBtn) {
-        var container = optBtn.closest('.chat-options');
-        if (container) {
-          container.querySelectorAll('.chat-option-btn').forEach(function (btn) {
+        if (optBtn.hasAttribute('disabled')) return;
+        var msgBubble = optBtn.closest('.chat-products') || optBtn.closest('.chat-options') || optBtn.closest('.chat-trampoline-grid') || optBtn.closest('.woo-chat-msg');
+        if (msgBubble) {
+          msgBubble.querySelectorAll('[data-chat-option]').forEach(function (btn) {
+            btn.setAttribute('disabled', 'true');
+            if (btn.tagName === 'BUTTON') btn.disabled = true;
+          });
+          msgBubble.querySelectorAll('[data-chat-date]').forEach(function (inp) {
+            inp.setAttribute('disabled', 'true');
+            inp.disabled = true;
+          });
+          msgBubble.querySelectorAll('[data-chat-date-confirm]').forEach(function (btn) {
+            btn.setAttribute('disabled', 'true');
             btn.disabled = true;
           });
           optBtn.classList.add('selected');
+          optBtn.removeAttribute('disabled');
         }
         var value = optBtn.getAttribute('data-chat-option');
         quickSend(value);
@@ -519,10 +530,21 @@
       // Date confirm button
       var dateConfirmBtn = e.target.closest('[data-chat-date-confirm]');
       if (dateConfirmBtn) {
+        if (dateConfirmBtn.hasAttribute('disabled')) return;
         var dateInput = dateConfirmBtn.parentElement.querySelector('[data-chat-date]');
         if (dateInput && dateInput.value) {
+          dateConfirmBtn.setAttribute('disabled', 'true');
           dateConfirmBtn.disabled = true;
+          dateInput.setAttribute('disabled', 'true');
           dateInput.disabled = true;
+          // Also disable any sibling option buttons
+          var bubble = dateConfirmBtn.closest('.chat-products') || dateConfirmBtn.closest('.woo-chat-msg');
+          if (bubble) {
+            bubble.querySelectorAll('[data-chat-option]').forEach(function (btn) {
+              btn.setAttribute('disabled', 'true');
+              if (btn.tagName === 'BUTTON') btn.disabled = true;
+            });
+          }
           quickSend(dateInput.value);
         }
         return;

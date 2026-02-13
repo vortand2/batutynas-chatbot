@@ -79,7 +79,7 @@
     {
       "parameters": {
         "sessionKey": "={{ $('Extract Chat Input').item.json.sessionId }}",
-        "contextWindowLength": 10
+        "contextWindowLength": 16
       },
       "id": "chat-memory",
       "name": "Window Buffer Memory",
@@ -110,13 +110,23 @@
     },
     {
       "parameters": {
-        "jsCode": "const agentOutput = $input.first().json || {};\n\n// Check multiple possible output fields\nlet response = agentOutput.output || agentOutput.text || '';\n\n// Fallback message if agent produced no output\nif (!response || !response.trim()) {\n  response = 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 686 55557 arba info@batutynas.lt';\n}\n\n// Truncate excessively long responses\nif (response.length > 10000) {\n  response = response.substring(0, 10000) + '...';\n}\n\nlet sessionId = '';\ntry {\n  sessionId = $('Extract Chat Input').item.json.sessionId;\n} catch (e) {\n  sessionId = 'unknown';\n}\n\nreturn [{\n  json: {\n    response: response,\n    session_id: sessionId\n  }\n}];"
+        "jsCode": "const agentOutput = $input.first().json || {};\nlet response = agentOutput.output || agentOutput.text || '';\n\nif (!response || !response.trim()) {\n  return [{ json: { enriched: 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 686 55557 arba info@batutynas.lt' } }];\n}\n\n// Idempotency: skip if already enriched\nif (response.startsWith('{{HTML}}')) {\n  return [{ json: { enriched: response } }];\n}\n\n// --- Trampoline data (image-ready) ---\nconst TRAMPOLINES = [\n  { name: 'Fantazijų parkas', icon: '🏰', img: '', type: 'Batutų parkas', capacity: 'Iki 15 vaikų', price: 'nuo 150 €', bg: '#f5f0ff' },\n  { name: 'Džiumandži parkas', icon: '🌴', img: '', type: 'Nuotykių parkas', capacity: 'Iki 12 vaikų', price: 'nuo 130 €', bg: '#fef9f0' },\n  { name: 'Mega kliūčių ruožas', icon: '🏃', img: '', type: 'Kliūčių ruožas', capacity: 'Iki 10 vaikų', price: 'nuo 100 €', bg: '#f0f9ff' },\n  { name: 'Mega Rocket', icon: '🚀', img: '', type: '2 dalių batutas', capacity: 'Iki 8 vaikų', price: 'nuo 80 €', bg: '#fff0f0' },\n  { name: 'Candy Pop', icon: '🍭', img: '', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', bg: '#fdf0ff' },\n  { name: 'Chameleon', icon: '🦎', img: '', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', bg: '#f0fff4' },\n  { name: 'Milžiniškas smiginis', icon: '🎯', img: '', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'nuo 50 €', bg: '#fffff0' },\n  { name: 'Cukraus vatos aparatas', icon: '🍬', img: '', type: 'Papildoma paslauga', capacity: '—', price: 'nuo 30 €', bg: '#fff5f0' }\n];\n\nfunction buildTrampolineGrid() {\n  let html = '<div class=\"chat-trampoline-grid\">';\n  for (const t of TRAMPOLINES) {\n    const thumb = t.img\n      ? '<img src=\"' + t.img + '\" alt=\"' + t.name + '\">'\n      : t.icon;\n    html += '<div class=\"chat-trampoline-select\" data-chat-option=\"' + t.name + '\" style=\"background:' + t.bg + '\">';\n    html += '<div class=\"chat-trampoline-thumb\">' + thumb + '</div>';\n    html += '<div class=\"chat-trampoline-info\">';\n    html += '<div class=\"t-name\">' + t.name + '</div>';\n    html += '<div class=\"t-meta\">' + t.type + ' · ' + t.capacity + '</div>';\n    html += '<div class=\"t-price\">' + t.price + '</div>';\n    html += '</div></div>';\n  }\n  html += '</div>';\n  return html;\n}\n\nfunction buildDatePicker() {\n  const days = [];\n  const now = new Date();\n  // Find next 4 Saturdays\n  const d = new Date(now);\n  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));\n  for (let i = 0; i < 4; i++) {\n    const iso = d.toISOString().split('T')[0];\n    const label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });\n    days.push('<button class=\"chat-option-btn\" data-chat-option=\"' + iso + '\">' + label + '</button>');\n    d.setDate(d.getDate() + 7);\n  }\n  let html = '<div class=\"chat-options\">' + days.join('') + '</div>';\n  html += '<input type=\"date\" class=\"chat-date-input\" data-chat-date min=\"' + now.toISOString().split('T')[0] + '\" placeholder=\"Kita data...\">';\n  html += '<button class=\"chat-date-confirm\" data-chat-date-confirm disabled>Patvirtinti datą</button>';\n  return html;\n}\n\nfunction buildLocationOptions() {\n  const locs = ['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kitas miestas'];\n  let html = '<div class=\"chat-options\">';\n  for (const loc of locs) {\n    html += '<button class=\"chat-option-btn\" data-chat-option=\"' + loc + '\">' + loc + '</button>';\n  }\n  html += '</div>';\n  return html;\n}\n\nfunction buildEventTypeOptions() {\n  const types = ['Gimtadienis', 'Šeimos šventė', 'Viešas renginys', 'Įmonės renginys', 'Kitas'];\n  let html = '<div class=\"chat-options\">';\n  for (const t of types) {\n    html += '<button class=\"chat-option-btn\" data-chat-option=\"' + t + '\">' + t + '</button>';\n  }\n  html += '</div>';\n  return html;\n}\n\nfunction buildBookingConfirm(jsonStr) {\n  let data;\n  try { data = JSON.parse(jsonStr); } catch { data = {}; }\n  let html = '<div class=\"booking-confirm\">';\n  html += '<h4>✅ Užklausa pateikta!</h4>';\n  if (data.date) html += '<p><strong>Data:</strong> ' + data.date + '</p>';\n  if (data.location) html += '<p><strong>Vieta:</strong> ' + data.location + '</p>';\n  if (data.event_type) html += '<p><strong>Renginys:</strong> ' + data.event_type + '</p>';\n  if (data.contact_name) html += '<p><strong>Kontaktas:</strong> ' + data.contact_name + '</p>';\n  if (data.contact_phone) html += '<p><strong>Telefonas:</strong> ' + data.contact_phone + '</p>';\n  if (data.trampoline) html += '<p><strong>Batutas:</strong> ' + data.trampoline + '</p>';\n  html += '</div>';\n  return html;\n}\n\n// --- Check for markers and replace ---\nconst markers = [\n  { pattern: /\\[TRAMPOLINE_CATALOG\\]/g, fn: () => buildTrampolineGrid() },\n  { pattern: /\\[DATE_PICKER\\]/g, fn: () => buildDatePicker() },\n  { pattern: /\\[LOCATION_OPTIONS\\]/g, fn: () => buildLocationOptions() },\n  { pattern: /\\[EVENT_TYPE_OPTIONS\\]/g, fn: () => buildEventTypeOptions() }\n];\n\nlet hasMarker = false;\nlet enriched = response;\n\nfor (const m of markers) {\n  const before = enriched;\n  enriched = enriched.replace(m.pattern, m.fn);\n  if (enriched !== before) hasMarker = true;\n}\n\n// Handle BOOKING_CONFIRM separately (has capture group)\nconst confirmBefore = enriched;\nenriched = enriched.replace(/\\[BOOKING_CONFIRM:(\\{[^\\]]*\\})\\]/g, (match, jsonStr) => buildBookingConfirm(jsonStr));\nif (enriched !== confirmBefore) hasMarker = true;\n\nif (hasMarker) {\n  // Convert markdown bold and newlines\n  enriched = enriched.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');\n  enriched = enriched.replace(/\\n/g, '<br>');\n  enriched = '{{HTML}}<div class=\"chat-products\">' + enriched + '</div>';\n}\n\nreturn [{ json: { enriched } }];"
+      },
+      "id": "chat-enrich",
+      "name": "Enrich Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\n\n// Check if enrichment produced output, otherwise fall back to agent output\nlet response = input.enriched;\n\nif (!response || !response.trim()) {\n  response = 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 686 55557 arba info@batutynas.lt';\n}\n\n// Truncate excessively long responses\nif (response.length > 10000) {\n  response = response.substring(0, 10000) + '...';\n}\n\nlet sessionId = '';\ntry {\n  sessionId = $('Extract Chat Input').item.json.sessionId;\n} catch (e) {\n  sessionId = 'unknown';\n}\n\nreturn [{\n  json: {\n    response: response,\n    session_id: sessionId\n  }\n}];"
       },
       "id": "chat-response",
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 300]
+      "position": [1100, 300]
     }
   ],
   "connections": {
@@ -179,6 +189,17 @@
       "main": [
         [
           {
+            "node": "Enrich Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Response": {
+      "main": [
+        [
+          {
             "node": "Format Response",
             "type": "main",
             "index": 0
@@ -199,5 +220,5 @@
     }
   ],
   "triggerCount": 0,
-  "versionId": "1"
+  "versionId": "2"
 }
