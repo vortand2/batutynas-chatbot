@@ -301,7 +301,7 @@
       'input', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
     var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
       'type', 'min', 'value', 'disabled', 'href', 'target', 'rel', 'src', 'alt', 'style',
-      'placeholder', 'id'];
+      'placeholder', 'id', 'role', 'tabindex'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
     var tmp = document.createElement('div');
@@ -520,7 +520,6 @@
             btn.disabled = true;
           });
           optBtn.classList.add('selected');
-          optBtn.removeAttribute('disabled');
         }
         var value = optBtn.getAttribute('data-chat-option');
         quickSend(value);
@@ -548,6 +547,16 @@
           quickSend(dateInput.value);
         }
         return;
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        var optBtn = e.target.closest('[data-chat-option][role="button"]');
+        if (optBtn) {
+          e.preventDefault();
+          optBtn.click();
+        }
       }
     });
 

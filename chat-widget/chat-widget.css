@@ -488,6 +488,7 @@
 
 /* Date Input (interactive HTML) */
 .chat-date-input {
+  box-sizing: border-box;
   width: 100%;
   margin-top: 8px;
   padding: 9px 12px;
