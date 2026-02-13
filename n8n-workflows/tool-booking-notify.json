@@ -1,0 +1,107 @@
+{
+  "name": "Batutynas: Booking Notification Tool",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "batutynas-booking-notify",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "booking-trigger",
+      "name": "Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "batutynas-booking-notify"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\n// Parse booking data — may come as JSON string or object\nlet booking;\ntry {\n  booking = typeof body.booking_data === 'string' ? JSON.parse(body.booking_data) : body.booking_data || body;\n} catch(e) {\n  booking = body;\n}\n\n// Sanitize: strip newlines/carriage returns to prevent email header injection\nfunction sanitize(val) {\n  return (val || 'Nenurodyta').replace(/[\\r\\n]/g, ' ').substring(0, 500);\n}\n\nconst date = sanitize(booking.date);\nconst location = sanitize(booking.location);\nconst eventType = sanitize(booking.event_type);\nconst contactName = sanitize(booking.contact_name);\nconst contactPhone = sanitize(booking.contact_phone);\nconst trampolinePreference = sanitize(booking.trampoline_preference);\n\nreturn [{\n  json: {\n    date,\n    location,\n    eventType,\n    contactName,\n    contactPhone,\n    trampolinePreference,\n    emailSubject: `Nauja užklausa: ${eventType} - ${date} (${contactName})`,\n    emailBody: `Nauja batuto užsakymo užklausa iš svetainės pokalbių roboto:\\n\\n` +\n      `Data: ${date}\\n` +\n      `Vieta: ${location}\\n` +\n      `Renginio tipas: ${eventType}\\n` +\n      `Kontaktinis asmuo: ${contactName}\\n` +\n      `Telefonas: ${contactPhone}\\n` +\n      `Pageidaujamas batutas: ${trampolinePreference}\\n\\n` +\n      `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`\n  }\n}];"
+      },
+      "id": "booking-parse",
+      "name": "Parse Booking Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'noreply@batutynas.lt' }}",
+        "toEmail": "={{ $env.ADMIN_EMAIL || 'info@batutynas.lt' }}",
+        "subject": "={{ $json.emailSubject }}",
+        "text": "={{ $json.emailBody }}",
+        "options": {}
+      },
+      "id": "booking-email",
+      "name": "Send Email to Admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [660, 300],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CRED_ID",
+          "name": "SMTP Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    result: 'Užklausa sėkmingai išsiųsta administratoriui. Klientui pasakykite, kad komanda susisieks per 2 darbo valandas. Booking inquiry sent successfully to admin.'\n  }\n}];"
+      },
+      "id": "booking-response",
+      "name": "Return Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    }
+  ],
+  "connections": {
+    "Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Admin": {
+      "main": [
+        [
+          {
+            "node": "Return Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Batutynas Chat",
+      "id": "batutynas-chat"
+    }
+  ],
+  "triggerCount": 0,
+  "versionId": "1"
+}

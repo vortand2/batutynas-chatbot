@@ -1,0 +1,40 @@
+<!--
+  Batutynas.lt AI Chat Widget — Embed Snippet
+
+  Add this to your site's custom code footer section.
+  Replace YOUR_N8N_WEBHOOK_URL with your actual n8n chat webhook URL.
+  Replace YOUR_CDN_OR_HOST with where you host the widget files.
+-->
+
+<!-- Chat Widget -->
+<link rel="stylesheet" href="https://YOUR_CDN_OR_HOST/chat-widget.css">
+<script src="https://YOUR_CDN_OR_HOST/chat-widget.js"></script>
+<script>
+  BatutynasChat.init({
+    webhookUrl: 'https://YOUR_N8N_INSTANCE/webhook/batutynas-chat',
+    storeName: 'Batutynas.lt',
+    primaryColor: '#6C3CE1',
+    // language: 'lt',        // Optional: force Lithuanian (auto-detects by default)
+    // quickPrompts: [         // Optional: override default quick prompt buttons
+    //   'Nuomos kainos',
+    //   'Batutų katalogas',
+    //   'Užsakyti batutą',
+    //   'Pristatymo zonos'
+    // ]
+  });
+</script>
+
+<!--
+  Example for aiforinsulation.com:
+
+  <link rel="stylesheet" href="https://cdn.aiforinsulation.com/chat-widget.css">
+  <script src="https://cdn.aiforinsulation.com/chat-widget.js"></script>
+  <script>
+    BatutynasChat.init({
+      webhookUrl: 'https://n8n.aiforinsulation.com/webhook/batutynas-chat',
+      storeName: 'AI for Insulation',
+      primaryColor: '#2563EB',
+      quickPrompts: ['Get a quote', 'Our services', 'Contact us', 'FAQ']
+    });
+  </script>
+-->
