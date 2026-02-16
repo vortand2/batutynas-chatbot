@@ -81,12 +81,13 @@ This shows a "Get Started" button when users open Messenger for the first time.
 
 ## Step 8: Test
 
-Send a message to your Facebook Page via Messenger:
+Test via Messenger:
 
 1. Open Messenger
 2. Search for your Page name
-3. Send "Sveiki" — you should get a welcome response with quick reply buttons
-4. Test the full booking flow:
+3. If it's your first time, tap "Get Started" — you should see a welcome message with quick reply buttons (Nuomos kainos, Batutų katalogas, Užsakyti batutą, Pristatymo zonos)
+4. Or send "Sveiki" — the AI agent will respond with a greeting
+5. Test the full booking flow:
    - Tap "Užsakyti batutą"
    - Select a date
    - Select a location
