@@ -1,0 +1,478 @@
+{
+  "name": "Batutynas: FB Messenger Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "*",
+        "path": "batutynas-fb-messenger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fb-webhook",
+      "name": "FB Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "batutynas-fb-messenger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $input.first().json;\nconst query = req.query || {};\nconst body = req.body || {};\nconst headers = req.headers || {};\n\n// --- Webhook verification (GET request from Facebook) ---\nif (query['hub.mode'] === 'subscribe') {\n  const verifyToken = $env.FB_VERIFY_TOKEN;\n  if (!verifyToken) {\n    return [{ json: { routeType: 'verify_failed', challenge: '' } }];\n  }\n  if (query['hub.verify_token'] === verifyToken) {\n    return [{ json: { routeType: 'verify', challenge: query['hub.challenge'] } }];\n  }\n  return [{ json: { routeType: 'verify_failed', challenge: '' } }];\n}\n\n// --- Signature verification (security) ---\nconst appSecret = $env.FB_APP_SECRET;\nconst signature = headers['x-hub-signature-256'];\nif (appSecret && signature) {\n  const crypto = require('crypto');\n  const rawBody = typeof body === 'string' ? body : JSON.stringify(body);\n  const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');\n  if (signature !== expectedSig) {\n    return [{ json: { routeType: 'ignore', reason: 'Invalid signature' } }];\n  }\n}\n\n// --- Parse incoming message/postback ---\nconst entry = body.entry;\nif (!entry || !entry[0] || !entry[0].messaging || !entry[0].messaging[0]) {\n  return [{ json: { routeType: 'ignore', reason: 'No messaging data' } }];\n}\n\nconst messaging = entry[0].messaging[0];\nconst senderId = messaging.sender?.id || '';\nconst recipientId = messaging.recipient?.id || '';\n\nlet messageText = '';\nlet routeType = 'message';\n\nif (messaging.postback) {\n  messageText = messaging.postback.payload || '';\n  routeType = messaging.postback.payload === 'GET_STARTED' ? 'get_started' : 'postback';\n} else if (messaging.message) {\n  if (messaging.message.quick_reply) {\n    messageText = messaging.message.quick_reply.payload || messaging.message.text || '';\n    routeType = 'quick_reply';\n  } else if (messaging.message.text) {\n    messageText = messaging.message.text;\n    routeType = 'message';\n  } else {\n    messageText = '';\n    routeType = 'unsupported';\n  }\n}\n\n// Sanitize\nmessageText = String(messageText).replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g, '').trim();\nif (messageText.length > 2000) messageText = messageText.substring(0, 2000);\n\nreturn [{\n  json: {\n    routeType,\n    senderId,\n    recipientId,\n    messageText,\n    sessionId: 'fb_' + senderId,\n    chatInput: messageText || 'Sveiki'\n  }\n}];"
+      },
+      "id": "fb-extract",
+      "name": "Extract & Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "verify",
+              "leftValue": "={{ $json.routeType }}",
+              "rightValue": "verify",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb-is-verify",
+      "name": "Is Verification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $('Extract & Route').item.json.challenge }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fb-verify-respond",
+      "name": "Respond with Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "fb-respond-200",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "get-started",
+              "leftValue": "={{ $('Extract & Route').item.json.routeType }}",
+              "rightValue": "get_started",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb-is-get-started",
+      "name": "Is Get Started?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Direct welcome message — no AI needed\nconst senderId = $('Extract & Route').item.json.senderId;\n\nconst messages = [\n  {\n    recipient: { id: senderId },\n    messaging_type: 'RESPONSE',\n    message: {\n      text: 'Sveiki! \\uD83D\\uDC4B Aš esu Batutynas.lt asistentas. Galiu padėti su batutų nuoma, kainomis ir užsakymais. Kuo galiu padėti?',\n      quick_replies: [\n        { content_type: 'text', title: 'Nuomos kainos', payload: 'Nuomos kainos' },\n        { content_type: 'text', title: 'Batutų katalogas', payload: 'Batutų katalogas' },\n        { content_type: 'text', title: 'Užsakyti batutą', payload: 'Užsakyti batutą' },\n        { content_type: 'text', title: 'Pristatymo zonos', payload: 'Pristatymo zonos' }\n      ]\n    }\n  }\n];\n\nreturn [{ json: { messages } }];"
+      },
+      "id": "fb-welcome",
+      "name": "Welcome Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "unsupported",
+              "leftValue": "={{ $('Extract & Route').item.json.routeType }}",
+              "rightValue": "unsupported",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb-is-unsupported",
+      "name": "Is Unsupported?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const senderId = $('Extract & Route').item.json.senderId;\n\nconst messages = [\n  {\n    recipient: { id: senderId },\n    messaging_type: 'RESPONSE',\n    message: {\n      text: 'Atsiprašau, šiuo metu galiu atsakyti tik į tekstines žinutes. Parašykite savo klausimą tekstu! 😊'\n    }\n  }\n];\n\nreturn [{ json: { messages } }];"
+      },
+      "id": "fb-unsupported-reply",
+      "name": "Unsupported Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 500]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "={{ $env.FB_MESSENGER_SYSTEM_PROMPT || 'You are a friendly, professional customer support assistant for Batutynas.lt — a Lithuanian inflatable trampoline rental company. Respond in the language the customer uses. Default: Lithuanian. Keep responses short (1-2 paragraphs). Do not use markdown formatting. Use emoji sparingly. When the customer wants to book, collect info step by step: date [DATE_PICKER], location [LOCATION_OPTIONS], event type [EVENT_TYPE_OPTIONS], contact info (text), trampoline [TRAMPOLINE_CATALOG]. After booking_notify tool, add [BOOKING_CONFIRM:{json}].' }}"
+        },
+        "promptType": "define",
+        "text": "={{ $('Extract & Route').item.json.chatInput }}"
+      },
+      "id": "fb-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1320, 700]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 1024,
+          "temperature": 0.3
+        }
+      },
+      "id": "fb-llm-claude",
+      "name": "Claude LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [1220, 920],
+      "credentials": {
+        "anthropicApi": {
+          "id": "ANTHROPIC_CRED_ID",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $('Extract & Route').item.json.sessionId }}",
+        "contextWindowLength": 16
+      },
+      "id": "fb-memory",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [1320, 920]
+    },
+    {
+      "parameters": {
+        "name": "booking_notify",
+        "description": "Send a booking inquiry notification to the admin. Use this tool when a customer has provided all booking details: date, location, event_type, contact_name, contact_phone, and optionally trampoline_preference. Input should include all collected fields as a JSON string.",
+        "workflowId": "={{ $env.TOOL_BOOKING_NOTIFY_WORKFLOW_ID }}",
+        "responsePropertyName": "result",
+        "fields": {
+          "values": [
+            {
+              "name": "booking_data",
+              "stringValue": "{booking_data}"
+            }
+          ]
+        }
+      },
+      "id": "fb-tool-booking",
+      "name": "Tool: Booking Notify",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [1420, 920]
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $input.first().json || {};\nconst senderId = $('Extract & Route').item.json.senderId;\nlet response = agentOutput.output || agentOutput.text || '';\n\nif (!response || !response.trim()) {\n  response = 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 686 55557 arba info@batutynas.lt';\n}\n\n// --- Trampoline data with real images from batutynas.lt ---\nconst TRAMPOLINES = [\n  { name: 'Fantazijų parkas', type: 'Batutų parkas', capacity: 'Iki 15 vaikų', price: 'nuo 150 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=814.3130990415335;0;48.30670926517572;0/0e8dAXAD75sxRpD2/dji_fly_20250718_183914_625_1752853163044_photo_optimized-Pa9IAIUmCkWz0Pls.jpg' },\n  { name: 'Džiumandži parkas', type: 'Nuotykių parkas', capacity: 'Iki 12 vaikų', price: 'nuo 130 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=12.139896373056995;284.96062992125985;12.139896373056995;167.74278215223097/0e8dAXAD75sxRpD2/whatsapp-image-2025-12-10-at-11.20.54-1-SDSuAp44sw4kjZSS.jpeg' },\n  { name: 'Giga ruožas', type: 'Kliūčių ruožas', capacity: 'Iki 10 vaikų', price: 'nuo 100 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=0;119.32842415316642;0;121.19293078055965/0e8dAXAD75sxRpD2/whatsapp-image-2025-12-22-at-11.06.55-ziiCN5QBR6kNIKiy.jpeg' },\n  { name: 'Mega ruožas', type: 'Kliūčių ruožas', capacity: 'Iki 10 vaikų', price: 'nuo 100 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=103.64948453608247;18.84476534296029;103.64948453608247;11.306859205776172/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg' },\n  { name: 'Mega raketa', type: '2 dalių batutas', capacity: 'Iki 8 vaikų', price: 'nuo 80 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=143.5548686244204;0;146.89335394126738;0/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg' },\n  { name: 'Mega ufonautai', type: '2 dalių batutas', capacity: 'Iki 8 vaikų', price: 'nuo 80 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=213.78340365682135;0;128.27004219409284;0/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-Ny8M1EXYDelHi9KY.jpeg' },\n  { name: 'Mega waikiki', type: '2 dalių batutas', capacity: 'Iki 8 vaikų', price: 'nuo 80 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=20.654545454545453;517.6362112321877;38.72727272727273;507.3093042749372/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210170439_893_49-VO5WtchqawaPVo4Y.png' },\n  { name: 'Monstrai', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=39.46542553191489;460.75471698113205;43.619680851063826;278.11320754716985/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png' },\n  { name: 'Chameleonas', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=0;295.42857142857144;83.75335120643432;406.4761904761904/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png' },\n  { name: 'Candy Pop', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=22.256476683937823;505.249343832021;84.97927461139896;226.3517060367454/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-oig3Em2dE8jQSwix.png' },\n  { name: 'Aštuonkojis', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=15.06060606060606;268.85474860335194;43.03030303030303;440.9217877094972/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-NgQcJYlCT9BnlJoA.png' },\n  { name: 'Vienaragiai', type: 'Kompaktiškas', capacity: 'Iki 6 vaikų', price: 'nuo 60 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=0;334.0821917808219;0;0/0e8dAXAD75sxRpD2/vienaragiai1-X6dYQ8JBEOiSwPsL.jpg' },\n  { name: 'Gigantiškas dart', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'nuo 50 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=60.638297872340424;229.48207171314743;67.02127659574468;140.2390438247012/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg' },\n  { name: 'Kamuolių medžioklė', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'nuo 50 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=0;131.99195171026156;128.686327077748;180.2816901408451/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg' },\n  { name: 'Rodeo bulius', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'nuo 50 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=51.06735751295337;376.0154738878143;194.98445595854923;167.11798839458413/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png' },\n  { name: 'Saldėsių aparatai', type: 'Papildoma paslauga', capacity: '—', price: 'nuo 30 €', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop,trim=128.46473029045643;170.29484536082475;0;83.65360824742268/0e8dAXAD75sxRpD2/gemini_generated_image_ydgmrfydgmrfydgm-p6fr65N3LqPeBjbK.png' }\n];\n\n// --- Build trampoline carousel (split into 2 messages, max 10 per carousel) ---\nfunction buildTrampolineCarousels() {\n  const messages = [];\n  // Split: first 10 and remaining\n  const chunks = [];\n  for (let i = 0; i < TRAMPOLINES.length; i += 10) {\n    chunks.push(TRAMPOLINES.slice(i, i + 10));\n  }\n\n  for (const chunk of chunks) {\n    const elements = chunk.map(t => ({\n      title: t.name,\n      subtitle: t.type + ' · ' + t.capacity + ' · ' + t.price,\n      image_url: t.img,\n      buttons: [\n        {\n          type: 'postback',\n          title: 'Pasirinkti ✓',\n          payload: t.name\n        }\n      ]\n    }));\n\n    messages.push({\n      recipient: { id: senderId },\n      messaging_type: 'RESPONSE',\n      message: {\n        attachment: {\n          type: 'template',\n          payload: {\n            template_type: 'generic',\n            elements: elements\n          }\n        }\n      }\n    });\n  }\n  return messages;\n}\n\n// --- Build date quick replies ---\nfunction buildDateQuickReplies() {\n  const days = [];\n  const now = new Date();\n  const d = new Date(now);\n  // Find next Saturday\n  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));\n  for (let i = 0; i < 4; i++) {\n    const iso = d.toISOString().split('T')[0];\n    const label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });\n    // Truncate to 20 chars (Messenger limit)\n    days.push({\n      content_type: 'text',\n      title: label.substring(0, 20),\n      payload: iso\n    });\n    d.setDate(d.getDate() + 7);\n  }\n  // Add 'other date' option\n  days.push({\n    content_type: 'text',\n    title: 'Kita data ✏️',\n    payload: 'CUSTOM_DATE'\n  });\n  return days;\n}\n\n// --- Build location quick replies ---\nfunction buildLocationQuickReplies() {\n  const locs = ['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kitas miestas'];\n  return locs.map(loc => ({\n    content_type: 'text',\n    title: loc.substring(0, 20),\n    payload: loc\n  }));\n}\n\n// --- Build event type quick replies ---\nfunction buildEventTypeQuickReplies() {\n  const types = ['Gimtadienis', 'Šeimos šventė', 'Viešas renginys', 'Įmonės renginys', 'Kitas'];\n  return types.map(t => ({\n    content_type: 'text',\n    title: t.substring(0, 20),\n    payload: t\n  }));\n}\n\n// --- Build booking confirmation text ---\nfunction buildBookingConfirm(jsonStr) {\n  let data;\n  try { data = JSON.parse(jsonStr); } catch { data = {}; }\n  let text = '✅ Užklausa pateikta!\\n\\n';\n  if (data.date) text += '📅 Data: ' + data.date + '\\n';\n  if (data.location) text += '📍 Vieta: ' + data.location + '\\n';\n  if (data.event_type) text += '🎉 Renginys: ' + data.event_type + '\\n';\n  if (data.contact_name) text += '👤 Kontaktas: ' + data.contact_name + '\\n';\n  if (data.contact_phone) text += '📞 Telefonas: ' + data.contact_phone + '\\n';\n  if (data.trampoline) text += '🎪 Batutas: ' + data.trampoline + '\\n';\n  return text;\n}\n\n// --- Process markers in response ---\nconst messages = [];\nlet remaining = response;\n\n// Markers to process\nconst markerHandlers = [\n  {\n    pattern: /\\[DATE_PICKER\\]/,\n    handler: (textBefore) => {\n      if (textBefore.trim()) {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: {\n            text: textBefore.trim(),\n            quick_replies: buildDateQuickReplies()\n          }\n        });\n      } else {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: {\n            text: 'Pasirinkite datą 👇',\n            quick_replies: buildDateQuickReplies()\n          }\n        });\n      }\n    }\n  },\n  {\n    pattern: /\\[LOCATION_OPTIONS\\]/,\n    handler: (textBefore) => {\n      if (textBefore.trim()) {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: {\n            text: textBefore.trim(),\n            quick_replies: buildLocationQuickReplies()\n          }\n        });\n      } else {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: {\n            text: 'Kur vyks renginys?',\n            quick_replies: buildLocationQuickReplies()\n          }\n        });\n      }\n    }\n  },\n  {\n    pattern: /\\[EVENT_TYPE_OPTIONS\\]/,\n    handler: (textBefore) => {\n      if (textBefore.trim()) {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: {\n            text: textBefore.trim(),\n            quick_replies: buildEventTypeQuickReplies()\n          }\n        });\n      } else {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: {\n            text: 'Koks renginio tipas?',\n            quick_replies: buildEventTypeQuickReplies()\n          }\n        });\n      }\n    }\n  },\n  {\n    pattern: /\\[TRAMPOLINE_CATALOG\\]/,\n    handler: (textBefore) => {\n      if (textBefore.trim()) {\n        messages.push({\n          recipient: { id: senderId },\n          messaging_type: 'RESPONSE',\n          message: { text: textBefore.trim() }\n        });\n      }\n      const carousels = buildTrampolineCarousels();\n      messages.push(...carousels);\n    }\n  }\n];\n\n// Check for booking confirm first (has capture group)\nconst confirmMatch = remaining.match(/\\[BOOKING_CONFIRM:(\\{[^\\]]*\\})\\]/);\nif (confirmMatch) {\n  const beforeConfirm = remaining.substring(0, confirmMatch.index).trim();\n  const afterConfirm = remaining.substring(confirmMatch.index + confirmMatch[0].length).trim();\n  const confirmText = buildBookingConfirm(confirmMatch[1]);\n\n  if (beforeConfirm) {\n    messages.push({\n      recipient: { id: senderId },\n      messaging_type: 'RESPONSE',\n      message: { text: beforeConfirm }\n    });\n  }\n  messages.push({\n    recipient: { id: senderId },\n    messaging_type: 'RESPONSE',\n    message: { text: confirmText }\n  });\n  if (afterConfirm) {\n    messages.push({\n      recipient: { id: senderId },\n      messaging_type: 'RESPONSE',\n      message: { text: afterConfirm }\n    });\n  }\n  remaining = ''; // Fully handled\n}\n\n// Check for other markers\nif (remaining) {\n  let found = false;\n  for (const mh of markerHandlers) {\n    const match = remaining.match(mh.pattern);\n    if (match) {\n      const textBefore = remaining.substring(0, match.index);\n      const textAfter = remaining.substring(match.index + match[0].length).trim();\n      mh.handler(textBefore);\n      if (textAfter) {\n        // Strip any remaining unprocessed markers\n        const cleaned = textAfter\n          .replace(/\\[DATE_PICKER\\]/g, '')\n          .replace(/\\[LOCATION_OPTIONS\\]/g, '')\n          .replace(/\\[EVENT_TYPE_OPTIONS\\]/g, '')\n          .replace(/\\[TRAMPOLINE_CATALOG\\]/g, '')\n          .replace(/\\[BOOKING_CONFIRM:\\{[^\\]]*\\}\\]/g, '')\n          .trim();\n        if (cleaned) {\n          messages.push({\n            recipient: { id: senderId },\n            messaging_type: 'RESPONSE',\n            message: { text: cleaned }\n          });\n        }\n      }\n      found = true;\n      break; // Process first marker per response\n    }\n  }\n\n  // No markers found — plain text\n  if (!found) {\n    // Strip markdown bold markers (Messenger doesn't render them)\n    let plainText = remaining.replace(/\\*\\*(.+?)\\*\\*/g, '$1');\n    // Truncate to Messenger limit\n    if (plainText.length > 2000) plainText = plainText.substring(0, 1997) + '...';\n\n    messages.push({\n      recipient: { id: senderId },\n      messaging_type: 'RESPONSE',\n      message: { text: plainText }\n    });\n  }\n}\n\n// Fallback if no messages were generated\nif (messages.length === 0) {\n  messages.push({\n    recipient: { id: senderId },\n    messaging_type: 'RESPONSE',\n    message: { text: 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite: +370 686 55557' }\n  });\n}\n\nreturn [{ json: { messages } }];"
+      },
+      "id": "fb-format",
+      "name": "Format for Messenger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst messages = input.messages || [];\nconst accessToken = $env.FB_PAGE_ACCESS_TOKEN;\n\nif (!accessToken) {\n  throw new Error('FB_PAGE_ACCESS_TOKEN environment variable not set');\n}\n\nconst results = [];\n\nfor (let i = 0; i < messages.length; i++) {\n  const msg = messages[i];\n\n  try {\n    const response = await fetch(\n      'https://graph.facebook.com/v21.0/me/messages',\n      {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'Authorization': 'Bearer ' + accessToken\n        },\n        body: JSON.stringify(msg)\n      }\n    );\n\n    const data = await response.json();\n\n    if (!response.ok) {\n      console.error('FB API error: ' + response.status + ' ' + JSON.stringify(data));\n    }\n\n    results.push({ success: response.ok, status: response.status, data });\n\n    // Small delay between messages to maintain order\n    if (i < messages.length - 1) {\n      await new Promise(resolve => setTimeout(resolve, 300));\n    }\n  } catch (error) {\n    console.error('FB API fetch error: ' + error.message);\n    results.push({ success: false, error: error.message });\n  }\n}\n\nreturn [{ json: { sent: results.length, results } }];"
+      },
+      "id": "fb-send",
+      "name": "Send to Messenger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "should-process",
+              "leftValue": "={{ $('Extract & Route').item.json.routeType }}",
+              "rightValue": "ignore",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb-should-process",
+      "name": "Should Process?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [990, 400]
+    }
+  ],
+  "connections": {
+    "FB Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract & Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Route": {
+      "main": [
+        [
+          {
+            "node": "Is Verification?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Verification?": {
+      "main": [
+        [
+          {
+            "node": "Respond with Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 OK": {
+      "main": [
+        [
+          {
+            "node": "Should Process?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Process?": {
+      "main": [
+        [
+          {
+            "node": "Is Get Started?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Is Get Started?": {
+      "main": [
+        [
+          {
+            "node": "Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Unsupported?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Welcome Message": {
+      "main": [
+        [
+          {
+            "node": "Send to Messenger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Unsupported?": {
+      "main": [
+        [
+          {
+            "node": "Unsupported Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsupported Reply": {
+      "main": [
+        [
+          {
+            "node": "Send to Messenger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude LLM": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Booking Notify": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format for Messenger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Messenger": {
+      "main": [
+        [
+          {
+            "node": "Send to Messenger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Batutynas Chat",
+      "id": "batutynas-chat"
+    }
+  ],
+  "triggerCount": 0,
+  "versionId": "1"
+}
