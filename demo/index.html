@@ -1219,7 +1219,79 @@
       return 'Ačiū, kad kreipėtės! Jei turėsite daugiau klausimų, drąsiai rašykite. Geros dienos!';
     }
 
-    // -- Booking inquiry --
+    // -- 5-group menu selections --
+    if (/planuoju vaikų gimtadienį|gimtadienis.*krikštyn/i.test(msg)) {
+      bookingState.active = true;
+      bookingState.step = 1;
+      bookingState.data = { groupType: 'birthday' };
+      bookingState.lang = lang;
+      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu suplanuoti gimtadienį ar krikštynas.</p><p><strong>Kada planuojate renginį?</strong></p>' + datePicker() + '</div>';
+    }
+    if (/planuoju viešą renginį|įmonės sąskrydį|viešas renginys/i.test(msg)) {
+      bookingState.active = true;
+      bookingState.step = 1;
+      bookingState.data = { groupType: 'public' };
+      bookingState.lang = lang;
+      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu suplanuoti viešą renginį.</p><p><strong>Kada planuojate renginį?</strong></p>' + datePicker() + '</div>';
+    }
+    if (/planuoju triukšmingą vakarėlį|triukšmingas vakarėlis/i.test(msg)) {
+      bookingState.active = true;
+      bookingState.step = 1;
+      bookingState.data = { groupType: 'party' };
+      bookingState.lang = lang;
+      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu suplanuoti vakarėlį.</p><p><strong>Kada planuojate renginį?</strong></p>' + datePicker() + '</div>';
+    }
+    if (/noriu pirkti batutą|pirkti batut/i.test(msg)) {
+      return '{{HTML}}<div class="chat-products"><p>Ką norėtumėte?</p>' +
+        '<div class="chat-options">' +
+        '<button class="chat-option-btn" data-chat-option="Noriu gauti batutų katalogą el. paštu">📧 Gauti katalogą el. paštu</button>' +
+        '<button class="chat-option-btn" data-chat-option="Noriu individualios batuto gamybos">🎨 Individuali gamyba</button>' +
+        '</div></div>';
+    }
+    if (/saugumas.*duk.*kontakt|saugumas.*kontakt/i.test(msg)) {
+      var safetyText = FAQ.safety.a_lt;
+      return '{{HTML}}<div class="chat-products"><p>' + fmt(safetyText) + '</p>' +
+        '<p><strong>Kontaktai:</strong> +370 648 803 88 · info@batutynas.lt<br><strong>Darbo laikas:</strong> 8:00-21:00 kasdien</p>' +
+        optionButtons(['Nuomos kainos', 'Orų politika', 'Pristatymo zonos', 'Pagrindinis meniu']) + '</div>';
+    }
+    if (/pagrindinis meniu|pradžia|grįžti/i.test(msg)) {
+      return '{{HTML}}<div class="chat-products"><p>Kuo galiu padėti? Pasirinkite kategoriją:</p>' +
+        '<div class="chat-main-menu"><div class="chat-options chat-menu-options">' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju vaikų gimtadienį arba krikštynas">🎂 Vaikų gimtadienis ar krikštynos</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Viešas renginys ar įmonės sąskrydis</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju triukšmingą vakarėlį">🎉 Triukšmingas vakarėlis</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Noriu pirkti batutą">🛒 Noriu pirkti batutą</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Saugumas, DUK ir kontaktai">ℹ️ Saugumas, DUK ir kontaktai</button>' +
+        '</div></div></div>';
+    }
+    // -- Purchase sub-flows --
+    if (/noriu gauti batutų katalogą/i.test(msg)) {
+      return '{{HTML}}<div class="chat-products"><p>Įveskite savo el. pašto adresą ir atsiųsime batutų katalogą:</p>' +
+        '<div class="chat-email-form">' +
+        '<input type="email" class="chat-email-input" data-chat-email placeholder="jusu@pastas.lt">' +
+        '<button class="chat-email-confirm" data-chat-email-confirm disabled>Siųsti katalogą</button>' +
+        '</div></div>';
+    }
+    if (/noriu individualios batuto gamybos/i.test(msg)) {
+      return '{{HTML}}<div class="chat-products"><p style="font-size:13px;font-weight:600;margin-bottom:10px">Individualaus batuto užklausa:</p>' +
+        '<div class="chat-custom-form">' +
+        '<label style="font-size:12px;color:#555;display:block;margin-bottom:4px">Pageidaujami matmenys:</label>' +
+        '<input type="text" class="chat-custom-input" data-custom-field="dimensions" placeholder="pvz. 8x5x4 m">' +
+        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Spalvos:</label>' +
+        '<input type="text" class="chat-custom-input" data-custom-field="colors" placeholder="pvz. mėlyna, raudona">' +
+        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Personažai / tema:</label>' +
+        '<input type="text" class="chat-custom-input" data-custom-field="characters" placeholder="pvz. Spiderman">' +
+        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Papildomi pageidavimai:</label>' +
+        '<textarea class="chat-custom-textarea" data-custom-field="notes" placeholder="Aprašykite viziją..." rows="3"></textarea>' +
+        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">El. paštas:</label>' +
+        '<input type="email" class="chat-custom-input" data-custom-field="email" placeholder="jusu@pastas.lt">' +
+        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Telefonas:</label>' +
+        '<input type="text" class="chat-custom-input" data-custom-field="phone" placeholder="+370 600 00000">' +
+        '<button class="chat-custom-submit" data-chat-custom-submit>Pateikti užklausą</button>' +
+        '</div></div>';
+    }
+
+    // -- Booking inquiry (generic) --
     if (/užsisakyti|užsakyti|rezervuoti|noriu.*batut|book|reserve|order.*trampoline|want.*rent/i.test(msg)) {
       bookingState.active = true;
       bookingState.step = 1;

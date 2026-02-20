@@ -59,17 +59,19 @@ In N8N, create the following credentials:
 - Configure your email provider settings
 - Referenced by: `tool-booking-notify.json` (node: "Send Email to Admin")
 
-## Step 5: Set Environment Variables
+## Step 5: Configure Placeholders in Workflows
 
-In N8N Settings > Environment Variables, set:
+After importing, replace placeholder values directly in the workflow nodes:
 
-```
-SITE_DOMAIN=https://batutynas.lt
-ADMIN_EMAIL=info@batutynas.lt
-SMTP_FROM=noreply@batutynas.lt
-TOOL_BOOKING_NOTIFY_WORKFLOW_ID=<id-of-booking-notify-workflow>
-BATUTYNAS_SYSTEM_PROMPT_V2=<paste-contents-of-prompts/chat-system-prompt.md>
-```
+### chat-main.json (legacy Claude version)
+- **Tool: Booking Notify** node: replace `PASTE_YOUR_BOOKING_WORKFLOW_ID_HERE` with the actual workflow ID of your booking notification workflow
+
+### chat-main-v2.json (Gemini + RAG version)
+- Check the workflow for any placeholder values and replace them with your actual credentials/IDs
+- The system prompt is already embedded from `prompts/chat-system-prompt.md`
+
+### tool-booking-notify.json
+- Verify the admin email (`info@batutynas.lt`) and sender address are correct in the email node
 
 ## Step 6: Run Website Ingestion
 
@@ -87,8 +89,8 @@ When website content changes:
 ## Step 7: Activate Workflows
 
 1. Activate the booking notification workflow first
-2. Note its workflow ID
-3. Set `TOOL_BOOKING_NOTIFY_WORKFLOW_ID` environment variable
+2. Note its workflow ID (visible in the URL bar, e.g. `/workflow/12345`)
+3. Paste that ID into the chat workflow's "Tool: Booking Notify" node
 4. Activate the main chat v2 workflow
 5. Note the webhook URL (shown in the Chat Webhook node)
 
@@ -145,7 +147,7 @@ Copy the contents of `embed-snippet.html` into your Zyro custom code footer sect
 ### Chat sends but gets no response
 - Check N8N workflow execution log
 - Verify webhook URL matches exactly
-- Check CORS settings (SITE_DOMAIN env var)
+- Check CORS settings in the Chat Webhook node (Access-Control-Allow-Origin header)
 
 ### Booking emails not arriving
 - Check SMTP credentials in N8N

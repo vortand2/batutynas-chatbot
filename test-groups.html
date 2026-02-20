@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: 5 Group Flows</title>
+  <link rel="stylesheet" href="chat-widget/chat-widget.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 420px; margin: 40px auto; padding: 20px; background: #f8f9fb; }
+    h1 { font-size: 18px; color: #1a1a2e; }
+    h2 { font-size: 14px; color: #6b7588; margin: 24px 0 8px; }
+    .test-output { background: white; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .test-output .html-content { white-space: normal; }
+    .test-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .test-btn { padding: 8px 14px; border: 1px solid #d8ccf5; border-radius: 8px; background: #f5f0ff; color: #6C3CE1; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .test-btn:hover { background: #6C3CE1; color: white; }
+    .test-btn.active { background: #6C3CE1; color: white; }
+    #output { min-height: 100px; }
+    .log { font-size: 11px; color: #888; margin-top: 8px; padding: 8px; background: #f8f8f8; border-radius: 6px; font-family: monospace; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>Batutynas Chat — 5 Group Test</h1>
+  <p style="font-size:13px;color:#6b7588">Click a test to render its output. Interactive elements work — try clicking buttons, filling email, submitting forms.</p>
+
+  <div class="test-btns">
+    <button class="test-btn" onclick="test('main_menu')">Main Menu</button>
+    <button class="test-btn" onclick="test('birthday_10')">Birthday (10 guests)</button>
+    <button class="test-btn" onclick="test('birthday_30')">Birthday (30 guests)</button>
+    <button class="test-btn" onclick="test('public_20')">Public (20 guests)</button>
+    <button class="test-btn" onclick="test('public_50')">Public (50 guests)</button>
+    <button class="test-btn" onclick="test('party')">Party Equipment</button>
+    <button class="test-btn" onclick="test('purchase_menu')">Purchase Menu</button>
+    <button class="test-btn" onclick="test('purchase_email')">Email Input</button>
+    <button class="test-btn" onclick="test('purchase_form')">Custom Form</button>
+    <button class="test-btn" onclick="test('date')">Date Picker</button>
+    <button class="test-btn" onclick="test('location')">Location</button>
+    <button class="test-btn" onclick="test('guests')">Guest Count</button>
+    <button class="test-btn" onclick="test('confirm')">Booking Confirm</button>
+    <button class="test-btn" onclick="test('info')">Info (plain text)</button>
+  </div>
+
+  <div id="output" class="test-output"></div>
+  <div id="log" class="log" style="display:none"></div>
+
+<script>
+// --- Inline the enrich code to test marker rendering ---
+</script>
+<script src="n8n-workflows/enrich-response-code-test.js"></script>
+<script>
+// Test scenarios — simulate AI responses with markers
+const SCENARIOS = {
+  main_menu: 'Sveiki! Kuo galiu padėti? Pasirinkite kategoriją:\n\n[MAIN_MENU]',
+  birthday_10: 'Puiku! Štai batutai, tinkami jūsų šventei su 10 svečių:\n\n[MENU_GROUP_BIRTHDAY:10]',
+  birthday_30: 'Didelei šventei su 30 svečių rekomenduojame:\n\n[MENU_GROUP_BIRTHDAY:30]',
+  public_20: 'Viešam renginiui su ~20 dalyvių siūlome:\n\n[MENU_GROUP_PUBLIC:20]',
+  public_50: 'Dideliam renginiui su ~50 dalyvių:\n\n[MENU_GROUP_PUBLIC:50]',
+  party: 'Štai vakarėlio įranga:\n\n[MENU_GROUP_PARTY]',
+  purchase_menu: 'Ką norėtumėte?\n\n[PURCHASE_SUBMENU]',
+  purchase_email: 'Įveskite el. paštą ir atsiųsime katalogą:\n\n[PURCHASE_EMAIL_INPUT]',
+  purchase_form: 'Užpildykite formą individualiam batutui:\n\n[PURCHASE_CUSTOM_FORM]',
+  date: 'Kada planuojate renginį?\n\n[DATE_PICKER]',
+  location: 'Kur vyks renginys?\n\n[LOCATION_OPTIONS]',
+  guests: 'Kiek svečių planuojate?\n\n[GUEST_COUNT]',
+  confirm: 'Jūsų užklausa pateikta!\n\n[BOOKING_CONFIRM:{"group_type":"Gimtadienis","date":"2026-03-15","location":"Tauragė","event_type":"Vaikų gimtadienis","guest_count":"15","contact_name":"Jonas","contact_phone":"+37061234567","trampoline":"Mega Waikiki"}]',
+  info: 'Batutai yra sertifikuoti pagal **EN14960** Europos saugos standartą.\n\nSvarbiausios taisyklės:\n- Nusiauti batus\n- Nusiimti papuošalus\n- Amžius: 2-14 metų, iki 70 kg\n- Suaugusiojo priežiūra vaikams iki 6 metų\n\nKontaktai: +370 648 803 88'
+};
+
+function test(scenario) {
+  // Highlight active button
+  document.querySelectorAll('.test-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  var response = SCENARIOS[scenario];
+  var result = enrichResponse(response);
+
+  var output = document.getElementById('output');
+  if (result.startsWith('{{HTML}}')) {
+    output.innerHTML = result.substring(8);
+    output.className = 'test-output html-content';
+  } else {
+    output.textContent = result;
+    output.className = 'test-output';
+  }
+
+  // Show log
+  var log = document.getElementById('log');
+  log.style.display = 'block';
+  log.textContent = 'Input: ' + response.substring(0, 80) + '...\nOutput length: ' + result.length + ' chars\nHas {{HTML}}: ' + result.startsWith('{{HTML}}');
+}
+
+// Wire up interactive elements via event delegation (same as chat-widget.js)
+function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+
+document.addEventListener('click', function(e) {
+  var opt = e.target.closest('[data-chat-option]');
+  if (opt && !opt.disabled) {
+    alert('Selected: ' + opt.getAttribute('data-chat-option'));
+    return;
+  }
+  var emailBtn = e.target.closest('[data-chat-email-confirm]');
+  if (emailBtn && !emailBtn.disabled) {
+    var inp = emailBtn.parentElement.querySelector('[data-chat-email]');
+    if (inp && isValidEmail(inp.value.trim())) {
+      alert('Email submitted: ' + inp.value.trim());
+      emailBtn.disabled = true;
+      inp.disabled = true;
+    }
+    return;
+  }
+  var customBtn = e.target.closest('[data-chat-custom-submit]');
+  if (customBtn && !customBtn.disabled) {
+    var form = customBtn.closest('.chat-custom-form');
+    var fields = form.querySelectorAll('[data-custom-field]');
+    var data = {};
+    fields.forEach(function(f) { data[f.getAttribute('data-custom-field')] = f.value; });
+    alert('Custom form:\n' + JSON.stringify(data, null, 2));
+    customBtn.disabled = true;
+    fields.forEach(function(f) { f.disabled = true; });
+    return;
+  }
+  var dateBtn = e.target.closest('[data-chat-date-confirm]');
+  if (dateBtn && !dateBtn.disabled) {
+    var dateInp = dateBtn.parentElement.querySelector('[data-chat-date]');
+    if (dateInp && dateInp.value) {
+      alert('Date selected: ' + dateInp.value);
+    }
+    return;
+  }
+});
+
+document.addEventListener('input', function(e) {
+  var emailInp = e.target.closest('[data-chat-email]');
+  if (emailInp) {
+    var btn = emailInp.parentElement.querySelector('[data-chat-email-confirm]');
+    if (btn) btn.disabled = !isValidEmail(emailInp.value.trim());
+  }
+});
+
+document.addEventListener('change', function(e) {
+  var dateInp = e.target.closest('[data-chat-date]');
+  if (dateInp) {
+    var btn = dateInp.parentElement.querySelector('[data-chat-date-confirm]');
+    if (btn) btn.disabled = !dateInp.value;
+  }
+});
+</script>
+</body>
+</html>
