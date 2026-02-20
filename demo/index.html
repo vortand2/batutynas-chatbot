@@ -858,8 +858,8 @@
   };
 
   var QUICK_PROMPTS = {
-    lt: ['Nuomos kainos', 'Batutų katalogas', 'Užsakyti batutą', 'Pristatymo zonos', 'Mano užsakymas'],
-    en: ['Rental prices', 'Trampoline catalog', 'Book a trampoline', 'Delivery areas', 'My booking']
+    lt: ['Planuoju šventę', 'Noriu pirkti batutą', 'Kainos', 'Kontaktai'],
+    en: ['Plan an event', 'Buy a trampoline', 'Prices', 'Contacts']
   };
 
   var config = { webhookUrl: 'demo', primaryColor: '#6C3CE1', storeName: 'Batutynas.lt', userEmail: null, userName: null, language: null };
@@ -1205,12 +1205,24 @@
       return handleBookingStep(message, lang);
     }
 
-    // -- Greetings --
+    // -- Greetings → show main menu --
     if (/^(hi|hello|hey|good\s*(morning|afternoon|evening)|labas|laba diena|sveiki|sveikas)\b/i.test(msg)) {
       if (lang === 'en') return '{{HTML}}<div class="chat-products"><p>Hello! I\'m the Batutynas.lt assistant. How can I help you?</p>' +
-        optionButtons(['Trampoline catalog', 'Rental prices', 'Book a trampoline', 'Delivery areas', 'Safety rules']) + '</div>';
+        '<div class="chat-main-menu"><div class="chat-options chat-menu-options">' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju vaikų gimtadienį arba krikštynas">🎂 Children\'s birthday</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Public event</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju triukšmingą vakarėlį">🎉 Party</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Noriu pirkti batutą">🛒 Buy a trampoline</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Saugumas, DUK ir kontaktai">ℹ️ Safety & FAQ</button>' +
+        '</div></div></div>';
       return '{{HTML}}<div class="chat-products"><p>Sveiki! Esu Batutynas.lt asistentas. Kuo galiu padėti?</p>' +
-        optionButtons(['Batutų katalogas', 'Nuomos kainos', 'Užsakyti batutą', 'Pristatymo zonos', 'Saugumo taisyklės']) + '</div>';
+        '<div class="chat-main-menu"><div class="chat-options chat-menu-options">' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju vaikų gimtadienį arba krikštynas">🎂 Vaikų gimtadienis ar krikštynos</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Viešas renginys ar įmonės sąskrydis</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju triukšmingą vakarėlį">🎉 Triukšmingas vakarėlis</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Noriu pirkti batutą">🛒 Noriu pirkti batutą</button>' +
+        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Saugumas, DUK ir kontaktai">ℹ️ Saugumas, DUK ir kontaktai</button>' +
+        '</div></div></div>';
     }
 
     // -- Thanks / Bye --
