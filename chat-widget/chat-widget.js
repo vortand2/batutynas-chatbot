@@ -17,8 +17,8 @@
   };
 
   const QUICK_PROMPTS = {
-    lt: ['Nuomos kainos', 'Batut\u0173 katalogas', 'U\u017esakyti batut\u0105', 'Pristatymo zonos'],
-    en: ['Rental prices', 'Trampoline catalog', 'Book a trampoline', 'Delivery areas']
+    lt: ['Planuoju \u0161vent\u0119', 'Noriu pirkti batut\u0105', 'Kainos', 'Kontaktai'],
+    en: ['Plan an event', 'Buy a trampoline', 'Prices', 'Contacts']
   };
 
   let config = {
