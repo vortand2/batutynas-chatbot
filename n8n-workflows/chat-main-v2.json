@@ -1,0 +1,316 @@
+{
+  "name": "Batutynas: Chat Support Agent v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "batutynas-chat",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "chat-trigger",
+      "name": "Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "batutynas-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\n\nconst sessionId = String(body.session_id || 'anonymous-' + Date.now()).substring(0, 100);\n\n// Sanitize message: strip control chars, trim, enforce length limit\nlet message = String(body.message || '').replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g, '').trim();\nif (message.length > 2000) message = message.substring(0, 2000);\n\nconst userEmail = body.email ? String(body.email).substring(0, 254) : null;\nconst userName = body.name ? String(body.name).substring(0, 100) : null;\n\n// Validate language — only allow known values\nconst allowedLangs = ['lt', 'en'];\nconst rawLang = String(body.language || 'lt').toLowerCase().substring(0, 2);\nconst browserLang = allowedLangs.indexOf(rawLang) !== -1 ? rawLang : 'lt';\n\nreturn [{\n  json: {\n    sessionId,\n    message,\n    userEmail,\n    userName,\n    browserLang,\n    chatInput: message || 'Sveiki'\n  }\n}];"
+      },
+      "id": "chat-extract",
+      "name": "Extract Chat Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=# Batutynas.lt — AI Pokalbių Roboto Sistemos Nurodymai (v3 — 5 grupės)\n\nTu esi draugiškas ir profesionalus klientų aptarnavimo asistentas įmonei **Batutynas.lt** — pripučiamų batutų nuomos kompanija, veikianti nuo 2015 metų, bazuota Tauragėje, Lietuvoje.\n\n## Pagrindinės taisyklės\n\n1. **Kalba**: Visada atsakyk ta kalba, kuria klientas rašo. Numatytoji: lietuvių.\n2. **Tonas**: Šiltas, profesionalus, orientuotas į sprendimus.\n3. **Tikslumas**: Naudok Pinecone žinių bazę. Niekada nespėliok.\n4. **Kainos**: NIEKADA neminėk konkrečių kainų. Sakyk: „Kainos prasideda nuo 30 €, tikslią kainą mūsų komanda pateiks asmeniškai. Pateikite užklausą arba skambinkite +370 648 803 88.\"\n5. **Bet koks klausimas**: Atsakyk į BET KOKĮ klausimą. Niekada nesakyk „negaliu atsakyti\".\n\n## RAG žinių bazė\n\n- Visada naudok Pinecone žinių bazės įrankį susijusioms užklausoms.\n- Jei nėra rezultatų — pasiūlyk susisiekti: **+370 648 803 88** arba **info@batutynas.lt**.\n- Nekurpink informacijos.\n\n## INTERAKTYVŪS ŽYMEKLIAI\n\nŽymeklius rašyk TIKSLIAI, atskiroje eilutėje, be backtick, be kabučių.\n\n### Žymeklių sąrašas:\n\n**[MAIN_MENU]** — Pagrindinis meniu su 5 grupėmis.\nNAUDOK: pokalbio pradžioje, kai klientas sako \"meniu\", \"pradžia\", \"pagrindinis meniu\".\n\n**[DATE_PICKER]** — Datos pasirinkimas.\n**[LOCATION_OPTIONS]** — Vietos pasirinkimas.\n**[GUEST_COUNT]** — Svečių skaičiaus pasirinkimas.\n\n**[MENU_GROUP_BIRTHDAY]** arba **[MENU_GROUP_BIRTHDAY:N]** — Gimtadienio/krikštynų batutai (tik standartiniai + mega, BE didelių parkų). Su N paryškins tinkamus.\n**[MENU_GROUP_PUBLIC]** arba **[MENU_GROUP_PUBLIC:N]** — Viešo renginio batutai (VISI batutai, didžiausi pirmi). Su N paryškins tinkamus.\n**[MENU_GROUP_PARTY]** — Vakarėlio įranga (disco paviljonas, putų šou, stalai ir kėdės).\n\n**[PURCHASE_SUBMENU]** — Pirkimo pasirinkimai (katalogas el. paštu / individuali gamyba).\n**[PURCHASE_EMAIL_INPUT]** — El. pašto įvedimo laukas katalogui gauti.\n**[PURCHASE_CUSTOM_FORM]** — Individualios gamybos užklausos forma.\n\n**[BOOKING_CONFIRM:{json}]** — Užsakymo patvirtinimo kortelė.\n\n### Kaip rašyti žymeklius:\n\nTEISINGAI:\nPuiku! Kada planuojate renginį?\n\n[DATE_PICKER]\n\nNETEISINGAI: `[DATE_PICKER]` arba eilutės viduje.\n\n## 5 GRUPIŲ MENIU\n\nPokalbio pradžioje arba kai klientas nori grįžti — VISADA rodyk:\n\n[MAIN_MENU]\n\nMeniu turi 5 pasirinkimus:\n1. Vaikų gimtadienis ar krikštynos\n2. Viešas renginys ar įmonės sąskrydis\n3. Triukšmingas vakarėlis\n4. Noriu pirkti batutą\n5. Saugumas, DUK ir kontaktai\n\n## GRUPIŲ SRAUTAI\n\n### Grupė 1 — Vaikų gimtadienis ar krikštynos\nŽingsniai: Data → Vieta → Svečiai → Batutai → Telefonas → booking_notify → Patvirtinimas\n\n1. Paklausk datos → [DATE_PICKER]\n2. Paklausk vietos → [LOCATION_OPTIONS]\n3. Paklausk svečių → [GUEST_COUNT]\n4. Parodyk gimtadienio batutus su svečių skaičiumi → [MENU_GROUP_BIRTHDAY:N]\n5. Paprašyk telefono (tekstu, be mygtukų)\n6. Iškvieti booking_notify → [BOOKING_CONFIRM:{...}]\n\n### Grupė 2 — Viešas renginys ar įmonės sąskrydis\nŽingsniai: Data → Vieta → Svečiai → Batutai → Telefonas → booking_notify → Patvirtinimas\n\n1. Paklausk datos → [DATE_PICKER]\n2. Paklausk vietos → [LOCATION_OPTIONS]\n3. Paklausk svečių → [GUEST_COUNT]\n4. Parodyk VISUS batutus (didžiausi pirmi) → [MENU_GROUP_PUBLIC:N]\n5. Paprašyk telefono\n6. booking_notify → [BOOKING_CONFIRM:{...}]\n\n### Grupė 3 — Triukšmingas vakarėlis\nŽingsniai: Data → Vieta → Svečiai → Vakarėlio įranga → Telefonas → booking_notify → Patvirtinimas\n\n1. Paklausk datos → [DATE_PICKER]\n2. Paklausk vietos → [LOCATION_OPTIONS]\n3. Paklausk svečių → [GUEST_COUNT]\n4. Parodyk vakarėlio įrangą → [MENU_GROUP_PARTY]\n5. Paprašyk telefono\n6. booking_notify → [BOOKING_CONFIRM:{...}]\n\n### Grupė 4 — Noriu pirkti batutą\nParodyk pirkimo pasirinkimus:\n\n[PURCHASE_SUBMENU]\n\n**Kelias A (Katalogas el. paštu):** Klientas pasirinko katalogą → parodyk el. pašto lauką:\n\n[PURCHASE_EMAIL_INPUT]\n\nKai klientas pateikia el. paštą, patvirtink, kad katalogas bus išsiųstas.\n\n**Kelias B (Individuali gamyba):** Klientas pasirinko individualią gamybą → parodyk formą:\n\n[PURCHASE_CUSTOM_FORM]\n\nKai klientas užpildo formą, iškvieti booking_notify su group_type=\"purchase_custom\" ir formos duomenimis → [BOOKING_CONFIRM:{...}]\n\n### Grupė 5 — Saugumas, DUK ir kontaktai\nJokio užsakymo srauto. Tiesiog atsakyk iš žinių bazės. Galimi klausimai: saugumo taisyklės, DUK, kontaktai, darbo laikas, pristatymo zonos, atšaukimo politika.\n\n## Užsakymo taisyklės\n\n- **Klausk TIK PO VIENĄ žingsnį**\n- **Praleisk žingsnius**, jei klientas jau pateikė informaciją\n- **Niekada nerašyk tikro HTML kodo**\n- **Niekada nerašyk \\\\n simbolių**\n- Į booking_notify **VISADA** pridėk group_type lauką (\"birthday\", \"public\", \"party\", \"purchase_custom\", \"purchase_catalog\")\n\n### Po booking_notify:\nPridėk patvirtinimą:\n\n[BOOKING_CONFIRM:{\"group_type\":\"birthday\",\"date\":\"2026-02-21\",\"location\":\"Tauragė\",\"guest_count\":\"10\",\"contact_name\":\"Jonas\",\"contact_phone\":\"+37061234567\",\"trampoline\":\"Mega Rocket\"}]\n\n**SVARBU**: Tai yra **užklausa, ne patvirtintas užsakymas**. Komanda susisieks per 2 darbo valandas.\n\n## Eskalavimas\n\nEskaluok kai: klientas prašo žmogaus, nusivylęs, individualus sprendimas, finansiniai klausimai.\nKontaktai: **+370 648 803 88**, **info@batutynas.lt**\n\n## Formato taisyklės\n\n- Trumpi atsakymai: 1-3 pastraipos\n- Naudok **bold** svarbiai informacijai\n- **NERAŠYK** \"Ar turite daugiau klausimų?\" — sistema automatiškai prideda mygtukus.\n\nThe customer's browser language is: {{ $json.browserLang }}\nCustomer email (if known): {{ $json.userEmail }}\nCustomer name (if known): {{ $json.userName }}"
+        },
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}"
+      },
+      "id": "chat-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {
+          "maxOutputTokens": 1024,
+          "temperature": 0.3
+        }
+      },
+      "id": "chat-llm-gemini",
+      "name": "Gemini 2.5 Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        500,
+        520
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GEMINI_CRED_ID",
+          "name": "Google AI (Gemini)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $('Extract Chat Input').item.json.sessionId }}",
+        "contextWindowLength": 16
+      },
+      "id": "chat-memory",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        620,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "batutynas_knowledge_base",
+        "toolDescription": "Search batutynas.lt knowledge base for information about products, trampolines, prices, delivery zones, safety rules, FAQ, company info, services, events, and any other business-related questions. Always use this tool when the customer asks about products, prices, availability, safety, delivery, or company details.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "batutynas",
+          "mode": "list",
+          "cachedResultName": "batutynas"
+        },
+        "topK": 5,
+        "options": {
+          "pineconeNamespace": "batutynas-lt"
+        }
+      },
+      "id": "chat-pinecone",
+      "name": "Pinecone Knowledge Base",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1,
+      "position": [
+        740,
+        520
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "PINECONE_CRED_ID",
+          "name": "Pinecone API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "chat-embeddings",
+      "name": "OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [
+        740,
+        700
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CRED_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "booking_notify",
+        "description": "Send a booking inquiry notification email to the admin. Call this tool ONLY after collecting ALL required booking details from the customer. For rental bookings (birthday/public/party): date, location, guest_count, contact_name, contact_phone, trampoline_preference. For purchase requests: group_type, email, dimensions, colors, characters. Always include group_type field.",
+        "workflowId": "PASTE_YOUR_WORKFLOW_ID_HERE",
+        "responsePropertyName": "result",
+        "specifyInputSchema": true,
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\"group_type\": \"birthday\", \"date\": \"2026-02-21\", \"location\": \"Tauragė\", \"event_type\": \"Gimtadienis\", \"guest_count\": \"10\", \"contact_name\": \"Jonas\", \"contact_phone\": \"+37061234567\", \"trampoline_preference\": \"Mega Rocket\", \"dimensions\": \"\", \"colors\": \"\", \"characters\": \"\", \"email\": \"\"}"
+      },
+      "id": "chat-tool-booking",
+      "name": "Tool: Booking Notify",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $input.first().json || {};\nlet response = agentOutput.output || agentOutput.text || '';\n\nif (!response || !response.trim()) {\n  return [{ json: { enriched: 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 648 803 88 arba info@batutynas.lt' } }];\n}\n\n// Idempotency: skip if already enriched\nif (response.startsWith('{{HTML}}')) {\n  return [{ json: { enriched: response } }];\n}\n\n// --- Equipment data (categorized by use-case groups) ---\nconst TRAMPOLINES = [\n  // --- big-park (for public events only) ---\n  { name: 'Džiumandži parkas', icon: '🌴', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', type: 'Nuotykių parkas · 14x16 m', capacity: 'Iki 40 vaikų', price: 'pagal užklausą', bg: '#fef9f0', min: 15, max: 40, cat: 'big-park' },\n  { name: 'Fantazijų parkas', icon: '🏰', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', type: 'Batutų parkas · 14x14 m', capacity: 'Iki 30 vaikų', price: 'pagal užklausą', bg: '#f5f0ff', min: 10, max: 30, cat: 'big-park' },\n  { name: 'Giga ruožas', icon: '🏃', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', type: 'Kliūčių trasa 40 m · 45x8 m', capacity: '360 dalyvių/val.', price: 'pagal užklausą', bg: '#f0f9ff', min: 10, max: 100, cat: 'big-park' },\n\n  // --- mega-trampoline (for birthdays + public) ---\n  { name: 'Mega Waikiki', icon: '🌊', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg', type: 'Aukščiausias 8,5 m · 16x4 m', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', bg: '#e0f7fa', min: 5, max: 15, cat: 'mega-trampoline' },\n  { name: 'Mega Rocket', icon: '🚀', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg', type: '2 dalių batutas · 14x5 m', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', bg: '#fff0f0', min: 5, max: 15, cat: 'mega-trampoline' },\n  { name: 'Mega Ufonautai', icon: '🛸', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg', type: '2 dalių batutas · 14x5 m', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', bg: '#ede7f6', min: 5, max: 15, cat: 'mega-trampoline' },\n  { name: 'Mega ruožas', icon: '🏃', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', type: 'Kliūčių trasa 21 m · 25x6 m', capacity: '240 dalyvių/val.', price: 'pagal užklausą', bg: '#e8f5e9', min: 8, max: 100, cat: 'mega-trampoline' },\n\n  // --- standard-trampoline (for birthdays) ---\n  { name: 'Monstrai', icon: '👾', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png', type: 'Su Dart žaidimu · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#fce4ec', min: 4, max: 12, cat: 'standard-trampoline' },\n  { name: 'Candy Pop', icon: '🍭', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png', type: 'Spalvingas · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#fdf0ff', min: 4, max: 12, cat: 'standard-trampoline' },\n  { name: 'Aštuonkojis', icon: '🐙', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png', type: 'Jūros tema · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#e0f2f1', min: 4, max: 12, cat: 'standard-trampoline' },\n  { name: 'Chameleonas', icon: '🦎', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png', type: 'Su čiuožykla · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#f0fff4', min: 4, max: 12, cat: 'standard-trampoline' },\n  { name: 'Vienaragiai', icon: '🦄', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', type: 'Su tuneliais · 9x4 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#f3e5f5', min: 4, max: 12, cat: 'standard-trampoline' },\n  { name: 'Pilis mažiesiems', icon: '🏯', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', type: 'Iki 5 metų · 5x4 m', capacity: 'Iki 6 vaikų', price: 'pagal užklausą', bg: '#fff8e1', min: 2, max: 6, cat: 'standard-trampoline' },\n\n  // --- addon (extras for any event) ---\n  { name: 'Milžiniškas Dart', icon: '🎯', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga · 5x4,5 m', capacity: '60 dalyvių/val.', price: 'pagal užklausą', bg: '#fffff0', min: 1, max: 999, cat: 'addon' },\n  { name: 'Kamuolių medžioklė', icon: '⚽', img: '', type: 'Komandinis žaidimas · 8 m arena', capacity: '4 žaidėjai/raundas', price: 'pagal užklausą', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon' },\n  { name: 'Rodeo bulius', icon: '🤠', img: '', type: 'Mechaninis bulius · 5x5 m', capacity: 'Neribota', price: 'pagal užklausą', bg: '#fff3e0', min: 1, max: 999, cat: 'addon' },\n  { name: 'Saldėsių aparatai', icon: '🍬', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', price: 'pagal užklausą', bg: '#fff5f0', min: 1, max: 999, cat: 'addon' },\n\n  // --- party-equipment (party group only) ---\n  { name: 'Disco paviljonas', icon: '🪩', img: '', type: 'LED apšvietimas · 4x4 m', capacity: 'Iki 20 žmonių', price: 'pagal užklausą', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment' },\n  { name: 'Putų šou', icon: '🫧', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', price: 'pagal užklausą', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment' },\n  { name: 'Banketo stalai ir kėdės', icon: '🪑', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', price: 'pagal užklausą', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment' }\n];\n\n// --- Render trampoline/equipment cards ---\nfunction buildTrampolineCards(items, highlight) {\n  let html = '<div class=\"chat-trampoline-grid\">';\n  for (const t of items) {\n    const thumb = t.img\n      ? '<img src=\"' + t.img + '\" alt=\"' + t.name + '\">'\n      : t.icon;\n    const border = highlight ? ';border:2px solid #4a6cf7' : '';\n    html += '<div class=\"chat-trampoline-select\" role=\"button\" tabindex=\"0\" data-chat-option=\"' + t.name + '\" style=\"background:' + t.bg + border + '\">';\n    html += '<div class=\"chat-trampoline-thumb\">' + thumb + '</div>';\n    html += '<div class=\"chat-trampoline-info\">';\n    html += '<div class=\"t-name\">' + t.name + '</div>';\n    html += '<div class=\"t-meta\">' + t.type + ' · ' + t.capacity + '</div>';\n    html += '<div class=\"t-price\">' + t.price + '</div>';\n    html += '</div></div>';\n  }\n  html += '</div>';\n  return html;\n}\n\n// --- Group 1: Birthday equipment (standard + mega only, no big parks) ---\nfunction buildGroupBirthdayEquipment(guestCount) {\n  const standard = TRAMPOLINES.filter(function(t) { return t.cat === 'standard-trampoline'; });\n  const mega = TRAMPOLINES.filter(function(t) { return t.cat === 'mega-trampoline'; });\n  const addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });\n  const all = standard.concat(mega);\n\n  let html = '';\n\n  if (guestCount) {\n    var recommended = all.filter(function(t) { return t.min <= guestCount && guestCount <= t.max; });\n    var others = all.filter(function(t) { return !(t.min <= guestCount && guestCount <= t.max); });\n\n    if (recommended.length > 0) {\n      html += '<div style=\"font-size:14px;font-weight:600;color:#4a6cf7;margin-bottom:8px;padding:0 4px\">Rekomenduojami jūsų šventei:</div>';\n      html += buildTrampolineCards(recommended, true);\n    }\n    if (others.length > 0) {\n      html += '<div style=\"font-size:13px;color:#888;margin:12px 0 8px;padding:0 4px\">Kiti batutai:</div>';\n      html += buildTrampolineCards(others, false);\n    }\n  } else {\n    html += buildTrampolineCards(all, false);\n  }\n\n  if (addons.length > 0) {\n    html += '<div style=\"font-size:13px;color:#888;margin:12px 0 8px;padding:0 4px\">Papildomos pramogos:</div>';\n    html += buildTrampolineCards(addons, false);\n  }\n\n  return html;\n}\n\n// --- Group 2: Public event equipment (ALL trampolines, biggest first) ---\nfunction buildGroupPublicEquipment(guestCount) {\n  const bigParks = TRAMPOLINES.filter(function(t) { return t.cat === 'big-park'; });\n  const mega = TRAMPOLINES.filter(function(t) { return t.cat === 'mega-trampoline'; });\n  const standard = TRAMPOLINES.filter(function(t) { return t.cat === 'standard-trampoline'; });\n  const addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });\n  const all = bigParks.concat(mega).concat(standard);\n\n  let html = '';\n\n  if (guestCount) {\n    var recommended = all.filter(function(t) { return t.min <= guestCount && guestCount <= t.max; });\n    var others = all.filter(function(t) { return !(t.min <= guestCount && guestCount <= t.max); });\n\n    if (recommended.length > 0) {\n      html += '<div style=\"font-size:14px;font-weight:600;color:#4a6cf7;margin-bottom:8px;padding:0 4px\">Rekomenduojami jūsų renginiui:</div>';\n      html += buildTrampolineCards(recommended, true);\n    }\n    if (others.length > 0) {\n      html += '<div style=\"font-size:13px;color:#888;margin:12px 0 8px;padding:0 4px\">Kiti batutai:</div>';\n      html += buildTrampolineCards(others, false);\n    }\n  } else {\n    html += buildTrampolineCards(all, false);\n  }\n\n  if (addons.length > 0) {\n    html += '<div style=\"font-size:13px;color:#888;margin:12px 0 8px;padding:0 4px\">Papildomos pramogos:</div>';\n    html += buildTrampolineCards(addons, false);\n  }\n\n  return html;\n}\n\n// --- Group 3: Party equipment only ---\nfunction buildGroupPartyEquipment() {\n  const party = TRAMPOLINES.filter(function(t) { return t.cat === 'party-equipment'; });\n  let html = '<div style=\"font-size:14px;font-weight:600;color:#4a6cf7;margin-bottom:8px;padding:0 4px\">Vakarėlio įranga:</div>';\n  html += buildTrampolineCards(party, false);\n  return html;\n}\n\n// --- Group 4: Purchase submenu ---\nfunction buildPurchaseSubmenu() {\n  let html = '<div class=\"chat-options\">';\n  html += '<button class=\"chat-option-btn\" data-chat-option=\"Noriu gauti batutų katalogą el. paštu\">📧 Gauti katalogą el. paštu</button>';\n  html += '<button class=\"chat-option-btn\" data-chat-option=\"Noriu individualios batuto gamybos\">🎨 Individuali gamyba</button>';\n  html += '</div>';\n  return html;\n}\n\n// --- Group 4: Email input for catalog ---\nfunction buildPurchaseEmailInput() {\n  let html = '<div class=\"chat-email-form\">';\n  html += '<p style=\"font-size:13px;margin-bottom:8px\">Įveskite savo el. pašto adresą ir atsiųsime batutų katalogą:</p>';\n  html += '<input type=\"email\" class=\"chat-email-input\" data-chat-email placeholder=\"jusu@pastas.lt\">';\n  html += '<button class=\"chat-email-confirm\" data-chat-email-confirm disabled>Siųsti katalogą</button>';\n  html += '</div>';\n  return html;\n}\n\n// --- Group 4: Custom manufacturing form ---\nfunction buildPurchaseCustomForm() {\n  let html = '<div class=\"chat-custom-form\">';\n  html += '<p style=\"font-size:13px;font-weight:600;margin-bottom:10px\">Individualaus batuto užklausa:</p>';\n  html += '<label style=\"font-size:12px;color:#555;display:block;margin-bottom:4px\">Pageidaujami matmenys (plotis x ilgis x aukštis):</label>';\n  html += '<input type=\"text\" class=\"chat-custom-input\" data-custom-field=\"dimensions\" placeholder=\"pvz. 8x5x4 m\">';\n  html += '<label style=\"font-size:12px;color:#555;display:block;margin:8px 0 4px\">Spalvos:</label>';\n  html += '<input type=\"text\" class=\"chat-custom-input\" data-custom-field=\"colors\" placeholder=\"pvz. mėlyna, raudona, geltona\">';\n  html += '<label style=\"font-size:12px;color:#555;display:block;margin:8px 0 4px\">Personažai / tema:</label>';\n  html += '<input type=\"text\" class=\"chat-custom-input\" data-custom-field=\"characters\" placeholder=\"pvz. Spiderman, dinozaurai\">';\n  html += '<label style=\"font-size:12px;color:#555;display:block;margin:8px 0 4px\">Papildomi pageidavimai / eskizas:</label>';\n  html += '<textarea class=\"chat-custom-textarea\" data-custom-field=\"notes\" placeholder=\"Aprašykite savo viziją...\" rows=\"3\"></textarea>';\n  html += '<label style=\"font-size:12px;color:#555;display:block;margin:8px 0 4px\">Kontaktinis el. paštas:</label>';\n  html += '<input type=\"email\" class=\"chat-custom-input\" data-custom-field=\"email\" placeholder=\"jusu@pastas.lt\">';\n  html += '<label style=\"font-size:12px;color:#555;display:block;margin:8px 0 4px\">Telefono numeris:</label>';\n  html += '<input type=\"text\" class=\"chat-custom-input\" data-custom-field=\"phone\" placeholder=\"+370 600 00000\">';\n  html += '<button class=\"chat-custom-submit\" data-chat-custom-submit>Pateikti užklausą</button>';\n  html += '</div>';\n  return html;\n}\n\nfunction buildDatePicker() {\n  const days = [];\n  const now = new Date();\n  const d = new Date(now);\n  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));\n  for (let i = 0; i < 4; i++) {\n    const iso = d.toISOString().split('T')[0];\n    const label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });\n    days.push('<button class=\"chat-option-btn\" data-chat-option=\"' + iso + '\">' + label + '</button>');\n    d.setDate(d.getDate() + 7);\n  }\n  let html = '<div class=\"chat-options\">' + days.join('') + '</div>';\n  html += '<input type=\"date\" class=\"chat-date-input\" data-chat-date min=\"' + now.toISOString().split('T')[0] + '\" placeholder=\"Kita data...\">';\n  html += '<button class=\"chat-date-confirm\" data-chat-date-confirm disabled>Patvirtinti datą</button>';\n  return html;\n}\n\nfunction buildLocationOptions() {\n  const locs = ['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kelmė', 'Rietavas', 'Kitas miestas'];\n  let html = '<div class=\"chat-options\">';\n  for (const loc of locs) {\n    html += '<button class=\"chat-option-btn\" data-chat-option=\"' + loc + '\">' + loc + '</button>';\n  }\n  html += '</div>';\n  return html;\n}\n\nfunction buildGuestCountOptions() {\n  const ranges = [\n    { label: 'Iki 6 vaikų', value: 'Apie 6 svečių' },\n    { label: '7–12 vaikų', value: 'Apie 10 svečių' },\n    { label: '13–20 vaikų', value: 'Apie 15 svečių' },\n    { label: 'Daugiau nei 20', value: 'Apie 30 svečių' }\n  ];\n  let html = '<div class=\"chat-options\" data-step=\"guest-count\">';\n  for (const r of ranges) {\n    html += '<button class=\"chat-option-btn\" data-chat-option=\"' + r.value + '\">' + r.label + '</button>';\n  }\n  html += '</div>';\n  return html;\n}\n\nfunction escapeHtml(str) {\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction buildBookingConfirm(jsonStr) {\n  let data;\n  try { data = JSON.parse(jsonStr); } catch (e) { data = {}; }\n  let html = '<div class=\"booking-confirm\">';\n  html += '<h4>✅ Užklausa pateikta!</h4>';\n  if (data.group_type) html += '<p><strong>Tipas:</strong> ' + escapeHtml(data.group_type) + '</p>';\n  if (data.date) html += '<p><strong>Data:</strong> ' + escapeHtml(data.date) + '</p>';\n  if (data.location) html += '<p><strong>Vieta:</strong> ' + escapeHtml(data.location) + '</p>';\n  if (data.event_type) html += '<p><strong>Renginys:</strong> ' + escapeHtml(data.event_type) + '</p>';\n  if (data.guest_count) html += '<p><strong>Svečių:</strong> ' + escapeHtml(data.guest_count) + '</p>';\n  if (data.contact_name) html += '<p><strong>Kontaktas:</strong> ' + escapeHtml(data.contact_name) + '</p>';\n  if (data.contact_phone) html += '<p><strong>Telefonas:</strong> ' + escapeHtml(data.contact_phone) + '</p>';\n  if (data.trampoline) html += '<p><strong>Batutas:</strong> ' + escapeHtml(data.trampoline) + '</p>';\n  if (data.dimensions) html += '<p><strong>Matmenys:</strong> ' + escapeHtml(data.dimensions) + '</p>';\n  if (data.colors) html += '<p><strong>Spalvos:</strong> ' + escapeHtml(data.colors) + '</p>';\n  if (data.characters) html += '<p><strong>Personažai:</strong> ' + escapeHtml(data.characters) + '</p>';\n  if (data.email) html += '<p><strong>El. paštas:</strong> ' + escapeHtml(data.email) + '</p>';\n  html += '</div>';\n  return html;\n}\n\n// --- Booking progress bar ---\nfunction buildProgressBar(currentStep, totalSteps) {\n  const total = totalSteps || 4;\n  let html = '<div class=\"booking-progress\">';\n  for (let i = 1; i <= total; i++) {\n    const cls = i < currentStep ? 'done' : (i === currentStep ? 'current' : '');\n    html += '<div class=\"bp-step' + (cls ? ' ' + cls : '') + '\"></div>';\n  }\n  html += '</div>';\n  return html;\n}\n\n// --- Main menu (5 use-case groups) ---\nfunction buildMainMenu() {\n  const items = [\n    { label: '🎂 Vaikų gimtadienis ar krikštynos', value: 'Planuoju vaikų gimtadienį arba krikštynas' },\n    { label: '🎪 Viešas renginys ar įmonės sąskrydis', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },\n    { label: '🎉 Triukšmingas vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },\n    { label: '🛒 Noriu pirkti batutą', value: 'Noriu pirkti batutą' },\n    { label: 'ℹ️ Saugumas, DUK ir kontaktai', value: 'Saugumas, DUK ir kontaktai' }\n  ];\n  let html = '<div class=\"chat-main-menu\"><div class=\"chat-options chat-menu-options\">';\n  for (const item of items) {\n    html += '<button class=\"chat-option-btn chat-menu-btn\" data-chat-option=\"' + item.value + '\">' + item.label + '</button>';\n  }\n  html += '</div></div>';\n  return html;\n}\n\n// --- Suggestion chips (contextual quick replies) ---\nfunction buildQuickReplies(buttons) {\n  if (!buttons || !buttons.length) return '';\n  let html = '<div style=\"margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);display:flex;flex-wrap:wrap;gap:8px;justify-content:center\">';\n  for (const btn of buttons) {\n    const label = typeof btn === 'string' ? btn : btn.label;\n    const value = typeof btn === 'string' ? btn : (btn.value || btn.label);\n    const isMenu = value === 'Pagrindinis meniu';\n    const style = isMenu\n      ? 'font-size:13px;padding:6px 14px;background:transparent;color:#888;border:1px solid #ddd;border-radius:16px;cursor:pointer'\n      : 'font-size:13px;padding:6px 14px;background:#f0f4ff;color:#4a6cf7;border:1px solid #d0d8f0;border-radius:16px;cursor:pointer';\n    html += '<button class=\"chat-option-btn\" data-chat-option=\"' + value + '\" style=\"' + style + '\">' + label + '</button>';\n  }\n  html += '</div>';\n  return html;\n}\n\n// --- Check for markers and replace ---\nconst markers = [\n  { pattern: /\\[DATE_PICKER\\]/g, fn: () => buildProgressBar(1) + buildDatePicker() },\n  { pattern: /\\[LOCATION_OPTIONS\\]/g, fn: () => buildProgressBar(2) + buildLocationOptions() },\n  { pattern: /\\[GUEST_COUNT\\]/g, fn: () => buildProgressBar(3) + buildGuestCountOptions() },\n  { pattern: /\\[MAIN_MENU\\]/g, fn: () => buildMainMenu() },\n  { pattern: /\\[PURCHASE_SUBMENU\\]/g, fn: () => buildPurchaseSubmenu() },\n  { pattern: /\\[PURCHASE_EMAIL_INPUT\\]/g, fn: () => buildPurchaseEmailInput() },\n  { pattern: /\\[PURCHASE_CUSTOM_FORM\\]/g, fn: () => buildPurchaseCustomForm() }\n];\n\nlet hasMarker = false;\nlet enriched = response;\n\nfor (const m of markers) {\n  const before = enriched;\n  enriched = enriched.replace(m.pattern, m.fn);\n  if (enriched !== before) hasMarker = true;\n}\n\n// Handle MENU_GROUP_BIRTHDAY with guest count\nconst birthdayBefore = enriched;\nenriched = enriched.replace(/\\[MENU_GROUP_BIRTHDAY(?::(\\d+))?\\]/g, function(match, countStr) {\n  const count = countStr ? parseInt(countStr) : null;\n  return buildProgressBar(4, 4) + buildGroupBirthdayEquipment(count);\n});\nif (enriched !== birthdayBefore) hasMarker = true;\n\n// Handle MENU_GROUP_PUBLIC with guest count\nconst publicBefore = enriched;\nenriched = enriched.replace(/\\[MENU_GROUP_PUBLIC(?::(\\d+))?\\]/g, function(match, countStr) {\n  const count = countStr ? parseInt(countStr) : null;\n  return buildProgressBar(4, 4) + buildGroupPublicEquipment(count);\n});\nif (enriched !== publicBefore) hasMarker = true;\n\n// Handle MENU_GROUP_PARTY\nconst partyBefore = enriched;\nenriched = enriched.replace(/\\[MENU_GROUP_PARTY\\]/g, function() {\n  return buildProgressBar(4, 4) + buildGroupPartyEquipment();\n});\nif (enriched !== partyBefore) hasMarker = true;\n\n// Handle BOOKING_CONFIRM separately (has capture group)\nconst confirmBefore = enriched;\nenriched = enriched.replace(/\\[BOOKING_CONFIRM:(\\{[^\\]]*\\})\\]/g, function(match, jsonStr) {\n  return buildBookingConfirm(jsonStr);\n});\nif (enriched !== confirmBefore) hasMarker = true;\n\n// --- Contextual quick replies (always appended) ---\nconst hadCatalog = enriched.includes('chat-trampoline-grid');\nconst hadDatePicker = enriched.includes('chat-date-input');\nconst hadLocationBtns = enriched.includes('data-chat-option=\"Tauragė\"');\nconst hadGuestCount = enriched.includes('data-step=\"guest-count\"');\nconst hadBookingConfirm = enriched.includes('booking-confirm');\nconst hadMainMenu = enriched.includes('chat-main-menu');\nconst hadPurchaseSubmenu = enriched.includes('Noriu gauti batutų katalogą');\nconst hadEmailInput = enriched.includes('chat-email-form');\nconst hadCustomForm = enriched.includes('chat-custom-form');\nconst isBookingStep = hadDatePicker || hadLocationBtns || hadGuestCount;\n\nlet quickReplies = [];\n\nif (hadBookingConfirm) {\n  quickReplies = [\n    { label: 'Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },\n    { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }\n  ];\n} else if (hadCatalog) {\n  quickReplies = [\n    { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }\n  ];\n} else if (hadEmailInput || hadCustomForm || hadPurchaseSubmenu) {\n  quickReplies = [\n    { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }\n  ];\n} else if (isBookingStep) {\n  quickReplies = [\n    { label: 'Atšaukti', value: 'Pagrindinis meniu' }\n  ];\n} else if (hadMainMenu) {\n  quickReplies = [];\n} else {\n  quickReplies = [\n    { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }\n  ];\n}\n\nconst quickHtml = buildQuickReplies(quickReplies);\n\n// Convert to HTML if we have markers or quick replies\nif (hasMarker || quickHtml) {\n  enriched = enriched.replace(/\\\\n/g, '\\n');\n  enriched = enriched.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');\n  enriched = enriched.replace(/\\n/g, '<br>');\n  enriched = '{{HTML}}<div class=\"chat-products\">' + enriched + quickHtml + '</div>';\n}\n\nreturn [{ json: { enriched } }];\n"
+      },
+      "id": "chat-enrich",
+      "name": "Enrich Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\n\n// Check if enrichment produced output, otherwise fall back to agent output\nlet response = input.enriched;\n\nif (!response || !response.trim()) {\n  response = 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 648 803 88 arba info@batutynas.lt';\n}\n\n// Truncate excessively long responses\nif (response.length > 10000) {\n  response = response.substring(0, 10000) + '...';\n}\n\nlet sessionId = '';\ntry {\n  sessionId = $('Extract Chat Input').item.json.sessionId;\n} catch (e) {\n  sessionId = 'unknown';\n}\n\nreturn [{\n  json: {\n    response: response,\n    session_id: sessionId\n  }\n}];"
+      },
+      "id": "chat-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Chat Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Chat Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini 2.5 Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Knowledge Base": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Knowledge Base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Booking Notify": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Enrich Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Response": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Batutynas Chat",
+      "id": "batutynas-chat"
+    }
+  ],
+  "triggerCount": 0,
+  "versionId": "1"
+}

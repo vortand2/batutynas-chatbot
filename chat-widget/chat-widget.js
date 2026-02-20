@@ -303,10 +303,11 @@
 
   function sanitizeHtml(html) {
     var ALLOWED_TAGS = ['div', 'span', 'p', 'br', 'strong', 'em', 'b', 'i', 'a', 'button',
-      'input', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
+      'input', 'textarea', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
     var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
-      'data-chat-retry', 'type', 'min', 'value', 'disabled', 'href', 'target', 'rel', 'src',
-      'alt', 'style', 'placeholder', 'id', 'role', 'tabindex'];
+      'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
+      'data-chat-custom-submit', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
+      'target', 'rel', 'src', 'alt', 'style', 'placeholder', 'id', 'role', 'tabindex', 'rows'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
     var tmp = document.createElement('div');
@@ -551,6 +552,12 @@
     }
   }
 
+  // --- Email validation helper ---
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
   // --- Event Delegation for Interactive HTML ---
 
   var _delegationAttached = false;
@@ -611,6 +618,61 @@
         }
         return;
       }
+
+      // Email confirm button (purchase catalog flow)
+      var emailConfirmBtn = e.target.closest('[data-chat-email-confirm]');
+      if (emailConfirmBtn) {
+        if (emailConfirmBtn.hasAttribute('disabled') || emailConfirmBtn.disabled) return;
+        var emailInput = emailConfirmBtn.parentElement.querySelector('[data-chat-email]');
+        if (emailInput && isValidEmail(emailInput.value.trim())) {
+          var emailValue = emailInput.value.trim();
+          emailConfirmBtn.disabled = true;
+          emailConfirmBtn.setAttribute('disabled', 'true');
+          emailInput.disabled = true;
+          emailInput.setAttribute('disabled', 'true');
+          var emailBubble = emailConfirmBtn.closest('.woo-chat-msg');
+          if (emailBubble) persistInteractionState(emailBubble);
+          quickSend('Mano el. paštas katalogui: ' + emailValue);
+        }
+        return;
+      }
+
+      // Custom manufacturing form submit
+      var customSubmitBtn = e.target.closest('[data-chat-custom-submit]');
+      if (customSubmitBtn) {
+        if (customSubmitBtn.hasAttribute('disabled') || customSubmitBtn.disabled) return;
+        var form = customSubmitBtn.closest('.chat-custom-form');
+        if (!form) return;
+        var fields = form.querySelectorAll('[data-custom-field]');
+        var formData = {};
+        fields.forEach(function (field) {
+          formData[field.getAttribute('data-custom-field')] = field.value.trim();
+        });
+        // Validate email field if present
+        if (formData.email && !isValidEmail(formData.email)) {
+          var emailField = form.querySelector('[data-custom-field="email"]');
+          if (emailField) emailField.focus();
+          return;
+        }
+        // Disable all form fields
+        customSubmitBtn.disabled = true;
+        customSubmitBtn.setAttribute('disabled', 'true');
+        fields.forEach(function (field) {
+          field.disabled = true;
+          field.setAttribute('disabled', 'true');
+        });
+        var customBubble = customSubmitBtn.closest('.woo-chat-msg');
+        if (customBubble) persistInteractionState(customBubble);
+        var summary = 'Individualaus batuto užklausa:\n';
+        if (formData.dimensions) summary += 'Matmenys: ' + formData.dimensions + '\n';
+        if (formData.colors) summary += 'Spalvos: ' + formData.colors + '\n';
+        if (formData.characters) summary += 'Personažai: ' + formData.characters + '\n';
+        if (formData.notes) summary += 'Papildomi pageidavimai: ' + formData.notes + '\n';
+        if (formData.email) summary += 'El. paštas: ' + formData.email + '\n';
+        if (formData.phone) summary += 'Telefonas: ' + formData.phone;
+        quickSend(summary.trim());
+        return;
+      }
     });
 
     document.addEventListener('click', function (e) {
@@ -667,6 +729,17 @@
         var confirmBtn = dateInput.parentElement.querySelector('[data-chat-date-confirm]');
         if (confirmBtn) {
           confirmBtn.disabled = !dateInput.value;
+        }
+      }
+    });
+
+    // Email input live validation
+    document.addEventListener('input', function (e) {
+      var emailInput = e.target.closest('[data-chat-email]');
+      if (emailInput) {
+        var confirmBtn = emailInput.parentElement.querySelector('[data-chat-email-confirm]');
+        if (confirmBtn) {
+          confirmBtn.disabled = !isValidEmail(emailInput.value.trim());
         }
       }
     });
