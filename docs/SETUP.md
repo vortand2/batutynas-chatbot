@@ -3,30 +3,63 @@
 ## Prerequisites
 
 - N8N instance (self-hosted or cloud)
-- Anthropic API key (for Claude)
+- Google AI Studio API key (for Gemini 2.5 Flash)
+- Pinecone account (free tier — 100K vectors)
+- OpenAI API key (for embeddings only)
 - SMTP credentials (for booking notifications)
 
-## Step 1: Import N8N Workflows
+## Step 1: Create Pinecone Index
+
+1. Go to https://app.pinecone.io, create account
+2. Create a new index:
+   - **Name:** `batutynas`
+   - **Dimensions:** `1536`
+   - **Metric:** `cosine`
+   - **Type:** Serverless, AWS us-east-1
+3. Note the API key from API Keys section
+
+## Step 2: Get API Keys
+
+| Service | URL | Cost |
+|---------|-----|------|
+| Google AI Studio (Gemini) | https://aistudio.google.com/apikey | Free |
+| Pinecone | https://app.pinecone.io | Free tier (100K vectors) |
+| OpenAI (embeddings only) | https://platform.openai.com/api-keys | ~$0.02/1M tokens |
+
+## Step 3: Import N8N Workflows
 
 1. Open your N8N instance
-2. Import `n8n-workflows/chat-main.json` — this is the main chat agent
-3. Import `n8n-workflows/tool-booking-notify.json` — this is the booking notification sub-workflow
+2. Import `n8n-workflows/ingest-website.json` — website ingestion pipeline
+3. Import `n8n-workflows/tool-booking-notify.json` — booking notification sub-workflow
+4. Import `n8n-workflows/chat-main-v2.json` — main chat agent (Gemini + Pinecone)
 
-## Step 2: Configure Credentials
+> **Note:** `chat-main.json` is the old Claude-based workflow. Keep it for reference but use `chat-main-v2.json` going forward.
+
+## Step 4: Configure Credentials
 
 In N8N, create the following credentials:
 
-### Anthropic API
-- Go to Settings > Credentials > Add Credential > Anthropic
+### Google AI (Gemini)
+- Go to Settings > Credentials > Add Credential > Google AI (PaLM/Gemini)
+- Enter your API key from Google AI Studio
+- Referenced by: `chat-main-v2.json` (node: "Gemini 2.5 Flash")
+
+### Pinecone API
+- Go to Settings > Credentials > Add Credential > Pinecone
 - Enter your API key
-- Update the credential ID in `chat-main.json` (node: "Claude LLM")
+- Referenced by: `ingest-website.json` (node: "Store in Pinecone") and `chat-main-v2.json` (node: "Pinecone Knowledge Base")
+
+### OpenAI API (embeddings only)
+- Go to Settings > Credentials > Add Credential > OpenAI
+- Enter your API key
+- Referenced by: `ingest-website.json` and `chat-main-v2.json` (nodes: "OpenAI Embeddings")
 
 ### SMTP (for booking emails)
 - Go to Settings > Credentials > Add Credential > SMTP
 - Configure your email provider settings
-- Update the credential ID in `tool-booking-notify.json` (node: "Send Email to Admin")
+- Referenced by: `tool-booking-notify.json` (node: "Send Email to Admin")
 
-## Step 3: Set Environment Variables
+## Step 5: Set Environment Variables
 
 In N8N Settings > Environment Variables, set:
 
@@ -35,18 +68,31 @@ SITE_DOMAIN=https://batutynas.lt
 ADMIN_EMAIL=info@batutynas.lt
 SMTP_FROM=noreply@batutynas.lt
 TOOL_BOOKING_NOTIFY_WORKFLOW_ID=<id-of-booking-notify-workflow>
-BATUTYNAS_SYSTEM_PROMPT=<paste-contents-of-prompts/chat-system-prompt.md>
+BATUTYNAS_SYSTEM_PROMPT_V2=<paste-contents-of-prompts/chat-system-prompt.md>
 ```
 
-## Step 4: Activate Workflows
+## Step 6: Run Website Ingestion
+
+1. Open the "Batutynas: Website Ingestion" workflow
+2. Click "Execute Workflow" (manual trigger)
+3. Wait for all URLs to be processed (~32 pages)
+4. Verify in Pinecone dashboard: should have ~100-160 vectors in namespace `batutynas-lt`
+
+### Re-indexing
+When website content changes:
+1. (Optional) Delete namespace `batutynas-lt` in Pinecone dashboard for a full refresh
+2. Edit the URL List node if new pages were added
+3. Re-run the ingestion workflow
+
+## Step 7: Activate Workflows
 
 1. Activate the booking notification workflow first
 2. Note its workflow ID
 3. Set `TOOL_BOOKING_NOTIFY_WORKFLOW_ID` environment variable
-4. Activate the main chat workflow
+4. Activate the main chat v2 workflow
 5. Note the webhook URL (shown in the Chat Webhook node)
 
-## Step 5: Embed on Zyro Site
+## Step 8: Embed on Zyro Site
 
 ### Option A: Host files externally (recommended)
 
@@ -74,15 +120,20 @@ BATUTYNAS_SYSTEM_PROMPT=<paste-contents-of-prompts/chat-system-prompt.md>
 
 Copy the contents of `embed-snippet.html` into your Zyro custom code footer section.
 
-## Step 6: Test
+## Step 9: Test
 
-1. Visit your Zyro site
-2. Click the chat bubble
-3. Test these scenarios:
-   - Ask "Kiek kainuoja batuto nuoma?" — should get pricing info in Lithuanian
-   - Ask "What trampolines do you have?" — should get service list in English
-   - Ask "Noriu užsisakyti batutą" — should start booking flow
-   - Ask "Ar pristatote į Kauną?" — should explain delivery areas
+| # | Test | Expected |
+|---|------|----------|
+| 1 | "Sveiki" | Lithuanian greeting, no RAG call |
+| 2 | "Kokius batutus turite?" | Retrieves products from Pinecone, lists them |
+| 3 | "Kiek kainuoja Mega Rocket?" | Specific price from RAG |
+| 4 | "Noriu užsakyti batutą" | Date picker appears (`[DATE_PICKER]`) |
+| 5 | Complete booking flow (5 steps) | Email sent, confirmation card shows |
+| 6 | "Ar batutai saugūs?" | Safety info from RAG |
+| 7 | "Ar pristatote į Kauną?" | Delivery zone info from RAG |
+| 8 | "Koks oras šiandien?" | Brief answer + redirect to services |
+| 9 | "Noriu kalbėti su žmogumi" | Phone/email contacts |
+| 10 | Follow-up question | Remembers context (16-msg window) |
 
 ## Troubleshooting
 
@@ -102,16 +153,35 @@ Copy the contents of `embed-snippet.html` into your Zyro custom code footer sect
 - Check spam folder
 - Review N8N execution log for email errors
 
+### RAG returns no results
+- Verify Pinecone has vectors: check dashboard for namespace `batutynas-lt`
+- Re-run ingestion pipeline if empty
+- Check OpenAI API key for embeddings
+
+### Ingestion fails on a URL
+- The URL may have changed or be behind a redirect
+- Update the URL List code node with correct URLs
+- Some pages may return <100 chars — these are skipped (expected)
+
 ## Architecture
 
 ```
-Customer -> Chat Widget (JS) -> N8N Webhook -> AI Agent (Claude)
+Customer -> Chat Widget (JS) -> N8N Webhook -> AI Agent v3.1 (Gemini 2.5 Flash)
                                                     |
-                                             System prompt with
-                                             all business knowledge
-                                                    |
-                                             -> Booking notification
-                                                (email to admin)
+                                            ├── Pinecone RAG (product/price/FAQ knowledge)
+                                            │       └── OpenAI Embeddings
+                                            ├── Window Buffer Memory (16 msgs)
+                                            └── Tool: Booking Notify
+                                                    (email to admin)
 ```
 
-The system prompt contains ALL business knowledge (services, pricing, FAQ, delivery areas, safety rules). No external API calls needed — the AI has everything it needs in the prompt.
+Business knowledge is stored in Pinecone (indexed from batutynas.lt). The system prompt contains only personality, booking flow markers, and escalation rules.
+
+## Cost Comparison
+
+| Component | Old (v1) | New (v2) |
+|-----------|----------|----------|
+| LLM | Claude Sonnet 4 (~$3/$15 per 1M tokens) | Gemini 2.5 Flash (~$0.075/$0.30 per 1M tokens) |
+| Knowledge | 190-line system prompt | Pinecone RAG (free tier) |
+| Embeddings | N/A | OpenAI text-embedding-3-small (~$0.02/1M tokens) |
+| **Estimated monthly** | **~$30-50** | **~$1-3** |

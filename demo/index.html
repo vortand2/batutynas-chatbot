@@ -727,12 +727,12 @@
     <span class="demo-bar-title">Spauskite pokalbio burbuliuką arba bandykite scenarijų <span>&rarr;</span></span>
   </div>
   <div class="demo-scenarios">
-    <button class="demo-btn" onclick="demoType('Kiek kainuoja batuto nuoma?')">Kainos</button>
-    <button class="demo-btn" onclick="demoType('Kokius batutus turite?')">Batutai</button>
-    <button class="demo-btn" onclick="demoType('Noriu užsisakyti batutą šventei')">Užsakymas</button>
-    <button class="demo-btn" onclick="demoType('Ar pristatote į Kauną?')">Pristatymas</button>
+    <button class="demo-btn" onclick="demoType('Planuoju vaikų gimtadienį arba krikštynas')">🎂 Gimtadienis</button>
+    <button class="demo-btn" onclick="demoType('Planuoju viešą renginį arba įmonės sąskrydį')">🎪 Viešas renginys</button>
+    <button class="demo-btn" onclick="demoType('Planuoju triukšmingą vakarėlį')">🎉 Vakarėlis</button>
+    <button class="demo-btn" onclick="demoType('Noriu pirkti batutą')">🛒 Pirkimas</button>
+    <button class="demo-btn accent" onclick="demoType('Saugumas, DUK ir kontaktai')">ℹ️ Info</button>
     <button class="demo-btn" onclick="demoType('What trampolines do you have?')">English</button>
-    <button class="demo-btn accent" onclick="demoType('Kokios saugumo taisyklės?')">Sauga</button>
     <button class="demo-btn" onclick="BatutynasChat.reset()" title="Išvalyti pokalbį">Reset</button>
   </div>
 </div>
@@ -752,7 +752,7 @@
     </ul>
     <a href="#" class="store-contact">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-      +370 686 55557
+      +370 648 803 88
     </a>
   </nav>
 
@@ -833,7 +833,7 @@
       </div>
       <div>
         <h4>Kontaktai</h4>
-        <a href="#">+370 686 55557</a>
+        <a href="#">+370 648 803 88</a>
         <a href="#">info@batutynas.lt</a>
         <a href="#">Facebook</a>
         <a href="#">Tauragė, Lietuva</a>
@@ -870,14 +870,14 @@
 
   /* -- Mock Data -- */
   var TRAMPOLINES = [
-    { name: 'Fantazijų parkas', type: 'Didžiulis batutų parkas', capacity: 'Iki 15 vaikų', price: 'nuo 150 EUR', icon: '🏰', bg: '#f5f0ff', tags: ['parkas','didelis','fantazija','batutų parkas'] },
-    { name: 'Džiumandži parkas', type: 'Nuotykių parkas', capacity: 'Iki 12 vaikų', price: 'nuo 130 EUR', icon: '🌴', bg: '#f0fff4', tags: ['džiumandži','nuotykiu','parkas'] },
-    { name: 'Mega kliūčių ruožas', type: 'Kliūčių ruožas', capacity: 'Iki 10 vaikų', price: 'nuo 100 EUR', icon: '🏃', bg: '#fff0f5', tags: ['kliūčių','ruožas','mega','obstacle'] },
-    { name: 'Mega Rocket', type: '2 dalių batutas', capacity: 'Iki 8 vaikų', price: 'nuo 80 EUR', icon: '🚀', bg: '#fff8e1', tags: ['rocket','raketa','2 dalių'] },
-    { name: 'Candy Pop', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 6 vaikų', price: 'nuo 60 EUR', icon: '🍭', bg: '#fce4ec', tags: ['candy','pop','kompaktiškas','mažas'] },
-    { name: 'Chameleon', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 6 vaikų', price: 'nuo 60 EUR', icon: '🦎', bg: '#e8f5e9', tags: ['chameleon','kompaktiškas'] },
-    { name: 'Milžiniškas smiginis', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'nuo 50 EUR', icon: '🎯', bg: '#e3f2fd', tags: ['smiginis','darts','žaidimas','interaktyvus'] },
-    { name: 'Cukraus vatos aparatas', type: 'Papildoma paslauga', capacity: '-', price: 'nuo 30 EUR', icon: '🍬', bg: '#fce4ec', tags: ['cukraus vata','cotton candy','maistas','papildoma'] }
+    { name: 'Fantazijų parkas', type: 'Didžiulis batutų parkas', capacity: 'Iki 30 vaikų', price: 'pagal užklausą', icon: '🏰', bg: '#f5f0ff', tags: ['parkas','didelis','fantazija','batutų parkas'] },
+    { name: 'Džiumandži parkas', type: 'Nuotykių parkas', capacity: 'Iki 40 vaikų', price: 'pagal užklausą', icon: '🌴', bg: '#f0fff4', tags: ['džiumandži','nuotykiu','parkas'] },
+    { name: 'Mega kliūčių ruožas', type: 'Kliūčių ruožas', capacity: '360 dalyvių/val.', price: 'pagal užklausą', icon: '🏃', bg: '#fff0f5', tags: ['kliūčių','ruožas','mega','obstacle'] },
+    { name: 'Mega Rocket', type: '2 dalių batutas', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', icon: '🚀', bg: '#fff8e1', tags: ['rocket','raketa','2 dalių'] },
+    { name: 'Candy Pop', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🍭', bg: '#fce4ec', tags: ['candy','pop','kompaktiškas','mažas'] },
+    { name: 'Chameleon', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🦎', bg: '#e8f5e9', tags: ['chameleon','kompaktiškas'] },
+    { name: 'Milžiniškas smiginis', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'pagal užklausą', icon: '🎯', bg: '#e3f2fd', tags: ['smiginis','darts','žaidimas','interaktyvus'] },
+    { name: 'Cukraus vatos aparatas', type: 'Papildoma paslauga', capacity: '-', price: 'pagal užklausą', icon: '🍬', bg: '#fce4ec', tags: ['cukraus vata','cotton candy','maistas','papildoma'] }
   ];
 
   /* -- Booking Storage -- */
@@ -1063,11 +1063,11 @@
     weather: { q: 'Kas jei bus blogas oras?', a_lt: 'Mūsų orų politika:\n\n- Jei prognozuojamas **lietus** arba **vėjas >10 m/s** — **nemokamas perkėlimas** į kitą datą\n- Jei oras pablogėja renginio metu — saugiai išmontuojame įrangą\n- Galite **atšaukti nemokamai** iki 48 val. prieš renginį\n- Atšaukimas <24 val. — 50% mokestis\n\nVisada stebime orų prognozes ir perspėjame iš anksto!', a_en: 'Our weather policy:\n\n- If **rain** or **wind >10 m/s** is forecast — **free reschedule** to another date\n- If weather worsens during event — we safely disassemble equipment\n- You can **cancel for free** up to 48h before the event\n- Cancellation <24h — 50% fee\n\nWe always monitor weather forecasts and warn in advance!' },
     delivery_private: { q: 'Kur pristatote privačioms šventėms?', a_lt: 'Pristatymo zonos privačioms šventėms:\n\n**NEMOKAMAS pristatymas:**\n- Tauragė\n- Šilalė\n\n**Su papildomu mokesčiu:**\n- Jurbarkas\n- Pagėgiai\n- Raseiniai\n- Kelmė\n- Rietavas\n\nKonkrečią kainą sužinosite užsakymo metu.', a_en: 'Delivery zones for private events:\n\n**FREE delivery:**\n- Tauragė\n- Šilalė\n\n**With additional fee:**\n- Jurbarkas\n- Pagėgiai\n- Raseiniai\n- Kelmė\n- Rietavas\n\nExact pricing available during booking.' },
     delivery_public: { q: 'Kur pristatote viešiems renginiams?', a_lt: 'Viešiems renginiams — pristatome į **visą Lietuvą**! Kaina priklauso nuo atstumo ir užsakymo apimties. Generatoriai ir aptarnavimas įskaičiuota.', a_en: 'For public events — we deliver **across all of Lithuania**! Price depends on distance and order scope. Generators and service included.' },
-    pricing_private: { q: 'Kiek kainuoja privačiai šventei?', a_lt: 'Kainos privačioms šventėms:\n\n- Batutų nuoma — **nuo 50 EUR/dieną**\n- Antra diena iš eilės — **50% nuolaida**\n- Pristatymas Tauragėje/Šilalėje — **NEMOKAMAS**\n- Pristatymas kitose zonose — papildomas mokestis\n\nKonkreti kaina priklauso nuo pasirinkto batuto. Mažiausi batutai (Candy Pop, Chameleon) — nuo 60 EUR, didžiausi parkai (Fantazijų parkas) — nuo 150 EUR.', a_en: 'Prices for private events:\n\n- Trampoline rental — **from 50 EUR/day**\n- Second consecutive day — **50% discount**\n- Delivery in Tauragė/Šilalė — **FREE**\n- Delivery in other zones — additional fee\n\nExact price depends on the trampoline chosen. Smallest (Candy Pop, Chameleon) — from 60 EUR, largest parks (Fantasy Park) — from 150 EUR.' },
-    pricing_public: { q: 'Kiek kainuoja viešam renginiui?', a_lt: 'Viešų renginių kainos yra **individualios** — priklauso nuo:\n\n- Pasirinktos įrangos kiekio ir tipo\n- Renginio trukmės\n- Vietos (atstumas pristatymui)\n- Aptarnavimo apimties\n\n**Susisiekite** su mumis ir paruošime individualų pasiūlymą!\nTel: +370 686 55557\nEl. paštas: info@batutynas.lt', a_en: 'Public event prices are **individual** — depending on:\n\n- Equipment quantity and type\n- Event duration\n- Location (delivery distance)\n- Service scope\n\n**Contact us** and we\'ll prepare a custom quote!\nPhone: +370 686 55557\nEmail: info@batutynas.lt' },
+    pricing_private: { q: 'Kiek kainuoja privačiai šventei?', a_lt: 'Kainos privačioms šventėms — **pagal užklausą**.\n\n- Antra diena iš eilės — **50% nuolaida**\n- Pristatymas Tauragėje/Šilalėje — **NEMOKAMAS**\n- Pristatymas kitose zonose — papildomas mokestis\n\nKonkreti kaina priklauso nuo pasirinkto batuto. Susisiekite dėl individualaus pasiūlymo!', a_en: 'Prices for private events — **pricing upon request**.\n\n- Second consecutive day — **50% discount**\n- Delivery in Tauragė/Šilalė — **FREE**\n- Delivery in other zones — additional fee\n\nExact price depends on the trampoline chosen. Contact us for a custom quote!' },
+    pricing_public: { q: 'Kiek kainuoja viešam renginiui?', a_lt: 'Viešų renginių kainos yra **individualios** — priklauso nuo:\n\n- Pasirinktos įrangos kiekio ir tipo\n- Renginio trukmės\n- Vietos (atstumas pristatymui)\n- Aptarnavimo apimties\n\n**Susisiekite** su mumis ir paruošime individualų pasiūlymą!\nTel: +370 648 803 88\nEl. paštas: info@batutynas.lt', a_en: 'Public event prices are **individual** — depending on:\n\n- Equipment quantity and type\n- Event duration\n- Location (delivery distance)\n- Service scope\n\n**Contact us** and we\'ll prepare a custom quote!\nPhone: +370 648 803 88\nEmail: info@batutynas.lt' },
     certification: { q: 'Ar jūsų batutai sertifikuoti?', a_lt: 'Taip! Visi mūsų pripučiami batutai yra **EN14960 sertifikuoti** — tai Europos saugos standartas pripučiamiems žaidimų įrenginiams.\n\nTai reiškia:\n- Reguliariai tikrinami ir testuojami\n- Atitinka griežtus saugos reikalavimus\n- Tinka viešiems renginiams\n- Draudimas galioja', a_en: 'Yes! All our inflatable trampolines are **EN14960 certified** — the European safety standard for inflatable play equipment.\n\nThis means:\n- Regularly inspected and tested\n- Meet strict safety requirements\n- Suitable for public events\n- Insurance valid' },
     custom_manufacturing: { q: 'Ar galite pagaminti pagal užsakymą?', a_lt: 'Taip! Gaminame **individualius pripučiamus batutus** pagal jūsų poreikius:\n\n- **Individualūs dydžiai** — nuo mažų iki milžiniškų\n- **Spalvos** — bet kokia spalvų kombinacija\n- **Logotipai** — jūsų įmonės ar renginio logotipas\n- **Unikalus dizainas** — pagal jūsų eskizą\n\nGamybos laikas: **4-8 savaitės**\nSusisiekite dėl kainos: info@batutynas.lt', a_en: 'Yes! We manufacture **custom inflatable trampolines** to your needs:\n\n- **Custom sizes** — from small to giant\n- **Colors** — any color combination\n- **Logos** — your company or event logo\n- **Unique design** — based on your sketch\n\nProduction time: **4-8 weeks**\nContact for pricing: info@batutynas.lt' },
-    booking_process: { q: 'Kaip užsisakyti?', a_lt: 'Užsakymo procesas:\n\n1. **Susisiekite** su mumis (telefonu, el. paštu arba per šį čatą)\n2. **Pasirinkite** batutą ir datą\n3. **Patvirtinkite** užsakymą (50% avansas)\n4. **Pristatymas** — atvežame ir surenkame nurodytu laiku\n5. **Pasibaigus** nuomai — išmontuojame ir pasiimame\n\nRezervuoti galite iki 6 mėnesių į priekį!', a_en: 'Booking process:\n\n1. **Contact** us (phone, email or via this chat)\n2. **Choose** a trampoline and date\n3. **Confirm** booking (50% deposit)\n4. **Delivery** — we deliver and set up at the specified time\n5. **After** rental — we disassemble and pick up\n\nYou can book up to 6 months in advance!' }
+    booking_process: { q: 'Kaip užsisakyti?', a_lt: 'Užsakymo procesas:\n\n1. **Susisiekite** su mumis (telefonu, el. paštu arba per šį čatą)\n2. **Pasirinkite** batutą ir datą\n3. **Patvirtinkite** užsakymą\n4. **Pristatymas** — atvežame ir surenkame nurodytu laiku\n5. **Pasibaigus** nuomai — išmontuojame ir pasiimame\n\nRezervuoti galite iki 6 mėnesių į priekį!', a_en: 'Booking process:\n\n1. **Contact** us (phone, email or via this chat)\n2. **Choose** a trampoline and date\n3. **Confirm** booking\n4. **Delivery** — we deliver and set up at the specified time\n5. **After** rental — we disassemble and pick up\n\nYou can book up to 6 months in advance!' }
   };
 
   /* -- Language Detection -- */
@@ -1145,8 +1145,8 @@
       a_lt: 'Batuto surinkimas užtrunka **15-30 min** — mes viską surenkame patys! Jums nieko nereikia daryti. Po renginio — irgi patys išmontuojame ir pasiimame.',
       a_en: 'Trampoline setup takes **15-30 min** — we assemble everything ourselves! You don\'t need to do anything. After the event — we also disassemble and pick up.' },
     { keywords: ['mokėjimas','payment','apmokėjimas','avansas','deposit','pavedimas','transfer','grynais','cash','kortele','card','sąskaita','invoice'],
-      a_lt: '**Mokėjimo būdai:**\n- Bankinis pavedimas (sąskaita-faktūra)\n- **50% avansas** užsakymo patvirtinimui\n- Likutis — renginio dieną\n\nSąskaitą išrašome el. paštu.',
-      a_en: '**Payment methods:**\n- Bank transfer (invoice)\n- **50% deposit** to confirm booking\n- Remaining balance — on event day\n\nInvoice sent via email.' },
+      a_lt: 'Jokių išankstinių mokėjimų — mokama renginio dieną arba po jo.',
+      a_en: 'No advance payments. Pay on event day or after.' },
     { keywords: ['vieta','plotas','space','kiek','reikia','area','dydis','size','telpa','talpina','aikštelė','kiemas','requirements'],
       a_lt: 'Reikalingas plotas priklauso nuo batuto:\n- Mažesni batutai — **5x5m**\n- Vidutiniai — **7x6m**\n- Dideli parkai — **10x8m**\n\nReikia **lygaus paviršiaus** (žolė, asfaltas). Be medžių ir laidų viršuje.',
       a_en: 'Required space depends on the trampoline:\n- Smaller trampolines — **5x5m**\n- Medium — **7x6m**\n- Large parks — **10x8m**\n\nNeeds a **flat surface** (grass, asphalt). No trees or wires above.' },
@@ -1180,12 +1180,12 @@
     // Warm fallback with contact info
     if (lang === 'en') {
       return '{{HTML}}<div class="chat-products"><p>I don\'t have a specific answer for that, but our team can help! You can reach us directly:</p>' +
-        '<p><strong>Phone:</strong> +370 686 55557 (8:00-21:00)<br><strong>Email:</strong> info@batutynas.lt</p>' +
+        '<p><strong>Phone:</strong> +370 648 803 88 (8:00-21:00)<br><strong>Email:</strong> info@batutynas.lt</p>' +
         '<p>Or I can help you with one of these:</p>' +
         optionButtons(['Trampoline catalog', 'Rental prices', 'Book a trampoline', 'Delivery areas', 'Safety rules']) + '</div>';
     }
     return '{{HTML}}<div class="chat-products"><p>Deja, neturiu konkretaus atsakymo, bet mūsų komanda tikrai padės! Galite susisiekti tiesiogiai:</p>' +
-      '<p><strong>Telefonas:</strong> +370 686 55557 (8:00-21:00)<br><strong>El. paštas:</strong> info@batutynas.lt</p>' +
+      '<p><strong>Telefonas:</strong> +370 648 803 88 (8:00-21:00)<br><strong>El. paštas:</strong> info@batutynas.lt</p>' +
       '<p>Arba galiu padėti su vienu iš šių:</p>' +
       optionButtons(['Batutų katalogas', 'Nuomos kainos', 'Užsakyti batutą', 'Pristatymo zonos', 'Saugumo taisyklės']) + '</div>';
   }
@@ -1274,8 +1274,8 @@
       var askingSpecificCity = msg.match(/kaunas|vilnius|klaipėd|šiauli|panev|alyt|marijamp|utena|telši/i);
       if (askingSpecificCity) {
         var city = askingSpecificCity[0];
-        if (lang === 'en') return 'We deliver to **' + city.charAt(0).toUpperCase() + city.slice(1) + '** only for **public events**. For private parties — Tauragė region only (Tauragė, Šilalė, Jurbarkas, Pagėgiai, Raseiniai, Kelmė, Rietavas).\n\nPlanning a public event? Contact us for a custom quote!\nPhone: +370 686 55557';
-        return 'Į **' + city.charAt(0).toUpperCase() + city.slice(1) + '** pristatome tik **viešiems renginiams**. Privačioms šventėms — tik Tauragės regione (Tauragė, Šilalė, Jurbarkas, Pagėgiai, Raseiniai, Kelmė, Rietavas).\n\nJei planuojate viešą renginį — susisiekite dėl individualaus pasiūlymo!\nTel: +370 686 55557';
+        if (lang === 'en') return 'We deliver to **' + city.charAt(0).toUpperCase() + city.slice(1) + '** only for **public events**. For private parties — Tauragė region only (Tauragė, Šilalė, Jurbarkas, Pagėgiai, Raseiniai, Kelmė, Rietavas).\n\nPlanning a public event? Contact us for a custom quote!\nPhone: +370 648 803 88';
+        return 'Į **' + city.charAt(0).toUpperCase() + city.slice(1) + '** pristatome tik **viešiems renginiams**. Privačioms šventėms — tik Tauragės regione (Tauragė, Šilalė, Jurbarkas, Pagėgiai, Raseiniai, Kelmė, Rietavas).\n\nJei planuojate viešą renginį — susisiekite dėl individualaus pasiūlymo!\nTel: +370 648 803 88';
       }
       if (/viešų|viešas|viešam|public/i.test(msg)) {
         return lang === 'en' ? FAQ.delivery_public.a_en : FAQ.delivery_public.a_lt;
@@ -1315,8 +1315,8 @@
 
     // -- Contact info --
     if (/kontakt|contact|email|telefon|phone|call|susisiek|adresas|address|facebook|instagram|social/i.test(msg)) {
-      if (lang === 'en') return 'Our contacts:\n\n- **Phone:** +370 686 55557\n- **Email:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n- **Hours:** 8:00-21:00 daily\n- **Address:** Tauragė, Lithuania\n\nThis AI assistant is available 24/7!';
-      return 'Mūsų kontaktai:\n\n- **Telefonas:** +370 686 55557\n- **El. paštas:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n- **Darbo laikas:** 8:00-21:00 kasdien\n- **Adresas:** Tauragė, Lietuva\n\nŠis AI asistentas dirba 24/7!';
+      if (lang === 'en') return 'Our contacts:\n\n- **Phone:** +370 648 803 88\n- **Email:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n- **Hours:** 8:00-21:00 daily\n- **Address:** Tauragė, Lithuania\n\nThis AI assistant is available 24/7!';
+      return 'Mūsų kontaktai:\n\n- **Telefonas:** +370 648 803 88\n- **El. paštas:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n- **Darbo laikas:** 8:00-21:00 kasdien\n- **Adresas:** Tauragė, Lietuva\n\nŠis AI asistentas dirba 24/7!';
     }
 
     // -- About the company --
@@ -1339,8 +1339,8 @@
 
     // -- Escalation --
     if (/human|person|agent|žmog|vadov|manager|speak|complaint|skund/i.test(msg)) {
-      if (lang === 'en') return 'I understand you\'d like to speak with our team. You can reach us:\n\n- **Phone:** +370 686 55557 (8:00-21:00)\n- **Email:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n\nOr leave your contact info and we\'ll call you back!';
-      return 'Suprantu, kad norėtumėte pasikalbėti su mūsų komanda. Galite susisiekti:\n\n- **Telefonas:** +370 686 55557 (8:00-21:00)\n- **El. paštas:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n\nArba palikite savo kontaktus ir mes paskambinsime!';
+      if (lang === 'en') return 'I understand you\'d like to speak with our team. You can reach us:\n\n- **Phone:** +370 648 803 88 (8:00-21:00)\n- **Email:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n\nOr leave your contact info and we\'ll call you back!';
+      return 'Suprantu, kad norėtumėte pasikalbėti su mūsų komanda. Galite susisiekti:\n\n- **Telefonas:** +370 648 803 88 (8:00-21:00)\n- **El. paštas:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n\nArba palikite savo kontaktus ir mes paskambinsime!';
     }
 
     // -- Viešų renginių kainos (button match) --
@@ -1708,7 +1708,7 @@
   function esc() {
     add('customer',t('escalate'));
     typing(true);
-    setTimeout(function(){typing(false);add('agent','Suprantu, kad norėtumėte pasikalbėti su mūsų komanda. Galite susisiekti:\n\n- **Telefonas:** +370 686 55557 (8:00-21:00)\n- **El. paštas:** info@batutynas.lt\n\nArba palikite savo kontaktus ir mes paskambinsime!');},1000);
+    setTimeout(function(){typing(false);add('agent','Suprantu, kad norėtumėte pasikalbėti su mūsų komanda. Galite susisiekti:\n\n- **Telefonas:** +370 648 803 88 (8:00-21:00)\n- **El. paštas:** info@batutynas.lt\n\nArba palikite savo kontaktus ir mes paskambinsime!');},1000);
   }
 
   window.BatutynasChat = {

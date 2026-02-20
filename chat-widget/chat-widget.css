@@ -711,6 +711,146 @@
   line-height: 1.5;
 }
 
+/* Main Menu (5 use-case groups) */
+.chat-main-menu {
+  margin-top: 10px;
+}
+
+.chat-menu-options {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-menu-btn {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Email Input Form (purchase catalog flow) */
+.chat-email-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+}
+
+.chat-email-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #d8ccf5;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chat-text);
+  background: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-email-input:focus {
+  border-color: var(--chat-primary);
+}
+
+.chat-email-confirm {
+  margin-top: 8px;
+  padding: 8px 18px;
+  background: var(--chat-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.chat-email-confirm:hover {
+  background: var(--chat-primary-hover);
+}
+
+.chat-email-confirm:disabled {
+  background: #d0d4db;
+  cursor: default;
+}
+
+/* Custom Manufacturing Form (purchase flow) */
+.chat-custom-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+}
+
+.chat-custom-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #d8ccf5;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chat-text);
+  background: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-custom-input:focus {
+  border-color: var(--chat-primary);
+}
+
+.chat-custom-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #d8ccf5;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chat-text);
+  background: white;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.2s;
+}
+
+.chat-custom-textarea:focus {
+  border-color: var(--chat-primary);
+}
+
+.chat-custom-submit {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background: var(--chat-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.chat-custom-submit:hover {
+  background: var(--chat-primary-hover);
+}
+
+.chat-custom-submit:disabled {
+  background: #d0d4db;
+  cursor: default;
+}
+
 /* Mobile Responsive */
 @media (max-width: 480px) {
   .woo-chat-window {
@@ -777,6 +917,27 @@
 
   .t-price {
     font-size: 10px;
+  }
+
+  .chat-email-input,
+  .chat-custom-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .chat-custom-textarea {
+    font-size: 16px;
+  }
+
+  .chat-email-confirm,
+  .chat-custom-submit {
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .chat-menu-btn {
+    min-height: 44px;
+    font-size: 13px;
   }
 
   .woo-chat-messages {
