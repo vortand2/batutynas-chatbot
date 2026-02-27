@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batutynas — Chatwoot Widget Test</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #f5f0ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .info { text-align: center; color: #555; }
+    .info h1 { font-size: 24px; color: #6C3CE1; margin-bottom: 8px; }
+    .info p { font-size: 14px; }
+    .arrow { font-size: 32px; margin-top: 20px; animation: bounce 1.5s infinite; }
+    @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <h1>Batutynas.lt — Chat Test</h1>
+    <p>Click the chat widget in the bottom-right corner to test the bot.</p>
+    <div class="arrow">↘</div>
+  </div>
+
+  <script>
+    // Chatwoot widget settings — applied before SDK loads
+    window.chatwootSettings = {
+      position: 'right',
+      type: 'expanded_bubble',
+      launcherTitle: 'Sveiki! Parašykite mums',
+      darkMode: 'light',
+      showPopoutButton: false,
+      hideMessageBubble: false
+    };
+
+    (function(d,t) {
+      var BASE_URL="https://batutynas-chatwoot-chatwoot.0uvai5.easypanel.host";
+      var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+      g.src=BASE_URL+"/packs/js/sdk.js";
+      g.async = true;
+      s.parentNode.insertBefore(g,s);
+      g.onload=function(){
+        window.chatwootSDK.run({
+          websiteToken: '3TZQWoE5W5Wk4t5JYCpkuRX8',
+          baseUrl: BASE_URL
+        })
+      }
+    })(document,"script");
+  </script>
+</body>
+</html>

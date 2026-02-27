@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: Chatwoot Enrichment</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 20px; color: #1a1a2e; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #6b7588; margin-bottom: 20px; }
+
+    /* Controls */
+    .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .channel-toggle { display: flex; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #d8ccf5; }
+    .channel-toggle button { padding: 8px 16px; border: none; background: white; cursor: pointer; font-size: 13px; font-family: inherit; color: #555; }
+    .channel-toggle button.active { background: #6C3CE1; color: white; }
+    .test-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+    .test-btn { padding: 7px 12px; border: 1px solid #d8ccf5; border-radius: 8px; background: #f5f0ff; color: #6C3CE1; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .test-btn:hover { background: #6C3CE1; color: white; }
+    .test-btn.active { background: #6C3CE1; color: white; }
+
+    /* Split view */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+    /* Chat preview */
+    .preview-panel { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .preview-panel h2 { font-size: 13px; color: #6b7588; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .chat-messages { display: flex; flex-direction: column; gap: 10px; min-height: 200px; }
+
+    /* Message bubbles */
+    .msg { max-width: 100%; }
+    .msg-text { background: #f4f5f7; padding: 10px 14px; border-radius: 14px 14px 14px 4px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .msg-text strong, .msg-text b { font-weight: 600; }
+
+    /* input_select rendering */
+    .msg-input-select { background: #f4f5f7; padding: 10px 14px; border-radius: 14px; }
+    .msg-input-select .is-label { font-size: 13px; color: #555; margin-bottom: 8px; }
+    .msg-input-select .is-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .msg-input-select .is-item { padding: 6px 14px; background: #f0f4ff; color: #4a6cf7; border: 1px solid #d0d8f0; border-radius: 16px; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+    .msg-input-select .is-item:hover { background: #4a6cf7; color: white; }
+
+    /* cards rendering */
+    .msg-cards { background: #f4f5f7; padding: 10px; border-radius: 14px; }
+    .msg-cards .cards-label { font-size: 13px; color: #555; margin-bottom: 8px; padding: 0 4px; }
+    .msg-cards .cards-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .card-item { background: white; border-radius: 10px; overflow: hidden; border: 1px solid #e8eaef; }
+    .card-item img { width: 100%; height: 120px; object-fit: cover; display: block; }
+    .card-item .card-emoji { width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: #f8f9fb; }
+    .card-item .card-body { padding: 10px; }
+    .card-item .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .card-item .card-desc { font-size: 12px; color: #666; line-height: 1.4; white-space: pre-wrap; }
+    .card-item .card-actions { padding: 8px 10px; border-top: 1px solid #f0f0f0; }
+    .card-item .card-action-btn { padding: 5px 12px; background: #4a6cf7; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+
+    /* form rendering */
+    .msg-form { background: #f4f5f7; padding: 12px 14px; border-radius: 14px; }
+    .msg-form .form-label { font-size: 13px; color: #555; margin-bottom: 10px; }
+    .msg-form .form-field { margin-bottom: 8px; }
+    .msg-form .form-field label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; }
+    .msg-form .form-field input { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; }
+    .msg-form .form-submit { padding: 6px 16px; background: #4a6cf7; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; margin-top: 4px; }
+
+    /* _image rendering (Messenger image attachment preview) */
+    .msg-image { background: #f4f5f7; padding: 10px; border-radius: 14px; }
+    .msg-image img { width: 100%; max-width: 280px; border-radius: 10px; display: block; }
+    .msg-image .img-caption { font-size: 12px; color: #555; margin-top: 6px; }
+
+    /* JSON panel */
+    .json-panel { background: #1e1e2e; border-radius: 14px; padding: 16px; color: #cdd6f4; overflow: auto; }
+    .json-panel h2 { font-size: 13px; color: #89b4fa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .json-panel pre { font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; max-height: 600px; overflow-y: auto; }
+    .json-key { color: #89b4fa; }
+    .json-string { color: #a6e3a1; }
+    .json-number { color: #fab387; }
+
+    /* Stats bar */
+    .stats { font-size: 11px; color: #888; margin-top: 12px; padding: 8px; background: #f8f8f8; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Batutynas Chatwoot — Enrichment Test</h1>
+    <p class="subtitle">Test Chatwoot message format output. Toggle Web/Messenger to see channel-aware differences.</p>
+
+    <div class="controls">
+      <div class="channel-toggle">
+        <button id="ch-web" class="active" onclick="setChannel(false)">Web Widget</button>
+        <button id="ch-messenger" onclick="setChannel(true)">Messenger</button>
+      </div>
+    </div>
+
+    <div class="test-btns" style="margin-bottom:16px">
+      <button class="test-btn" onclick="test('main_menu')">Main Menu</button>
+      <button class="test-btn" onclick="test('birthday_10')">Birthday (10)</button>
+      <button class="test-btn" onclick="test('birthday_30')">Birthday (30)</button>
+      <button class="test-btn" onclick="test('public_20')">Public (20)</button>
+      <button class="test-btn" onclick="test('party')">Party</button>
+      <button class="test-btn" onclick="test('purchase_menu')">Purchase</button>
+      <button class="test-btn" onclick="test('purchase_email')">Email Input</button>
+      <button class="test-btn" onclick="test('purchase_form')">Custom Form</button>
+      <button class="test-btn" onclick="test('date')">Date Picker</button>
+      <button class="test-btn" onclick="test('guests')">Guest Count</button>
+      <button class="test-btn" onclick="test('addon_upsell')">Addon Upsell</button>
+      <button class="test-btn" onclick="test('confirm')">Booking Confirm</button>
+      <button class="test-btn" onclick="test('info')">Info (plain)</button>
+    </div>
+
+    <div class="split">
+      <div class="preview-panel">
+        <h2>Chat Preview</h2>
+        <div id="chat-messages" class="chat-messages">
+          <div class="msg"><div class="msg-text" style="color:#999">Click a test above to see output</div></div>
+        </div>
+        <div id="stats" class="stats" style="display:none"></div>
+      </div>
+      <div class="json-panel">
+        <h2>Raw JSON Output</h2>
+        <pre id="json-output">{ "messages": [] }</pre>
+      </div>
+    </div>
+  </div>
+
+<script src="enrich-chatwoot-test.js"></script>
+<script>
+var currentIsMessenger = false;
+
+var SCENARIOS = {
+  main_menu: 'Sveiki! Kuo galiu padėti? Pasirinkite kategoriją:\n\n[MAIN_MENU]',
+  birthday_10: 'Puiku! Štai batutai, tinkami jūsų šventei su 10 svečių:\n\n[MENU_GROUP_BIRTHDAY:10]',
+  birthday_30: 'Didelei šventei su 30 svečių rekomenduojame:\n\n[MENU_GROUP_BIRTHDAY:30]',
+  public_20: 'Viešam renginiui su ~20 dalyvių siūlome:\n\n[MENU_GROUP_PUBLIC:20]',
+  party: 'Štai vakarėlio įranga:\n\n[MENU_GROUP_PARTY]',
+  purchase_menu: 'Ką norėtumėte?\n\n[PURCHASE_SUBMENU]',
+  purchase_email: 'Įveskite el. paštą ir atsiųsime katalogą:\n\n[PURCHASE_EMAIL_INPUT]',
+  purchase_form: 'Užpildykite formą individualiam batutui:\n\n[PURCHASE_CUSTOM_FORM]',
+  date: 'Kada planuojate renginį?\n\n[DATE_PICKER]',
+  guests: 'Kiek svečių planuojate?\n\n[GUEST_COUNT]',
+  addon_upsell: 'Puiku! Ar norėtumėte papildyti šventę?\n\n[ADDON_UPSELL]',
+  confirm: 'Jūsų užklausa pateikta!\n\n[BOOKING_CONFIRM:{"group_type":"Gimtadienis","date":"2026-03-15","location":"Tauragė","address":"Tauragė, Žemaitės g. 15","event_type":"Vaikų gimtadienis","guest_count":"15","contact_name":"Jonas","contact_phone":"+37061234567","trampoline":"Mega Waikiki","addons":"Milžiniškas Dart, Saldėsių aparatai"}]',
+  info: 'Batutai yra sertifikuoti pagal **EN14960** Europos saugos standartą.\n\nSvarbiausios taisyklės:\n- Nusiauti batus\n- Nusiimti papuošalus\n- Amžius: 2-14 metų, iki 70 kg\n- Suaugusiojo priežiūra vaikams iki 6 metų\n\nKontaktai: +370 648 803 88'
+};
+
+function setChannel(isMessenger) {
+  currentIsMessenger = isMessenger;
+  document.getElementById('ch-web').classList.toggle('active', !isMessenger);
+  document.getElementById('ch-messenger').classList.toggle('active', isMessenger);
+  // Re-run active test if any
+  var active = document.querySelector('.test-btn.active');
+  if (active) active.click();
+}
+
+function test(scenario) {
+  document.querySelectorAll('.test-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
+
+  var response = SCENARIOS[scenario];
+  var result = enrichChatwootResponse(response, currentIsMessenger);
+
+  // Render chat preview
+  renderMessages(result.messages);
+
+  // Render JSON
+  var jsonEl = document.getElementById('json-output');
+  jsonEl.innerHTML = syntaxHighlight(JSON.stringify(result, null, 2));
+
+  // Stats
+  var stats = document.getElementById('stats');
+  stats.style.display = 'block';
+  var types = result.messages.map(function(m) { return m.content_type; });
+  stats.textContent = 'Messages: ' + result.messages.length + ' | Types: ' + types.join(', ') + ' | Channel: ' + (currentIsMessenger ? 'Messenger' : 'Web Widget');
+}
+
+function renderMessages(messages) {
+  var container = document.getElementById('chat-messages');
+  container.innerHTML = '';
+
+  for (var i = 0; i < messages.length; i++) {
+    var msg = messages[i];
+    var el = document.createElement('div');
+    el.className = 'msg';
+
+    if (msg.content_type === 'text') {
+      var div = document.createElement('div');
+      div.className = 'msg-text';
+      // Convert *bold* to <strong>
+      var html = escapeHtml(msg.content).replace(/\*(.+?)\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+      div.innerHTML = html;
+      el.appendChild(div);
+    }
+    else if (msg.content_type === 'input_select') {
+      var div = document.createElement('div');
+      div.className = 'msg-input-select';
+      if (msg.content && msg.content !== '\u2195\uFE0F') {
+        var label = document.createElement('div');
+        label.className = 'is-label';
+        label.textContent = msg.content;
+        div.appendChild(label);
+      }
+      var items = document.createElement('div');
+      items.className = 'is-items';
+      var selectItems = (msg.content_attributes && msg.content_attributes.items) || [];
+      for (var j = 0; j < selectItems.length; j++) {
+        var btn = document.createElement('button');
+        btn.className = 'is-item';
+        btn.textContent = selectItems[j].title;
+        btn.setAttribute('data-value', selectItems[j].value);
+        btn.onclick = function() { alert('Selected: ' + this.getAttribute('data-value')); };
+        items.appendChild(btn);
+      }
+      div.appendChild(items);
+      el.appendChild(div);
+    }
+    else if (msg.content_type === 'cards') {
+      var div = document.createElement('div');
+      div.className = 'msg-cards';
+      if (msg.content) {
+        var label = document.createElement('div');
+        label.className = 'cards-label';
+        label.textContent = msg.content;
+        div.appendChild(label);
+      }
+      var grid = document.createElement('div');
+      grid.className = 'cards-grid';
+      var cardItems = (msg.content_attributes && msg.content_attributes.items) || [];
+      for (var k = 0; k < cardItems.length; k++) {
+        var card = cardItems[k];
+        var cardEl = document.createElement('div');
+        cardEl.className = 'card-item';
+        if (card.media_url) {
+          var img = document.createElement('img');
+          img.src = card.media_url;
+          img.alt = card.title || '';
+          img.onerror = function() { this.style.display = 'none'; };
+          cardEl.appendChild(img);
+        } else {
+          var emoji = document.createElement('div');
+          emoji.className = 'card-emoji';
+          // Extract emoji from title
+          emoji.textContent = (card.title || '').split(' ')[0];
+          cardEl.appendChild(emoji);
+        }
+        var body = document.createElement('div');
+        body.className = 'card-body';
+        var title = document.createElement('div');
+        title.className = 'card-title';
+        title.textContent = card.title || '';
+        body.appendChild(title);
+        if (card.description) {
+          var desc = document.createElement('div');
+          desc.className = 'card-desc';
+          desc.textContent = card.description;
+          body.appendChild(desc);
+        }
+        cardEl.appendChild(body);
+        if (card.actions && card.actions.length > 0) {
+          var actions = document.createElement('div');
+          actions.className = 'card-actions';
+          for (var a = 0; a < card.actions.length; a++) {
+            var actBtn = document.createElement('button');
+            actBtn.className = 'card-action-btn';
+            actBtn.textContent = card.actions[a].text;
+            actBtn.setAttribute('data-payload', card.actions[a].payload || '');
+            actBtn.onclick = function() { alert('Postback: ' + this.getAttribute('data-payload')); };
+            actions.appendChild(actBtn);
+          }
+          cardEl.appendChild(actions);
+        }
+        grid.appendChild(cardEl);
+      }
+      div.appendChild(grid);
+      el.appendChild(div);
+    }
+    else if (msg.content_type === '_image') {
+      var div = document.createElement('div');
+      div.className = 'msg-image';
+      if (msg._imageUrl) {
+        var img = document.createElement('img');
+        img.src = msg._imageUrl;
+        img.alt = msg.content || '';
+        img.onerror = function() { this.style.display = 'none'; };
+        div.appendChild(img);
+      }
+      if (msg.content) {
+        var cap = document.createElement('div');
+        cap.className = 'img-caption';
+        cap.textContent = msg.content;
+        div.appendChild(cap);
+      }
+      el.appendChild(div);
+    }
+    else if (msg.content_type === 'form') {
+      var div = document.createElement('div');
+      div.className = 'msg-form';
+      if (msg.content) {
+        var label = document.createElement('div');
+        label.className = 'form-label';
+        label.textContent = msg.content;
+        div.appendChild(label);
+      }
+      var formItems = (msg.content_attributes && msg.content_attributes.items) || [];
+      for (var f = 0; f < formItems.length; f++) {
+        var field = document.createElement('div');
+        field.className = 'form-field';
+        var lbl = document.createElement('label');
+        lbl.textContent = formItems[f].label || formItems[f].name;
+        field.appendChild(lbl);
+        var inp = document.createElement('input');
+        inp.type = formItems[f].type || 'text';
+        inp.placeholder = formItems[f].placeholder || '';
+        inp.name = formItems[f].name;
+        field.appendChild(inp);
+        div.appendChild(field);
+      }
+      var submit = document.createElement('button');
+      submit.className = 'form-submit';
+      submit.textContent = 'Pateikti';
+      submit.onclick = function() { alert('Form submitted'); };
+      div.appendChild(submit);
+      el.appendChild(div);
+    }
+
+    container.appendChild(el);
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function syntaxHighlight(json) {
+  json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+    var cls = 'json-number';
+    if (/^"/.test(match)) {
+      if (/:$/.test(match)) { cls = 'json-key'; }
+      else { cls = 'json-string'; }
+    }
+    return '<span class="' + cls + '">' + match + '</span>';
+  });
+}
+</script>
+</body>
+</html>
