@@ -4,3 +4,21 @@
 node_modules/
 .idea/
 .vscode/
+
+# Unrelated projects
+land-search-agent/
+other-examples/
+
+# Temp / test artifacts
+console-test.txt
+test-on-site.html
+package.json
+package-lock.json
+
+# n8n templates (not part of main workflows)
+n8n-workflows/template*.js
+n8n-workflows/ingest-website.json
+n8n-workflows/format-response-code.js
+
+# Unused prompts
+prompts/ghl-system-prompt.md
