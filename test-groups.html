@@ -36,6 +36,7 @@
     <button class="test-btn" onclick="test('date')">Date Picker</button>
     <button class="test-btn" onclick="test('location')">Location</button>
     <button class="test-btn" onclick="test('guests')">Guest Count</button>
+    <button class="test-btn" onclick="test('addon_upsell')">Addon Upsell</button>
     <button class="test-btn" onclick="test('confirm')">Booking Confirm</button>
     <button class="test-btn" onclick="test('info')">Info (plain text)</button>
   </div>
@@ -62,7 +63,8 @@ const SCENARIOS = {
   date: 'Kada planuojate renginį?\n\n[DATE_PICKER]',
   location: 'Kur vyks renginys?\n\n[LOCATION_OPTIONS]',
   guests: 'Kiek svečių planuojate?\n\n[GUEST_COUNT]',
-  confirm: 'Jūsų užklausa pateikta!\n\n[BOOKING_CONFIRM:{"group_type":"Gimtadienis","date":"2026-03-15","location":"Tauragė","event_type":"Vaikų gimtadienis","guest_count":"15","contact_name":"Jonas","contact_phone":"+37061234567","trampoline":"Mega Waikiki"}]',
+  addon_upsell: 'Puiku! Ar norėtumėte papildyti šventę?\n\n[ADDON_UPSELL]',
+  confirm: 'Jūsų užklausa pateikta!\n\n[BOOKING_CONFIRM:{"group_type":"Gimtadienis","date":"2026-03-15","location":"Tauragė","address":"Tauragė, Žemaitės g. 15","event_type":"Vaikų gimtadienis","guest_count":"15","contact_name":"Jonas","contact_phone":"+37061234567","trampoline":"Mega Waikiki","addons":"Milžiniškas Dart, Saldėsių aparatai"}]',
   info: 'Batutai yra sertifikuoti pagal **EN14960** Europos saugos standartą.\n\nSvarbiausios taisyklės:\n- Nusiauti batus\n- Nusiimti papuošalus\n- Amžius: 2-14 metų, iki 70 kg\n- Suaugusiojo priežiūra vaikams iki 6 metų\n\nKontaktai: +370 648 803 88'
 };
 
@@ -93,6 +95,61 @@ function test(scenario) {
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 
 document.addEventListener('click', function(e) {
+  // Address city fill
+  var fillBtn = e.target.closest('[data-chat-address-fill]');
+  if (fillBtn && !fillBtn.disabled) {
+    var city = fillBtn.getAttribute('data-chat-address-fill');
+    var container = fillBtn.closest('.test-output') || fillBtn.closest('.chat-products');
+    if (container) {
+      var addrInput = container.querySelector('[data-chat-address]');
+      if (addrInput && !addrInput.disabled) {
+        addrInput.value = city + ', ';
+        addrInput.focus();
+        var addrConfirm = container.querySelector('[data-chat-address-confirm]');
+        if (addrConfirm) addrConfirm.disabled = !addrInput.value.trim();
+      }
+    }
+    return;
+  }
+  // Address confirm
+  var addrConfirmBtn = e.target.closest('[data-chat-address-confirm]');
+  if (addrConfirmBtn && !addrConfirmBtn.disabled) {
+    var addrInp = addrConfirmBtn.parentElement.querySelector('[data-chat-address]');
+    if (addrInp && addrInp.value.trim()) {
+      alert('Address: ' + addrInp.value.trim());
+      addrConfirmBtn.disabled = true;
+      addrInp.disabled = true;
+      var parent = addrConfirmBtn.closest('.test-output') || addrConfirmBtn.closest('.chat-products');
+      if (parent) parent.querySelectorAll('[data-chat-address-fill]').forEach(function(b) { b.disabled = true; });
+    }
+    return;
+  }
+  // Detail toggle
+  var detailBtn = e.target.closest('[data-chat-detail-toggle]');
+  if (detailBtn) {
+    var card = detailBtn.closest('.chat-trampoline-select');
+    if (card) {
+      var detail = card.querySelector('.t-detail');
+      if (detail) detail.classList.toggle('open');
+    }
+    e.stopPropagation();
+    return;
+  }
+  // Addon multi-select toggle
+  var addonCard = e.target.closest('[data-chat-addon]');
+  if (addonCard && !addonCard.closest('[data-chat-detail-toggle]')) {
+    addonCard.classList.toggle('addon-selected');
+    return;
+  }
+  // Addon continue
+  var addonContinue = e.target.closest('[data-chat-addon-continue]');
+  if (addonContinue) {
+    var selected = document.querySelectorAll('.addon-selected');
+    var names = [];
+    selected.forEach(function(el) { names.push(el.getAttribute('data-chat-addon')); });
+    alert('Addons: ' + (names.length ? names.join(', ') : 'Nėra papildomų'));
+    return;
+  }
   var opt = e.target.closest('[data-chat-option]');
   if (opt && !opt.disabled) {
     alert('Selected: ' + opt.getAttribute('data-chat-option'));
@@ -134,6 +191,11 @@ document.addEventListener('input', function(e) {
   if (emailInp) {
     var btn = emailInp.parentElement.querySelector('[data-chat-email-confirm]');
     if (btn) btn.disabled = !isValidEmail(emailInp.value.trim());
+  }
+  var addrInp = e.target.closest('[data-chat-address]');
+  if (addrInp) {
+    var btn = addrInp.parentElement.querySelector('[data-chat-address-confirm]');
+    if (btn) btn.disabled = !addrInp.value.trim();
   }
 });
 

@@ -1516,16 +1516,16 @@
       case 1: // Date
         bookingState.data.date = msg;
         bookingState.step = 2;
-        if (l === 'en') return '{{HTML}}<div class="chat-products"><p>Date: <strong>' + escHtml(msg) + '</strong></p><p><strong>2. Where will the event take place?</strong></p>' +
+        if (l === 'en') return '{{HTML}}<div class="chat-products"><p>Date: <strong>' + escHtml(msg) + '</strong></p><p><strong>2. What is the event address?</strong></p>' +
           optionButtons(['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kitas miestas']) + '</div>';
-        return '{{HTML}}<div class="chat-products"><p>Data: <strong>' + escHtml(msg) + '</strong></p><p><strong>2. Kur vyks renginys?</strong></p>' +
+        return '{{HTML}}<div class="chat-products"><p>Data: <strong>' + escHtml(msg) + '</strong></p><p><strong>2. Koks renginio adresas?</strong></p>' +
           optionButtons(['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kitas miestas']) + '</div>';
 
-      case 2: // Location
+      case 2: // Location / Address
         if (/^(kitas miestas|other city)$/i.test(msg)) {
           bookingState.awaitingCustomInput = 'location';
-          if (l === 'en') return 'Please enter your city name:';
-          return 'Įveskite miesto pavadinimą:';
+          if (l === 'en') return 'Please enter the full address:';
+          return 'Įveskite pilną adresą (miestas, gatvė):';
         }
         bookingState.data.location = msg;
         bookingState.step = 3;

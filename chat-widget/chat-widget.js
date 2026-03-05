@@ -161,6 +161,7 @@
 
     chatWindow.setAttribute('role', 'dialog');
     chatWindow.setAttribute('aria-label', 'Pokalbis');
+    chatWindow.setAttribute('aria-modal', 'true');
 
     // Messages
     var messagesContainer = el('div', { className: 'woo-chat-messages', id: 'woo-chat-messages', role: 'log', 'aria-live': 'polite' });
@@ -309,8 +310,8 @@
       'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
       'data-chat-custom-submit', 'data-chat-address', 'data-chat-address-confirm',
       'data-chat-address-fill', 'data-chat-detail-toggle', 'data-chat-addon',
-      'data-chat-addon-continue', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
-      'target', 'rel', 'src', 'alt', 'style', 'placeholder', 'id', 'role', 'tabindex', 'rows'];
+      'data-chat-addon-continue', 'data-chat-zoom', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
+      'target', 'rel', 'src', 'alt', 'placeholder', 'id', 'role', 'tabindex', 'rows'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
     var tmp = document.createElement('div');
@@ -657,6 +658,34 @@
       }
 
       // Detail expand toggle
+      // Image zoom on click
+      var zoomImg = e.target.closest('[data-chat-zoom]');
+      if (zoomImg && zoomImg.tagName === 'IMG') {
+        e.stopPropagation();
+        e.preventDefault();
+        var overlay = document.createElement('div');
+        overlay.className = 't-zoom-overlay';
+        var fullImg = document.createElement('img');
+        fullImg.src = zoomImg.src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=800');
+        fullImg.alt = zoomImg.alt || '';
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 't-zoom-close';
+        closeBtn.textContent = '\u00d7';
+        overlay.appendChild(fullImg);
+        overlay.appendChild(closeBtn);
+        if (zoomImg.alt) {
+          var caption = document.createElement('div');
+          caption.className = 't-zoom-caption';
+          caption.textContent = zoomImg.alt;
+          overlay.appendChild(caption);
+        }
+        function closeOverlay() { overlay.remove(); }
+        overlay.addEventListener('click', closeOverlay);
+        fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
+        document.body.appendChild(overlay);
+        return;
+      }
+
       var detailBtn = e.target.closest('[data-chat-detail-toggle]');
       if (detailBtn) {
         e.stopPropagation();
@@ -843,6 +872,29 @@
     });
 
     document.addEventListener('keydown', function (e) {
+      // FR-5.6: Focus trap inside open dialog
+      if (e.key === 'Tab' && state.open) {
+        var chatWin = document.querySelector('.woo-chat-window');
+        if (!chatWin) return;
+        var focusable = chatWin.querySelectorAll(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
+        );
+        if (focusable.length === 0) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first || !chatWin.contains(document.activeElement)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last || !chatWin.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+
       if (e.key === 'Escape' && state.open) {
         var active = document.activeElement;
         var tag = active ? active.tagName : '';

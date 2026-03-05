@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batutynas UX Preview — Trampoline Cards</title>
+<link rel="stylesheet" href="chat-widget/chat-widget.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .preview-header {
+    background: linear-gradient(135deg, #6C3CE1, #8B5CF6);
+    color: white;
+    padding: 24px;
+    text-align: center;
+  }
+  .preview-header h1 { font-size: 24px; margin-bottom: 8px; }
+  .preview-header p { opacity: 0.8; font-size: 14px; }
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    background: white;
+    border-bottom: 2px solid #e8eaef;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #596578;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab-btn:hover { background: #faf5ff; }
+  .tab-btn.active { color: #6C3CE1; border-bottom-color: #6C3CE1; }
+  .preview-container {
+    max-width: 390px;
+    margin: 20px auto;
+    background: var(--chat-messages-bg, #fafbfc);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .preview-content { padding: 16px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .note {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #92400e;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="preview-header">
+  <h1>Batutynas.lt — UX Preview</h1>
+  <p>Trampoline card redesign — tap images to zoom, tap ℹ for details</p>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="birthday">🎂 Gimtadienis (8)</button>
+  <button class="tab-btn" data-tab="public">🎪 Viešas (50)</button>
+  <button class="tab-btn" data-tab="party">🎉 Vakarėlis</button>
+  <button class="tab-btn" data-tab="addons">🎯 Papildomos</button>
+</div>
+
+<!-- ====== BIRTHDAY TAB (8 guests) ====== -->
+<div class="tab-panel active" id="tab-birthday">
+  <div class="preview-container">
+    <div class="preview-content">
+      <div class="note">Simuliacija: gimtadienis 8 svečiams. Visi standard + mega batutai rodomi.</div>
+
+      <div class="chat-section-title">Rekomenduojami jūsų šventei:</div>
+      <div class="chat-trampoline-grid">
+
+        <!-- Mega Waikiki (popular, recommended) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Mega Waikiki">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg" alt="Mega Waikiki" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega Waikiki</div>
+            <div class="t-meta">Aukščiausias 8,5 m · 16x4 m · Iki 15 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 4–14 m. · Aukštis: 8,5 m · Surinkimas: ~40 min · Čiuožykla + šokinėjimo zona · Įeina: generatorius</div>
+        </div>
+
+        <!-- Mega Rocket (recommended) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Mega Rocket">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg" alt="Mega Rocket" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega Rocket</div>
+            <div class="t-meta">2 dalių batutas · 14x5 m · Iki 15 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 4–14 m. · 2 dalys: čiuožykla + arena · Surinkimas: ~40 min · Įeina: generatorius</div>
+        </div>
+
+        <!-- Mega Ufonautai (recommended) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Mega Ufonautai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg" alt="Mega Ufonautai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega Ufonautai</div>
+            <div class="t-meta">2 dalių batutas · 14x5 m · Iki 15 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 4–14 m. · 2 dalys: čiuožykla + šokinėjimo zona · Surinkimas: ~40 min · Įeina: generatorius</div>
+        </div>
+
+        <!-- Monstrai (recommended) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Monstrai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png" alt="Monstrai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Monstrai</div>
+            <div class="t-meta">Su Dart žaidimu · 8x5 m · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 3–12 m. · Su velcro Dart žaidimu · Surinkimas: ~25 min · Idealus gimtadieniams</div>
+        </div>
+
+        <!-- Candy Pop (popular, recommended) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Candy Pop">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png" alt="Candy Pop" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Candy Pop</div>
+            <div class="t-meta">Spalvingas · 8x5 m · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 3–12 m. · Spalvingas dizainas · Surinkimas: ~25 min · Šokinėjimo zona + čiuožykla</div>
+        </div>
+
+        <!-- Aštuonkojis (recommended) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Aštuonkojis">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png" alt="Aštuonkojis" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Aštuonkojis</div>
+            <div class="t-meta">Jūros tema · 8x5 m · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 3–12 m. · Jūros tematika · Surinkimas: ~25 min · Šokinėjimo zona + čiuožykla</div>
+        </div>
+
+        <!-- Chameleonas (recommended) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Chameleonas">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png" alt="Chameleonas" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Chameleonas</div>
+            <div class="t-meta">Su čiuožykla · 8x5 m · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 3–12 m. · Su didele čiuožykla · Surinkimas: ~25 min · Spalvų keitimo dizainas</div>
+        </div>
+
+        <!-- Vienaragiai (recommended) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Vienaragiai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg" alt="Vienaragiai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Vienaragiai</div>
+            <div class="t-meta">Su tuneliais · 9x4 m · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 3–10 m. · Su tuneliais ir čiuožykla · Surinkimas: ~25 min · Vienaragių tema</div>
+        </div>
+
+        <!-- Pilis mažiesiems (recommended) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Pilis mažiesiems">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg" alt="Pilis mažiesiems" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Pilis mažiesiems</div>
+            <div class="t-meta">Iki 5 metų · 5x4 m · Iki 6 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 2–5 m. · Mažiausias batutas · Surinkimas: ~15 min · Saugus mažiausiems</div>
+        </div>
+
+        <!-- Mega ruožas (recommended) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Mega ruožas">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg" alt="Mega ruožas" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega ruožas</div>
+            <div class="t-meta">Kliūčių trasa 21 m · 25x6 m · 240 dalyvių/val.</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 6+ m. · 21 m kliūčių trasa · Surinkimas: ~45 min · Įeina: generatorius, prižiūrėtojas</div>
+        </div>
+
+      </div><!-- end recommended grid -->
+
+      <div class="chat-section-subtitle">Papildomos pramogos:</div>
+      <div class="chat-trampoline-grid t-grid-compact">
+        <!-- Milžiniškas Dart (addon compact) -->
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-option="Milžiniškas Dart">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg" alt="Milžiniškas Dart" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Milžiniškas Dart</div>
+            <div class="t-meta">Interaktyvi pramoga · 5x4,5 m</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Velcro kamuoliai + pripučiamas taikinys · Visos amžiaus grupės · Surinkimas: ~15 min</div>
+        </div>
+
+        <!-- Kamuolių medžioklė (addon compact, no image) -->
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-option="Kamuolių medžioklė">
+          <div class="chat-trampoline-thumb">⚽</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Kamuolių medžioklė</div>
+            <div class="t-meta">Komandinis žaidimas · 8 m arena</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Pripučiama arena · 4 žaidėjai vienu metu · Komandinis žaidimas · Surinkimas: ~20 min</div>
+        </div>
+
+        <!-- Rodeo bulius (addon compact, no image) -->
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-option="Rodeo bulius">
+          <div class="chat-trampoline-thumb">🤠</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Rodeo bulius</div>
+            <div class="t-meta">Mechaninis bulius · 5x5 m</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Mechaninis bulius su saugiu pripučiamu kilimėliu · Reguliuojamas greitis · Amžius: 6+</div>
+        </div>
+
+        <!-- Saldėsių aparatai (addon compact) -->
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-option="Saldėsių aparatai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg" alt="Saldėsių aparatai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Saldėsių aparatai</div>
+            <div class="t-meta">1 NEMOKAMAI su batutu</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu · Papildomi aparatai už papildomą mokestį</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== PUBLIC TAB (50 guests) ====== -->
+<div class="tab-panel" id="tab-public">
+  <div class="preview-container">
+    <div class="preview-content">
+      <div class="note">Simuliacija: viešas renginys 50 svečių. Big-park + mega + standard, filtruota pagal talpą.</div>
+
+      <div class="chat-section-title">Rekomenduojami jūsų renginiui:</div>
+      <div class="chat-trampoline-grid">
+
+        <!-- Džiumandži parkas (popular, recommended for 50) -->
+        <div class="chat-trampoline-select t-bg-big-park t-recommended" role="button" tabindex="0" data-chat-option="Džiumandži parkas">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg" alt="Džiumandži parkas" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Džiumandži parkas</div>
+            <div class="t-meta">Nuotykių parkas · 14x16 m · Iki 40 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 4–14 m. · Surinkimas: ~60 min · Reikia: lygios 16x14 m aikštelės · Įeina: batutas, generatorius, prižiūrėtojas</div>
+        </div>
+
+        <!-- Fantazijų parkas (recommended for 50) -->
+        <div class="chat-trampoline-select t-bg-big-park t-recommended" role="button" tabindex="0" data-chat-option="Fantazijų parkas">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg" alt="Fantazijų parkas" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Fantazijų parkas</div>
+            <div class="t-meta">Batutų parkas · 14x14 m · Iki 30 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 4–14 m. · Surinkimas: ~50 min · Reikia: lygios 14x14 m aikštelės · Įeina: batutas, generatorius, prižiūrėtojas</div>
+        </div>
+
+        <!-- Giga ruožas (popular, recommended for 50) -->
+        <div class="chat-trampoline-select t-bg-big-park t-recommended" role="button" tabindex="0" data-chat-option="Giga ruožas">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg" alt="Giga ruožas" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Giga ruožas</div>
+            <div class="t-meta">Kliūčių trasa 40 m · 45x8 m · 360 dalyvių/val.</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 6+ m. · Surinkimas: ~90 min · Reikia: 45x8 m aikštelės · Įeina: trasa, generatorius, 2 prižiūrėtojai</div>
+        </div>
+
+        <!-- Mega ruožas (recommended for 50) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline t-recommended" role="button" tabindex="0" data-chat-option="Mega ruožas">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg" alt="Mega ruožas" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega ruožas</div>
+            <div class="t-meta">Kliūčių trasa 21 m · 25x6 m · 240 dalyvių/val.</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Amžius: 6+ m. · 21 m kliūčių trasa · Surinkimas: ~45 min · Įeina: generatorius, prižiūrėtojas</div>
+        </div>
+
+      </div>
+
+      <div class="chat-section-subtitle">Kiti batutai:</div>
+      <div class="chat-trampoline-grid t-grid-compact">
+
+        <!-- Mega Waikiki (compact, over capacity) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline" role="button" tabindex="0" data-chat-option="Mega Waikiki">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg" alt="Mega Waikiki" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega Waikiki</div>
+            <div class="t-meta">Aukščiausias 8,5 m · Iki 15 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+
+        <!-- Mega Rocket (compact) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline" role="button" tabindex="0" data-chat-option="Mega Rocket">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg" alt="Mega Rocket" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega Rocket</div>
+            <div class="t-meta">2 dalių batutas · Iki 15 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+
+        <!-- Mega Ufonautai (compact) -->
+        <div class="chat-trampoline-select t-bg-mega-trampoline" role="button" tabindex="0" data-chat-option="Mega Ufonautai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg" alt="Mega Ufonautai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Mega Ufonautai</div>
+            <div class="t-meta">2 dalių batutas · Iki 15 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+
+        <!-- Standard trampolines (compact, too small for 50) -->
+        <div class="chat-trampoline-select t-bg-standard-trampoline" role="button" tabindex="0" data-chat-option="Monstrai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png" alt="Monstrai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Monstrai</div>
+            <div class="t-meta">Su Dart žaidimu · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-standard-trampoline" role="button" tabindex="0" data-chat-option="Candy Pop">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png" alt="Candy Pop" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Candy Pop</div>
+            <div class="t-meta">Spalvingas · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-standard-trampoline" role="button" tabindex="0" data-chat-option="Aštuonkojis">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png" alt="Aštuonkojis" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Aštuonkojis</div>
+            <div class="t-meta">Jūros tema · Iki 12 vaikų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="chat-section-subtitle">Papildomos pramogos:</div>
+      <div class="chat-trampoline-grid t-grid-compact">
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-option="Milžiniškas Dart">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg" alt="Milžiniškas Dart" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Milžiniškas Dart</div>
+            <div class="t-meta">Interaktyvi pramoga</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-option="Saldėsių aparatai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg" alt="Saldėsių aparatai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Saldėsių aparatai</div>
+            <div class="t-meta">1 NEMOKAMAI su batutu</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ====== PARTY TAB ====== -->
+<div class="tab-panel" id="tab-party">
+  <div class="preview-container">
+    <div class="preview-content">
+      <div class="note">Vakarėlio įranga — pilno pločio kortelės.</div>
+
+      <div class="chat-section-title">Vakarėlio įranga:</div>
+      <div class="chat-trampoline-grid">
+
+        <div class="chat-trampoline-select t-bg-party-equipment" role="button" tabindex="0" data-chat-option="Disco paviljonas">
+          <div class="chat-popular-badge">Populiariausias</div>
+          <div class="chat-trampoline-thumb">🪩</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Disco paviljonas</div>
+            <div class="t-meta">LED apšvietimas · 4x4 m · Iki 20 žmonių</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">LED apšvietimas + garso sistema · 4x4 m palapinė · Tinka vakarėliams ir šokiams</div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-party-equipment" role="button" tabindex="0" data-chat-option="Putų šou">
+          <div class="chat-trampoline-thumb">🫧</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Putų šou</div>
+            <div class="t-meta">Putų mašina + baseinas · Neribota</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Putų mašina + pripučiamas baseinas · Neriboti dalyviai · Vasaros pramoga</div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-party-equipment" role="button" tabindex="0" data-chat-option="Banketo stalai ir kėdės">
+          <div class="chat-trampoline-thumb">🪑</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Banketo stalai ir kėdės</div>
+            <div class="t-meta">Stalai + kėdės komplektas · Iki 50 vietų</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Banketo stalai + kėdės · Iki 50 vietų · Pristatymas ir surinkimas įskaičiuota</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ADDONS TAB (multi-select) ====== -->
+<div class="tab-panel" id="tab-addons">
+  <div class="preview-container">
+    <div class="preview-content">
+      <div class="note">Papildomų pramogų pasirinkimas — pilno pločio, galima rinktis kelis.</div>
+
+      <div class="chat-section-title">Papildykite savo šventę:</div>
+      <div class="chat-trampoline-grid">
+
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-addon="Milžiniškas Dart">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg" alt="Milžiniškas Dart" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Milžiniškas Dart</div>
+            <div class="t-meta">Interaktyvi pramoga · 5x4,5 m · 60 dalyvių/val.</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Velcro kamuoliai + pripučiamas taikinys · Visos amžiaus grupės · Surinkimas: ~15 min</div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-addon="Kamuolių medžioklė">
+          <div class="chat-trampoline-thumb">⚽</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Kamuolių medžioklė</div>
+            <div class="t-meta">Komandinis žaidimas · 8 m arena · 4 žaidėjai/raundas</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Pripučiama arena · 4 žaidėjai vienu metu · Komandinis žaidimas · Surinkimas: ~20 min</div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-addon="Rodeo bulius">
+          <div class="chat-trampoline-thumb">🤠</div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Rodeo bulius</div>
+            <div class="t-meta">Mechaninis bulius · 5x5 m · Neribota</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Mechaninis bulius su saugiu pripučiamu kilimėliu · Reguliuojamas greitis · Amžius: 6+</div>
+        </div>
+
+        <div class="chat-trampoline-select t-bg-addon" role="button" tabindex="0" data-chat-addon="Saldėsių aparatai">
+          <div class="chat-trampoline-thumb"><img src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg" alt="Saldėsių aparatai" data-chat-zoom></div>
+          <div class="chat-trampoline-info">
+            <div class="t-name">Saldėsių aparatai</div>
+            <div class="t-meta">1 NEMOKAMAI su batutu · Vata, popcorn, šerbetas</div>
+            <div class="t-price">pagal užklausą</div>
+          </div>
+          <div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>
+          <div class="t-detail">Cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu · Papildomi aparatai už papildomą mokestį</div>
+        </div>
+
+      </div>
+      <button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('active');
+    });
+  });
+
+  // Detail toggle
+  document.addEventListener('click', function(e) {
+    var toggleBtn = e.target.closest('[data-chat-detail-toggle]');
+    if (toggleBtn) {
+      e.stopPropagation();
+      var card = toggleBtn.closest('.chat-trampoline-select');
+      if (card) {
+        var detail = card.querySelector('.t-detail');
+        if (detail) detail.classList.toggle('open');
+      }
+      return;
+    }
+
+    // Image zoom
+    var zoomImg = e.target.closest('[data-chat-zoom]');
+    if (zoomImg && zoomImg.tagName === 'IMG') {
+      e.stopPropagation();
+      e.preventDefault();
+      var overlay = document.createElement('div');
+      overlay.className = 't-zoom-overlay';
+      var fullImg = document.createElement('img');
+      fullImg.src = zoomImg.src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=800');
+      fullImg.alt = zoomImg.alt || '';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 't-zoom-close';
+      closeBtn.textContent = '\u00d7';
+      overlay.appendChild(fullImg);
+      overlay.appendChild(closeBtn);
+      if (zoomImg.alt) {
+        var caption = document.createElement('div');
+        caption.className = 't-zoom-caption';
+        caption.textContent = zoomImg.alt;
+        overlay.appendChild(caption);
+      }
+      function closeOverlay() { overlay.remove(); }
+      overlay.addEventListener('click', closeOverlay);
+      fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
+      document.body.appendChild(overlay);
+      return;
+    }
+
+    // Addon multi-select toggle
+    var addonCard = e.target.closest('[data-chat-addon]');
+    if (addonCard) {
+      addonCard.classList.toggle('addon-selected');
+      return;
+    }
+
+    // Card selection
+    var card = e.target.closest('[data-chat-option]');
+    if (card) {
+      card.classList.toggle('selected');
+    }
+  });
+</script>
+</body>
+</html>

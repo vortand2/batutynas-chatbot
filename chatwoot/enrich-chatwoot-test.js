@@ -1,4 +1,5 @@
 // Browser-testable wrapper for enrich-chatwoot.js
+// Synced with production on 2026-03-05
 // Usage: enrichChatwootResponse(responseText, isMessenger) => { messages: [...] }
 
 function enrichChatwootResponse(response, isMessenger) {
@@ -10,28 +11,31 @@ function enrichChatwootResponse(response, isMessenger) {
     }]};
   }
 
+  // Fix #4 helper: local-timezone date formatting (avoids UTC midnight rollover)
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
   // --- Equipment data ---
-  const TRAMPOLINES = [
-    { name: 'Džiumandži parkas', icon: '\u{1F334}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', type: 'Nuotykių parkas \u00b7 14x16 m', capacity: 'Iki 40 vaikų', bg: '#fef9f0', min: 15, max: 40, cat: 'big-park', popular: true, detail: 'Amžius: 4\u201314 m. \u00b7 Surinkimas: ~60 min \u00b7 Reikia: lygios 16x14 m aikštelės \u00b7 Įeina: batutas, generatorius, prižiūrėtojas' },
-    { name: 'Fantazijų parkas', icon: '\u{1F3F0}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', type: 'Batutų parkas \u00b7 14x14 m', capacity: 'Iki 30 vaikų', bg: '#f5f0ff', min: 10, max: 30, cat: 'big-park', detail: 'Amžius: 4\u201314 m. \u00b7 Surinkimas: ~50 min \u00b7 Reikia: lygios 14x14 m aikštelės \u00b7 Įeina: batutas, generatorius, prižiūrėtojas' },
-    { name: 'Giga ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', type: 'Kliūčių trasa 40 m \u00b7 45x8 m', capacity: '360 dalyvių/val.', bg: '#f0f9ff', min: 10, max: 100, cat: 'big-park', popular: true, detail: 'Amžius: 6+ m. \u00b7 Surinkimas: ~90 min \u00b7 Reikia: 45x8 m aikštelės \u00b7 Įeina: trasa, generatorius, 2 prižiūrėtojai' },
-    { name: 'Mega Waikiki', icon: '\u{1F30A}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg', type: 'Aukščiausias 8,5 m \u00b7 16x4 m', capacity: 'Iki 15 vaikų', bg: '#e0f7fa', min: 5, max: 15, cat: 'mega-trampoline', popular: true, detail: 'Amžius: 4\u201314 m. \u00b7 Aukštis: 8,5 m \u00b7 Surinkimas: ~40 min \u00b7 Čiuožykla + šokinėjimo zona \u00b7 Įeina: generatorius' },
-    { name: 'Mega Rocket', icon: '\u{1F680}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg', type: '2 dalių batutas \u00b7 14x5 m', capacity: 'Iki 15 vaikų', bg: '#fff0f0', min: 5, max: 15, cat: 'mega-trampoline', detail: 'Amžius: 4\u201314 m. \u00b7 2 dalys: čiuožykla + arena \u00b7 Surinkimas: ~40 min \u00b7 Įeina: generatorius' },
-    { name: 'Mega Ufonautai', icon: '\u{1F6F8}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg', type: '2 dalių batutas \u00b7 14x5 m', capacity: 'Iki 15 vaikų', bg: '#ede7f6', min: 5, max: 15, cat: 'mega-trampoline', detail: 'Amžius: 4\u201314 m. \u00b7 2 dalys: čiuožykla + šokinėjimo zona \u00b7 Surinkimas: ~40 min \u00b7 Įeina: generatorius' },
-    { name: 'Mega ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', type: 'Kliūčių trasa 21 m \u00b7 25x6 m', capacity: '240 dalyvių/val.', bg: '#e8f5e9', min: 8, max: 100, cat: 'mega-trampoline', detail: 'Amžius: 6+ m. \u00b7 21 m kliūčių trasa \u00b7 Surinkimas: ~45 min \u00b7 Įeina: generatorius, prižiūrėtojas' },
-    { name: 'Monstrai', icon: '\u{1F47E}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png', type: 'Su Dart žaidimu \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#fce4ec', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201312 m. \u00b7 Su velcro Dart žaidimu \u00b7 Surinkimas: ~25 min \u00b7 Idealus gimtadieniams' },
-    { name: 'Candy Pop', icon: '\u{1F36D}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png', type: 'Spalvingas \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#fdf0ff', min: 4, max: 12, cat: 'standard-trampoline', popular: true, detail: 'Amžius: 3\u201312 m. \u00b7 Spalvingas dizainas \u00b7 Surinkimas: ~25 min \u00b7 Šokinėjimo zona + čiuožykla' },
-    { name: 'Aštuonkojis', icon: '\u{1F419}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png', type: 'Jūros tema \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#e0f2f1', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201312 m. \u00b7 Jūros tematika \u00b7 Surinkimas: ~25 min \u00b7 Šokinėjimo zona + čiuožykla' },
-    { name: 'Chameleonas', icon: '\u{1F98E}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png', type: 'Su čiuožykla \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#f0fff4', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201312 m. \u00b7 Su didele čiuožykla \u00b7 Surinkimas: ~25 min \u00b7 Spalvų keitimo dizainas' },
-    { name: 'Vienaragiai', icon: '\u{1F984}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', type: 'Su tuneliais \u00b7 9x4 m', capacity: 'Iki 12 vaikų', bg: '#f3e5f5', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201310 m. \u00b7 Su tuneliais ir čiuožykla \u00b7 Surinkimas: ~25 min \u00b7 Vienaragių tema' },
-    { name: 'Pilis mažiesiems', icon: '\u{1F3EF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', type: 'Iki 5 metų \u00b7 5x4 m', capacity: 'Iki 6 vaikų', bg: '#fff8e1', min: 2, max: 6, cat: 'standard-trampoline', detail: 'Amžius: 2\u20135 m. \u00b7 Mažiausias batutas \u00b7 Surinkimas: ~15 min \u00b7 Saugus mažiausiems' },
-    { name: 'Milžiniškas Dart', icon: '\u{1F3AF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga \u00b7 5x4,5 m', capacity: '60 dalyvių/val.', bg: '#fffff0', min: 1, max: 999, cat: 'addon', detail: 'Velcro kamuoliai + pripučiamas taikinys \u00b7 Visos amžiaus grupės \u00b7 Surinkimas: ~15 min' },
+  var TRAMPOLINES = [
+    { name: 'Džiumandži parkas', icon: '\u{1F334}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', type: 'Nuotykių parkas \u00b7 14x16 m', capacity: 'Iki 40 vaikų', bg: '#fef9f0', min: 15, max: 200, cat: 'big-park', popular: true, detail: 'Amžius: 4\u201314 m. \u00b7 Surinkimas: ~60 min \u00b7 Reikia: lygios 16x14 m aikštelės \u00b7 Įeina: batutas, generatorius, prižiūrėtojas' },
+    { name: 'Fantazijų parkas', icon: '\u{1F3F0}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', type: 'Batutų parkas \u00b7 14x14 m', capacity: 'Iki 30 vaikų', bg: '#f5f0ff', min: 10, max: 150, cat: 'big-park', detail: 'Amžius: 4\u201314 m. \u00b7 Surinkimas: ~50 min \u00b7 Reikia: lygios 14x14 m aikštelės \u00b7 Įeina: batutas, generatorius, prižiūrėtojas' },
+    { name: 'Giga ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', type: 'Kliūčių trasa 40 m \u00b7 45x8 m', capacity: '360 dalyvių/val.', bg: '#f0f9ff', min: 10, max: 1000, cat: 'big-park', popular: true, detail: 'Amžius: 6+ m. \u00b7 Surinkimas: ~90 min \u00b7 Reikia: 45x8 m aikštelės \u00b7 Įeina: trasa, generatorius, 2 prižiūrėtojai' },
+    { name: 'Mega Waikiki', icon: '\u{1F30A}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg', type: 'Aukščiausias 8,5 m \u00b7 16x4 m', capacity: 'Iki 15 vaikų', bg: '#e0f7fa', min: 5, max: 15, cat: 'mega-trampoline', popular: true, detail: 'Amžius: 4\u201314 m. \u00b7 Aukštis: 8,5 m \u00b7 Surinkimas: ~40 min \u00b7 Čiuožykla + šokinėjimo zona \u00b7 Įeina: generatorius' },
+    { name: 'Mega Rocket', icon: '\u{1F680}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg', type: '2 dalių batutas \u00b7 14x5 m', capacity: 'Iki 15 vaikų', bg: '#fff0f0', min: 5, max: 15, cat: 'mega-trampoline', detail: 'Amžius: 4\u201314 m. \u00b7 2 dalys: čiuožykla + arena \u00b7 Surinkimas: ~40 min \u00b7 Įeina: generatorius' },
+    { name: 'Mega Ufonautai', icon: '\u{1F6F8}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg', type: '2 dalių batutas \u00b7 14x5 m', capacity: 'Iki 15 vaikų', bg: '#ede7f6', min: 5, max: 15, cat: 'mega-trampoline', detail: 'Amžius: 4\u201314 m. \u00b7 2 dalys: čiuožykla + šokinėjimo zona \u00b7 Surinkimas: ~40 min \u00b7 Įeina: generatorius' },
+    { name: 'Mega ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', type: 'Kliūčių trasa 21 m \u00b7 25x6 m', capacity: '240 dalyvių/val.', bg: '#e8f5e9', min: 8, max: 600, cat: 'mega-trampoline', detail: 'Amžius: 6+ m. \u00b7 21 m kliūčių trasa \u00b7 Surinkimas: ~45 min \u00b7 Įeina: generatorius, prižiūrėtojas' },
+    { name: 'Monstrai', icon: '\u{1F47E}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png', type: 'Su Dart žaidimu \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#fce4ec', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201312 m. \u00b7 Su velcro Dart žaidimu \u00b7 Surinkimas: ~25 min \u00b7 Idealus gimtadieniams' },
+    { name: 'Candy Pop', icon: '\u{1F36D}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png', type: 'Spalvingas \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#fdf0ff', min: 4, max: 12, cat: 'standard-trampoline', popular: true, detail: 'Amžius: 3\u201312 m. \u00b7 Spalvingas dizainas \u00b7 Surinkimas: ~25 min \u00b7 Šokinėjimo zona + čiuožykla' },
+    { name: 'Aštuonkojis', icon: '\u{1F419}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png', type: 'Jūros tema \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#e0f2f1', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201312 m. \u00b7 Jūros tematika \u00b7 Surinkimas: ~25 min \u00b7 Šokinėjimo zona + čiuožykla' },
+    { name: 'Chameleonas', icon: '\u{1F98E}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png', type: 'Su čiuožykla \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#f0fff4', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201312 m. \u00b7 Su didele čiuožykla \u00b7 Surinkimas: ~25 min \u00b7 Spalvų keitimo dizainas' },
+    { name: 'Vienaragiai', icon: '\u{1F984}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', type: 'Su tuneliais \u00b7 9x4 m', capacity: 'Iki 12 vaikų', bg: '#f3e5f5', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201310 m. \u00b7 Su tuneliais ir čiuožykla \u00b7 Surinkimas: ~25 min \u00b7 Vienaragių tema' },
+    { name: 'Pilis mažiesiems', icon: '\u{1F3EF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', type: 'Iki 5 metų \u00b7 5x4 m', capacity: 'Iki 6 vaikų', bg: '#fff8e1', min: 2, max: 6, cat: 'standard-trampoline', detail: 'Amžius: 2\u20135 m. \u00b7 Mažiausias batutas \u00b7 Surinkimas: ~15 min \u00b7 Saugus mažiausiems' },
+    { name: 'Milžiniškas Dart', icon: '\u{1F3AF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga \u00b7 5x4,5 m', capacity: '60 dalyvių/val.', bg: '#fffff0', min: 1, max: 999, cat: 'addon', detail: 'Velcro kamuoliai + pripučiamas taikinys \u00b7 Visos amžiaus grupės \u00b7 Surinkimas: ~15 min' },
     { name: 'Kamuolių medžioklė', icon: '\u26BD', img: '', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Pripučiama arena \u00b7 4 žaidėjai vienu metu \u00b7 Komandinis žaidimas \u00b7 Surinkimas: ~20 min' },
     { name: 'Rodeo bulius', icon: '\u{1F920}', img: '', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: 'Mechaninis bulius su saugiu pripučiamu kilimėliu \u00b7 Reguliuojamas greitis \u00b7 Amžius: 6+' },
-    { name: 'Saldėsių aparatai', icon: '\u{1F36C}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas \u00b7 1 aparatas NEMOKAMAI su batutu \u00b7 Papildomi aparatai už papildomą mokestį' },
+    { name: 'Saldėsių aparatai', icon: '\u{1F36C}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas \u00b7 1 aparatas NEMOKAMAI su batutu \u00b7 Papildomi aparatai už papildomą mokestį' },
     { name: 'Disco paviljonas', icon: '\u{1FAA9}', img: '', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, detail: 'LED apšvietimas + garso sistema \u00b7 4x4 m palapinė \u00b7 Tinka vakarėliams ir šokiams' },
     { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', detail: 'Putų mašina + pripučiamas baseinas \u00b7 Neriboti dalyviai \u00b7 Vasaros pramoga' },
-    { name: 'Banketo stalai ir kėdės', icon: '\u{1FA91}', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės \u00b7 Iki 50 vietų \u00b7 Pristatymas ir surinkimas įskaičiuota' }
+    { name: 'Banketo stalai ir kėdės', messengerName: 'Stalai ir kėdės', icon: '\u{1FA91}', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės \u00b7 Iki 50 vietų \u00b7 Pristatymas ir surinkimas įskaičiuota' }
   ];
 
   // --- Helper functions ---
@@ -87,8 +91,10 @@ function enrichChatwootResponse(response, isMessenger) {
 
   function buildTrampolineSelectItems(items) {
     return items.map(function(t) {
-      var pop = t.popular ? ' \u{1F525}' : '';
-      return { title: t.icon + ' ' + t.name + pop, value: t.name };
+      var name = (isMessenger && t.messengerName) ? t.messengerName : t.name;
+      var title = t.icon + ' ' + name;
+      if (t.popular && (title.length + 3) <= 20) title += ' \u{1F525}';
+      return { title: title, value: t.name };
     });
   }
 
@@ -107,7 +113,6 @@ function enrichChatwootResponse(response, isMessenger) {
     var addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });
 
     if (isMessenger) {
-      // Send photos first so user sees the trampolines visually
       if (recommended.length > 0) {
         messages = messages.concat(buildImageMessages(recommended, 5));
       }
@@ -199,17 +204,30 @@ function enrichChatwootResponse(response, isMessenger) {
     }];
   }
 
+  // FR-4.1: Use local date parts to avoid UTC midnight rollover (Lithuania is UTC+2/+3)
   function buildDatePicker() {
-    var days = [];
-    var now = new Date();
-    var d = new Date(now);
+    var dates = [];
+    var d = new Date();
+    // Find next Saturday
     d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
-    for (var i = 0; i < 4; i++) {
-      var iso = d.toISOString().split('T')[0];
-      var label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });
-      days.push({ title: label, value: iso });
-      d.setDate(d.getDate() + 7);
-    }
+    dates.push(new Date(d));
+    // The Sunday right after
+    var sun = new Date(d);
+    sun.setDate(sun.getDate() + 1);
+    dates.push(sun);
+    // Next Saturday
+    d.setDate(d.getDate() + 7);
+    dates.push(new Date(d));
+    // Next Sunday
+    var sun2 = new Date(d);
+    sun2.setDate(sun2.getDate() + 1);
+    dates.push(sun2);
+
+    var days = dates.map(function(dt) {
+      var iso = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
+      var label = dt.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });
+      return { title: label, value: iso };
+    });
     return [
       { content: 'Artimiausi šeštadieniai:', content_type: 'input_select', content_attributes: { items: days }, message_type: 'outgoing' },
       { content: 'Arba tiesiog parašykite savo datą (pvz. 2026-04-05 arba "balandžio 5 d.")', content_type: 'text', message_type: 'outgoing' }
@@ -226,6 +244,24 @@ function enrichChatwootResponse(response, isMessenger) {
           { title: '7\u201312 vaikų', value: 'Apie 10 svečių' },
           { title: '13\u201320 vaikų', value: 'Apie 15 svečių' },
           { title: 'Daugiau nei 20', value: 'Apie 30 svečių' }
+        ]
+      },
+      message_type: 'outgoing'
+    }];
+  }
+
+  // Synced from main: public events use larger guest count ranges
+  function buildGuestCountOptionsPublic() {
+    return [{
+      content: 'Kiek dalyvių planuojate? \u{1F465}\u{1F465}',
+      content_type: 'input_select',
+      content_attributes: {
+        items: [
+          { title: '20\u201350',   value: 'Apie 35 svečių' },
+          { title: '50\u2013100',  value: 'Apie 75 svečių' },
+          { title: '100\u2013200', value: 'Apie 150 svečių' },
+          { title: '200\u2013500', value: 'Apie 350 svečių' },
+          { title: '500+',    value: 'Apie 700 svečių' }
         ]
       },
       message_type: 'outgoing'
@@ -250,15 +286,18 @@ function enrichChatwootResponse(response, isMessenger) {
   }
 
   function buildPurchaseSubmenu() {
+    // Messenger quick reply titles are capped at 20 chars
+    var items = isMessenger ? [
+      { title: '\u{1F4E7} Gauti katalogą', value: 'Noriu gauti batutų katalogą el. paštu' },
+      { title: '\u{1F3A8} Ind. gamyba', value: 'Noriu individualios batuto gamybos' }
+    ] : [
+      { title: '\u{1F4E7} Gauti katalogą', value: 'Noriu gauti batutų katalogą el. paštu' },
+      { title: '\u{1F3A8} Individuali gamyba', value: 'Noriu individualios batuto gamybos' }
+    ];
     return [{
       content: 'Ką norėtumėte?',
       content_type: 'input_select',
-      content_attributes: {
-        items: [
-          { title: '\u{1F4E7} Gauti katalogą el. paštu', value: 'Noriu gauti batutų katalogą el. paštu' },
-          { title: '\u{1F3A8} Individuali gamyba', value: 'Noriu individualios batuto gamybos' }
-        ]
-      },
+      content_attributes: { items: items },
       message_type: 'outgoing'
     }];
   }
@@ -295,9 +334,20 @@ function enrichChatwootResponse(response, isMessenger) {
     }];
   }
 
+  // FR-3.2 + FR-6.1: Synced with main — null/empty fallback + out-of-hours qualifier
   function buildBookingConfirm(jsonStr) {
     var data;
-    try { data = JSON.parse(jsonStr); } catch (e) { data = {}; }
+    try { data = JSON.parse(jsonStr); } catch (e) { data = null; }
+
+    // Fix #3: if JSON.parse failed or produced empty object, show safe fallback
+    if (!data || Object.keys(data).length === 0) {
+      return [{
+        content: '\u2705 Užklausa gauta!\n\nMūsų komanda susisieks su jumis per 2 darbo valandas.\n\u{1F4DE} +370 648 803 88\n\u{1F4E7} info@batutynas.lt',
+        content_type: 'text',
+        message_type: 'outgoing'
+      }];
+    }
+
     var text = '\u2705 *Užklausa pateikta!*\n\n';
     if (data.group_type) text += 'Tipas: ' + data.group_type + '\n';
     if (data.date) text += 'Data: ' + data.date + '\n';
@@ -313,7 +363,22 @@ function enrichChatwootResponse(response, isMessenger) {
     if (data.colors) text += 'Spalvos: ' + data.colors + '\n';
     if (data.characters) text += 'Personažai: ' + data.characters + '\n';
     if (data.email) text += 'El. paštas: ' + data.email + '\n';
-    text += '\nMūsų komanda susisieks per 2 darbo valandas! \u{1F64F}';
+
+    // FR-6.1: Out-of-hours qualifier
+    try {
+      var now = new Date();
+      var lt = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Vilnius' }));
+      var dayOfWeek = lt.getDay();
+      var hourOfDay = lt.getHours();
+      if (dayOfWeek === 0 || dayOfWeek === 6 || hourOfDay < 8 || hourOfDay >= 18) {
+        text += '\n\u23F0 Užklausa bus apdorota artimiausią darbo dieną (I\u2013V, 8:00\u201318:00)';
+      } else {
+        text += '\nSusisieksime per 2 darbo valandas! \u{1F64F}';
+      }
+    } catch (e) {
+      text += '\nSusisieksime per 2 darbo valandas! \u{1F64F}';
+    }
+
     return [{ content: text, content_type: 'text', message_type: 'outgoing' }];
   }
 
@@ -328,13 +393,19 @@ function enrichChatwootResponse(response, isMessenger) {
   }
 
   // --- Marker processing ---
-  var allMarkerRegex = /\[(?:DATE_PICKER|GUEST_COUNT|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY(?::\d+)?|MENU_GROUP_PUBLIC(?::\d+)?|LOCATION_OPTIONS|BOOKING_CONFIRM:\{[^\]]*\})\]/g;
+  var allMarkerRegex = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY(?::[^\]]+)?|MENU_GROUP_PUBLIC(?::[^\]]+)?|BOOKING_CONFIRM:\{[\s\S]*?\})\]/g;
 
   var hasMarker = allMarkerRegex.test(response);
   allMarkerRegex.lastIndex = 0; // reset after test()
 
   if (!hasMarker) {
     var cleanText = response.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, '*$1*');
+    // FR-3.1: Strip any unrecognized markers from plain text path too
+    cleanText = cleanText.replace(/\[[A-Z][A-Z0-9_]*(?::[^\]]*?)?\]/g, '').trim();
+    // FR-3.3: empty-after-strip fallback
+    if (!cleanText) {
+      return { messages: [{ content: 'Atsiprašome, šiuo metu negaliu atsakyti.', content_type: 'text', message_type: 'outgoing' }] };
+    }
     var msgs = [{ content: cleanText, content_type: 'text', message_type: 'outgoing' }];
     msgs = msgs.concat(buildQuickReplies([{ label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }]));
     return { messages: msgs };
@@ -362,6 +433,8 @@ function enrichChatwootResponse(response, isMessenger) {
     var seg = segments[si];
     if (seg.type === 'text') {
       var trimmed = seg.content.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, '*$1*').trim();
+      // FR-3.1: Strip any unrecognized markers so raw [MARKER_NAME] text never leaks to user
+      trimmed = trimmed.replace(/\[[A-Z][A-Z0-9_]*(?::[^\]]*?)?\]/g, '').trim();
       if (trimmed) {
         allMessages.push({ content: trimmed, content_type: 'text', message_type: 'outgoing' });
       }
@@ -370,42 +443,50 @@ function enrichChatwootResponse(response, isMessenger) {
       if (marker === '[MAIN_MENU]') { allMessages = allMessages.concat(buildMainMenu()); contextFlags.hadMainMenu = true; }
       else if (marker === '[DATE_PICKER]') { allMessages = allMessages.concat(buildDatePicker()); contextFlags.hadDatePicker = true; }
       else if (marker === '[GUEST_COUNT]') { allMessages = allMessages.concat(buildGuestCountOptions()); contextFlags.hadGuestCount = true; }
+      else if (marker === '[GUEST_COUNT_PUBLIC]') { allMessages = allMessages.concat(buildGuestCountOptionsPublic()); contextFlags.hadGuestCount = true; }
       else if (marker === '[ADDON_UPSELL]') { allMessages = allMessages.concat(buildAddonUpsell()); contextFlags.hadAddonUpsell = true; }
       else if (marker === '[PURCHASE_SUBMENU]') { allMessages = allMessages.concat(buildPurchaseSubmenu()); contextFlags.hadPurchaseSubmenu = true; }
       else if (marker === '[PURCHASE_EMAIL_INPUT]') { allMessages = allMessages.concat(buildPurchaseEmailInput()); contextFlags.hadEmailInput = true; }
       else if (marker === '[PURCHASE_CUSTOM_FORM]') { allMessages = allMessages.concat(buildPurchaseCustomForm()); contextFlags.hadCustomForm = true; }
       else if (marker === '[MENU_GROUP_PARTY]') { allMessages = allMessages.concat(buildGroupPartyEquipment()); contextFlags.hadCatalog = true; }
-      else if (marker === '[LOCATION_OPTIONS]') { /* skip in Chatwoot */ }
       else {
         var bMatch = marker.match(/\[MENU_GROUP_BIRTHDAY(?::(\d+))?\]/);
-        if (bMatch) { allMessages = allMessages.concat(buildGroupBirthdayEquipment(bMatch[1] ? parseInt(bMatch[1]) : null)); contextFlags.hadCatalog = true; continue; }
+        if (bMatch) { allMessages = allMessages.concat(buildGroupBirthdayEquipment(bMatch[1] ? parseInt(bMatch[1]) : null)); contextFlags.hadCatalog = true; }
         var pMatch = marker.match(/\[MENU_GROUP_PUBLIC(?::(\d+))?\]/);
-        if (pMatch) { allMessages = allMessages.concat(buildGroupPublicEquipment(pMatch[1] ? parseInt(pMatch[1]) : null)); contextFlags.hadCatalog = true; continue; }
-        var cMatch = marker.match(/\[BOOKING_CONFIRM:(\{[^\]]*\})\]/);
-        if (cMatch) { allMessages = allMessages.concat(buildBookingConfirm(cMatch[1])); contextFlags.hadBookingConfirm = true; continue; }
+        if (pMatch) { allMessages = allMessages.concat(buildGroupPublicEquipment(pMatch[1] ? parseInt(pMatch[1]) : null)); contextFlags.hadCatalog = true; }
+        var cMatch = marker.match(/\[BOOKING_CONFIRM:(\{[\s\S]*?\})\]/);
+        if (cMatch) { allMessages = allMessages.concat(buildBookingConfirm(cMatch[1])); contextFlags.hadBookingConfirm = true; }
+        // FR-3.2: Catch residual BOOKING_CONFIRM with malformed JSON — show generic confirmation
+        if (!cMatch && !bMatch && !pMatch && marker.indexOf('BOOKING_CONFIRM') !== -1) {
+          allMessages = allMessages.concat(buildBookingConfirm('{}'));
+          contextFlags.hadBookingConfirm = true;
+        }
       }
     }
   }
 
-  // Quick replies
-  var isBookingStep = contextFlags.hadDatePicker || contextFlags.hadGuestCount || contextFlags.hadAddonUpsell;
-  var quickReplies = [];
+  // --- Post-booking navigation only ---
+  // Only show buttons after booking confirmation (flow complete).
+  // All other steps: no trailing button — user types "meniu" to go back.
   if (contextFlags.hadBookingConfirm) {
-    quickReplies = [{ label: 'Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' }, { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }];
-  } else if (contextFlags.hadCatalog) {
-    quickReplies = [{ label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }];
-  } else if (contextFlags.hadEmailInput || contextFlags.hadCustomForm || contextFlags.hadPurchaseSubmenu) {
-    quickReplies = [{ label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }];
-  } else if (isBookingStep) {
-    quickReplies = [{ label: 'Atšaukti', value: 'Pagrindinis meniu' }];
-  } else if (contextFlags.hadMainMenu) {
-    quickReplies = [];
-  } else {
-    quickReplies = [{ label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }];
+    // Messenger quick reply titles are capped at 20 chars
+    var postBookingBtns = isMessenger ? [
+      { label: '\u{1F501} Naujas užsakymas', value: 'Noriu užsakyti dar vieną batutą' },
+      { label: '\u{1F3E0} Pradžia', value: 'Pagrindinis meniu' }
+    ] : [
+      { label: '\u{1F501} Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },
+      { label: '\u{1F3E0} Pradžia', value: 'Pagrindinis meniu' }
+    ];
+    allMessages = allMessages.concat(buildQuickReplies(postBookingBtns));
   }
 
-  if (quickReplies.length > 0) {
-    allMessages = allMessages.concat(buildQuickReplies(quickReplies));
+  // H-4: empty allMessages fallback — prevents silent failure
+  if (allMessages.length === 0) {
+    allMessages.push({
+      content: 'Atsiprašome, kažkas nutiko. Rašykite dar kartą arba skambinkite +370 648 803 88.',
+      content_type: 'text',
+      message_type: 'outgoing'
+    });
   }
 
   return { messages: allMessages };

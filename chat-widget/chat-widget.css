@@ -9,7 +9,7 @@
   --chat-msg-customer: #EDE5FF;
   --chat-msg-agent: #f4f5f7;
   --chat-text: #1a1a2e;
-  --chat-text-light: #6b7588;
+  --chat-text-light: #596578;
   --chat-border: #e8eaef;
   --chat-shadow: 0 8px 40px rgba(15, 15, 30, 0.15);
   --chat-radius: 16px;
@@ -588,32 +588,69 @@
   line-height: 1.55;
 }
 
+/* === Trampoline Card Grid === */
 .chat-trampoline-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 10px;
 }
 
+/* Compact 2-col grid for "others" section */
+.chat-trampoline-grid.t-grid-compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* === Card Base === */
 .chat-trampoline-select {
   background: white;
   border: 2px solid var(--chat-border);
-  border-radius: 10px;
-  padding: 8px;
+  border-radius: 12px;
+  padding: 0;
   cursor: pointer;
   transition: all 0.2s;
-  text-align: center;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Popular choice badge */
+.chat-popular-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+  z-index: 3;
+  letter-spacing: 0.3px;
 }
 
 .chat-trampoline-select:hover {
   border-color: var(--chat-primary);
-  box-shadow: 0 2px 8px rgba(108, 60, 225, 0.15);
+  box-shadow: 0 4px 16px rgba(108, 60, 225, 0.15);
+  transform: translateY(-1px);
+}
+
+.chat-trampoline-select:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(108, 60, 225, 0.2);
 }
 
 .chat-trampoline-select.selected {
   border-color: var(--chat-primary);
-  background: #f5f0ff;
-  box-shadow: 0 2px 8px rgba(108, 60, 225, 0.2);
+  background: #faf5ff;
+  box-shadow: 0 2px 12px rgba(108, 60, 225, 0.25);
 }
 
 .chat-trampoline-select[disabled] {
@@ -625,43 +662,265 @@
   opacity: 1;
 }
 
+/* === Featured card image (full-width, large) === */
 .chat-trampoline-thumb {
-  height: 52px;
+  width: 100%;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 48px;
+  background: linear-gradient(135deg, #f8f9fb 0%, #eef0f4 100%);
+  position: relative;
+  overflow: hidden;
 }
 
 .chat-trampoline-thumb img {
-  max-height: 100%;
-  max-width: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 6px;
+  transition: transform 0.3s ease;
 }
 
+.chat-trampoline-select:hover .chat-trampoline-thumb img {
+  transform: scale(1.03);
+}
+
+/* Zoom hint overlay on images */
+.chat-trampoline-thumb img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.1);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* === Card Info Section === */
 .chat-trampoline-info {
-  margin-top: 4px;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .t-name {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--chat-text);
   line-height: 1.3;
 }
 
 .t-meta {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--chat-text-light);
-  margin-top: 2px;
+  margin-top: 1px;
+  line-height: 1.4;
 }
 
 .t-price {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--chat-primary);
-  margin-top: 2px;
+  margin-top: 3px;
+}
+
+/* === Detail Expand === */
+.t-detail-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--chat-text-light);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 3;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.t-detail-btn:hover {
+  background: var(--chat-primary);
+  color: white;
+  transform: scale(1.1);
+}
+
+.t-detail {
+  display: none;
+  font-size: 11px;
+  color: var(--chat-text-light);
+  line-height: 1.6;
+  padding: 8px 12px 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fafbfc;
+}
+
+.t-detail.open {
+  display: block;
+}
+
+/* Auto-show details on recommended cards */
+.chat-trampoline-select.t-recommended .t-detail {
+  display: block;
+}
+
+/* Compact grid card overrides — smaller for "others" section */
+.t-grid-compact .chat-trampoline-thumb {
+  height: 90px;
+  font-size: 36px;
+}
+
+.t-grid-compact .chat-trampoline-info {
+  padding: 6px 8px 8px;
+}
+
+.t-grid-compact .t-name {
+  font-size: 12px;
+}
+
+.t-grid-compact .t-meta {
+  font-size: 10px;
+}
+
+.t-grid-compact .t-price {
+  font-size: 11px;
+}
+
+.t-grid-compact .t-detail {
+  font-size: 10px;
+  padding: 5px 8px 6px;
+}
+
+.t-grid-compact .t-detail-btn {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  top: 6px;
+  left: 6px;
+}
+
+.t-grid-compact .chat-popular-badge {
+  font-size: 9px;
+  padding: 2px 7px;
+  top: 6px;
+  right: 6px;
+}
+
+/* Image zoom overlay */
+.t-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  animation: t-zoom-in 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes t-zoom-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.t-zoom-overlay img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.t-zoom-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 20px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.t-zoom-caption {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+/* Addon Multi-Select */
+.chat-trampoline-select[data-chat-addon] {
+  transition: all 0.2s;
+}
+
+.chat-trampoline-select[data-chat-addon].addon-selected {
+  border-color: var(--chat-primary);
+  box-shadow: 0 0 0 2px rgba(108, 60, 225, 0.2);
+}
+
+.chat-trampoline-select[data-chat-addon].addon-selected::after {
+  content: '✓';
+  position: absolute;
+  top: -6px;
+  left: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--chat-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.chat-addon-continue {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 20px;
+  background: var(--chat-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.chat-addon-continue:hover {
+  background: var(--chat-primary-hover);
+}
+
+.chat-addon-continue:disabled {
+  background: #d0d4db;
+  cursor: default;
 }
 
 /* Booking Progress Bar */
@@ -780,6 +1039,56 @@
   cursor: default;
 }
 
+/* Address Input Form (location step) */
+.chat-address-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+}
+
+.chat-address-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #d8ccf5;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--chat-text);
+  background: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-address-input:focus {
+  border-color: var(--chat-primary);
+}
+
+.chat-address-confirm {
+  margin-top: 8px;
+  padding: 8px 18px;
+  background: var(--chat-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.chat-address-confirm:hover {
+  background: var(--chat-primary-hover);
+}
+
+.chat-address-confirm:disabled {
+  background: #d0d4db;
+  cursor: default;
+}
+
 /* Custom Manufacturing Form (purchase flow) */
 .chat-custom-form {
   margin-top: 10px;
@@ -851,6 +1160,194 @@
   cursor: default;
 }
 
+/* FR-5.7: Focus Visible Styles */
+.woo-chat-toggle:focus-visible,
+.woo-chat-send:focus-visible,
+.woo-chat-quick-btn:focus-visible,
+.chat-option-btn:focus-visible,
+.chat-date-confirm:focus-visible,
+.woo-chat-escalate:focus-visible,
+.chat-addon-continue:focus-visible,
+.woo-chat-lang-select:focus-visible,
+.chat-email-confirm:focus-visible,
+.chat-address-confirm:focus-visible,
+.chat-custom-submit:focus-visible,
+.chat-trampoline-select:focus-visible {
+  outline: 2px solid var(--chat-primary);
+  outline-offset: 2px;
+}
+
+.woo-chat-input:focus-visible,
+.chat-date-input:focus-visible,
+.chat-email-input:focus-visible,
+.chat-address-input:focus-visible,
+.chat-custom-input:focus-visible,
+.chat-custom-textarea:focus-visible {
+  outline: 2px solid var(--chat-primary);
+  outline-offset: 1px;
+}
+
+/* FR-6.2: Enricher CSS classes (replacing inline styles) */
+.chat-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--chat-primary);
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: linear-gradient(90deg, #f5f0ff 0%, transparent 100%);
+  border-left: 3px solid var(--chat-primary);
+  border-radius: 0 8px 8px 0;
+}
+
+.chat-section-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin: 16px 0 8px;
+  padding: 4px 10px;
+  border-left: 2px solid #ddd;
+  font-weight: 500;
+}
+
+.chat-birthday-cta {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: #fff8e1;
+  border-radius: 10px;
+  border: 1px solid #ffe082;
+  font-size: 13px;
+}
+
+.chat-cta-btn {
+  margin-top: 8px;
+  font-size: 13px;
+  padding: 6px 14px;
+  background: var(--chat-primary);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.chat-cta-btn:hover {
+  background: var(--chat-primary-hover);
+}
+
+.chat-form-text {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.chat-form-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.chat-form-label {
+  font-size: 12px;
+  color: #555;
+  display: block;
+  margin: 8px 0 4px;
+}
+
+.chat-form-label:first-child {
+  margin-top: 0;
+}
+
+.chat-quick-replies {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.chat-quick-reply-menu {
+  font-size: 13px;
+  padding: 6px 14px;
+  background: transparent;
+  color: #888;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.chat-quick-reply-menu:hover {
+  background: #f5f5f5;
+}
+
+/* Trampoline card category backgrounds */
+.t-bg-big-park { background-color: #f0f9ff; }
+.t-bg-mega-trampoline { background-color: #ede7f6; }
+.t-bg-standard-trampoline { background-color: #fdf0ff; }
+.t-bg-addon { background-color: #fffff0; }
+.t-bg-party-equipment { background-color: #f5f0ff; }
+
+.chat-trampoline-select.t-recommended {
+  border-color: var(--chat-primary);
+  box-shadow: 0 3px 12px rgba(108, 60, 225, 0.18);
+  background: linear-gradient(180deg, #fff 0%, #faf5ff 100%);
+}
+
+.chat-trampoline-select.t-recommended .t-name {
+  color: var(--chat-primary);
+}
+
+/* FR-6.1: Out-of-hours booking qualifier */
+.booking-confirm-hours {
+  font-size: 11px;
+  color: #92400e;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* FR-6.3: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .woo-chat-window.woo-animate-in,
+  .woo-chat-window.woo-animate-out {
+    animation: none;
+  }
+
+  .woo-chat-msg {
+    animation: none;
+  }
+
+  .woo-chat-toggle {
+    transition: none;
+  }
+
+  .woo-chat-toggle:hover {
+    transform: none;
+  }
+
+  .woo-chat-send:hover {
+    transform: none;
+  }
+
+  .woo-chat-typing span {
+    animation: none;
+    opacity: 0.6;
+  }
+
+  .woo-chat-toggle::after {
+    animation: none;
+  }
+
+  .chat-option-btn,
+  .chat-date-confirm,
+  .chat-email-confirm,
+  .chat-address-confirm,
+  .chat-custom-submit,
+  .chat-addon-continue,
+  .woo-chat-escalate,
+  .woo-chat-send,
+  .chat-trampoline-select {
+    transition: none;
+  }
+}
+
 /* Mobile Responsive */
 @media (max-width: 480px) {
   .woo-chat-window {
@@ -903,20 +1400,43 @@
   }
 
   .chat-trampoline-thumb {
-    height: 40px;
-    font-size: 22px;
+    height: 120px;
+    font-size: 36px;
+  }
+
+  .t-grid-compact .chat-trampoline-thumb {
+    height: 70px;
+    font-size: 28px;
   }
 
   .t-name {
-    font-size: 10px;
+    font-size: 13px;
   }
 
   .t-meta {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .t-price {
-    font-size: 10px;
+    font-size: 11px;
+  }
+
+  .t-grid-compact .t-name {
+    font-size: 11px;
+  }
+
+  .t-grid-compact .t-meta {
+    font-size: 9px;
+  }
+
+  .chat-address-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .chat-address-confirm {
+    min-height: 44px;
+    font-size: 13px;
   }
 
   .chat-email-input,
@@ -937,6 +1457,17 @@
 
   .chat-menu-btn {
     min-height: 44px;
+    font-size: 13px;
+  }
+
+  .chat-addon-continue {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .t-detail-btn {
+    width: 26px;
+    height: 26px;
     font-size: 13px;
   }
 
