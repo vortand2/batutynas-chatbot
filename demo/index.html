@@ -425,40 +425,6 @@
     /* Chat product/service cards */
     .chat-products > p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #1a1a2e; }
     .chat-products > p:last-child { margin: 8px 0 0; }
-    .chat-product-card {
-      display: flex; gap: 0;
-      background: white; border-radius: 10px;
-      overflow: hidden; margin: 6px 0;
-      border: 1px solid #eaedf2;
-      transition: transform 0.15s, box-shadow 0.15s;
-      cursor: default;
-    }
-    .chat-product-card:hover {
-      transform: translateX(2px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .chat-product-thumb {
-      width: 72px; min-height: 72px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden; font-size: 28px;
-    }
-    .chat-product-thumb img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
-    }
-    .chat-product-detail {
-      padding: 8px 10px; display: flex; flex-direction: column;
-      justify-content: center; min-width: 0; flex: 1;
-    }
-    .chat-product-name {
-      font-size: 12px; font-weight: 600; color: #1a1a2e;
-      line-height: 1.3; margin-bottom: 2px;
-    }
-    .chat-product-price {
-      font-size: 13px; font-weight: 700; color: #6C3CE1;
-    }
-    .chat-product-meta {
-      font-size: 10px; color: #8b95a5; margin-top: 2px;
-    }
 
     /* Booking confirmation */
     .booking-confirm {
@@ -597,66 +563,269 @@
     .woo-chat-msg strong { font-weight: 600; }
     .woo-chat-msg a { color: #6C3CE1; text-decoration: underline; }
 
-    /* Trampoline selection cards */
+    /* === Trampoline Card Grid === */
     .chat-trampoline-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    /* Compact 2-col grid for "others" section */
+    .chat-trampoline-grid.t-grid-compact {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin-top: 10px;
     }
+    /* === Card Base === */
     .chat-trampoline-select {
       background: white;
       border: 2px solid #e8eaef;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 0;
-      overflow: hidden;
       cursor: pointer;
       transition: all 0.2s;
       text-align: left;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Popular choice badge */
+    .chat-popular-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: linear-gradient(135deg, #f97316, #ef4444);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      line-height: 1.4;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+      z-index: 3;
+      letter-spacing: 0.3px;
     }
     .chat-trampoline-select:hover {
       border-color: #6C3CE1;
-      box-shadow: 0 2px 8px rgba(108,60,225,0.15);
+      box-shadow: 0 4px 16px rgba(108, 60, 225, 0.15);
+      transform: translateY(-1px);
+    }
+    .chat-trampoline-select:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(108, 60, 225, 0.2);
     }
     .chat-trampoline-select.selected {
       border-color: #6C3CE1;
-      background: #f5f0ff;
+      background: #faf5ff;
+      box-shadow: 0 2px 12px rgba(108, 60, 225, 0.25);
     }
     .chat-trampoline-select[disabled] {
       opacity: 0.5;
-      cursor: default;
       pointer-events: none;
     }
     .chat-trampoline-select[disabled].selected {
       opacity: 1;
     }
+    /* === Featured card image (full-width, large) === */
     .chat-trampoline-thumb {
-      height: 52px;
+      width: 100%;
+      height: 140px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 48px;
+      background: linear-gradient(135deg, #f8f9fb 0%, #eef0f4 100%);
+      position: relative;
+      overflow: hidden;
     }
+    .chat-trampoline-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .chat-trampoline-select:hover .chat-trampoline-thumb img {
+      transform: scale(1.03);
+    }
+    /* === Card Info Section === */
     .chat-trampoline-info {
-      padding: 6px 8px 8px;
+      padding: 10px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
-    .chat-trampoline-info .t-name {
-      font-size: 11px;
-      font-weight: 600;
+    .t-name {
+      font-size: 14px;
+      font-weight: 700;
       color: #1a1a2e;
-      line-height: 1.2;
-      margin-bottom: 2px;
-    }
-    .chat-trampoline-info .t-meta {
-      font-size: 10px;
-      color: #8b95a5;
       line-height: 1.3;
     }
-    .chat-trampoline-info .t-price {
+    .t-meta {
+      font-size: 12px;
+      color: #8b95a5;
+      margin-top: 1px;
+      line-height: 1.4;
+    }
+    .t-price {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6C3CE1;
+      margin-top: 3px;
+    }
+    /* === Detail Expand === */
+    .t-detail-btn {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      color: #8b95a5;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 3;
+      line-height: 1;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .t-detail-btn:hover {
+      background: #6C3CE1;
+      color: white;
+      transform: scale(1.1);
+    }
+    .t-detail {
+      display: none;
       font-size: 11px;
+      color: #8b95a5;
+      line-height: 1.6;
+      padding: 8px 12px 10px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      background: #fafbfc;
+    }
+    .t-detail.open {
+      display: block;
+    }
+    /* Auto-show details on recommended cards */
+    .chat-trampoline-select.t-recommended .t-detail {
+      display: block;
+    }
+    /* Compact grid card overrides */
+    .t-grid-compact .chat-trampoline-thumb {
+      height: 90px;
+      font-size: 36px;
+    }
+    .t-grid-compact .chat-trampoline-info {
+      padding: 6px 8px 8px;
+    }
+    .t-grid-compact .t-name {
+      font-size: 12px;
+    }
+    .t-grid-compact .t-meta {
+      font-size: 10px;
+    }
+    .t-grid-compact .t-price {
+      font-size: 11px;
+    }
+    .t-grid-compact .t-detail {
+      font-size: 10px;
+      padding: 5px 8px 6px;
+    }
+    .t-grid-compact .t-detail-btn {
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      top: 6px;
+      left: 6px;
+    }
+    .t-grid-compact .chat-popular-badge {
+      font-size: 9px;
+      padding: 2px 7px;
+      top: 6px;
+      right: 6px;
+    }
+    /* Image zoom overlay */
+    .t-zoom-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      animation: t-zoom-in 0.2s ease;
+      backdrop-filter: blur(4px);
+    }
+    @keyframes t-zoom-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .t-zoom-overlay img {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    }
+    .t-zoom-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-size: 20px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .t-zoom-caption {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    /* Section title */
+    .chat-section-title {
+      font-size: 14px;
       font-weight: 700;
       color: #6C3CE1;
-      margin-top: 2px;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      background: linear-gradient(90deg, #f5f0ff 0%, transparent 100%);
+      border-left: 3px solid #6C3CE1;
+      border-radius: 0 8px 8px 0;
+    }
+    /* Trampoline card category backgrounds */
+    .t-bg-big-park { background-color: #f0f9ff; }
+    .t-bg-mega-trampoline { background-color: #ede7f6; }
+    .t-bg-standard-trampoline { background-color: #fdf0ff; }
+    .t-bg-addon { background-color: #fffff0; }
+    .t-bg-party-equipment { background-color: #f5f0ff; }
+    /* Recommended card */
+    .chat-trampoline-select.t-recommended {
+      border-color: #6C3CE1;
+      box-shadow: 0 3px 12px rgba(108, 60, 225, 0.18);
+      background: linear-gradient(180deg, #fff 0%, #faf5ff 100%);
+    }
+    .chat-trampoline-select.t-recommended .t-name {
+      color: #6C3CE1;
     }
 
     @media (max-width: 480px) {
@@ -703,17 +872,17 @@
         -webkit-overflow-scrolling: touch;
       }
       .chat-trampoline-thumb {
-        height: 40px;
-        font-size: 22px;
+        height: 80px;
+        font-size: 30px;
       }
-      .chat-trampoline-info .t-name {
+      .t-name {
+        font-size: 12px;
+      }
+      .t-meta {
         font-size: 10px;
       }
-      .chat-trampoline-info .t-meta {
-        font-size: 9px;
-      }
-      .chat-trampoline-info .t-price {
-        font-size: 10px;
+      .t-price {
+        font-size: 11px;
       }
     }
   </style>
@@ -870,14 +1039,14 @@
 
   /* -- Mock Data -- */
   var TRAMPOLINES = [
-    { name: 'Fantazijų parkas', type: 'Didžiulis batutų parkas', capacity: 'Iki 30 vaikų', price: 'pagal užklausą', icon: '🏰', bg: '#f5f0ff', tags: ['parkas','didelis','fantazija','batutų parkas'] },
-    { name: 'Džiumandži parkas', type: 'Nuotykių parkas', capacity: 'Iki 40 vaikų', price: 'pagal užklausą', icon: '🌴', bg: '#f0fff4', tags: ['džiumandži','nuotykiu','parkas'] },
-    { name: 'Mega kliūčių ruožas', type: 'Kliūčių ruožas', capacity: '360 dalyvių/val.', price: 'pagal užklausą', icon: '🏃', bg: '#fff0f5', tags: ['kliūčių','ruožas','mega','obstacle'] },
-    { name: 'Mega Rocket', type: '2 dalių batutas', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', icon: '🚀', bg: '#fff8e1', tags: ['rocket','raketa','2 dalių'] },
-    { name: 'Candy Pop', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🍭', bg: '#fce4ec', tags: ['candy','pop','kompaktiškas','mažas'] },
-    { name: 'Chameleon', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🦎', bg: '#e8f5e9', tags: ['chameleon','kompaktiškas'] },
-    { name: 'Milžiniškas smiginis', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'pagal užklausą', icon: '🎯', bg: '#e3f2fd', tags: ['smiginis','darts','žaidimas','interaktyvus'] },
-    { name: 'Cukraus vatos aparatas', type: 'Papildoma paslauga', capacity: '-', price: 'pagal užklausą', icon: '🍬', bg: '#fce4ec', tags: ['cukraus vata','cotton candy','maistas','papildoma'] }
+    { name: 'Fantazijų parkas', type: 'Didžiulis batutų parkas', capacity: 'Iki 30 vaikų', price: 'pagal užklausą', icon: '🏰', bg: '#f5f0ff', cat: 'big-park', popular: true, detail: 'Didelis daugiafunkcis batutų parkas su kliūčių ruožu, sporto aikštele ir šlaičiu. Tinka 2–14 metų vaikams. Rekomenduojamas gimtadieniams ir šeimų šventėms.', tags: ['parkas','didelis','fantazija','batutų parkas'] },
+    { name: 'Džiumandži parkas', type: 'Nuotykių parkas', capacity: 'Iki 40 vaikų', price: 'pagal užklausą', icon: '🌴', bg: '#f0fff4', cat: 'big-park', popular: false, detail: 'Džiunglių tematikos nuotykių parkas su laipiojimo elementais, kilimais ir šlaičiu. Idealus viešiems renginiams ir didelėms grupėms.', tags: ['džiumandži','nuotykiu','parkas'] },
+    { name: 'Mega kliūčių ruožas', type: 'Kliūčių ruožas', capacity: '360 dalyvių/val.', price: 'pagal užklausą', icon: '🏃', bg: '#fff0f5', cat: 'mega-trampoline', popular: true, detail: 'Ilgas kliūčių ruožas su kūgeliais, tuneliais ir oro pagalvėmis. Didelė pralaidumas — iki 360 dalyvių per valandą. Rekomenduojamas viešiems festivaliams.', tags: ['kliūčių','ruožas','mega','obstacle'] },
+    { name: 'Mega Rocket', type: '2 dalių batutas', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', icon: '🚀', bg: '#fff8e1', cat: 'mega-trampoline', popular: false, detail: 'Dviejų sekcijų batutas su šlaičiu ir atšokimo zona. Puikiai tinka privačioms šventėms ir gimtadieniams sodo ar kiemo aplinkoje.', tags: ['rocket','raketa','2 dalių'] },
+    { name: 'Candy Pop', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🍭', bg: '#fce4ec', cat: 'standard-trampoline', popular: false, detail: 'Saldainių tematikos kompaktiška aikštelė su šlaičiu ir batuto zona. Tinka mažesnėms erdvėms — sodoms, terasoms ar salėms.', tags: ['candy','pop','kompaktiškas','mažas'] },
+    { name: 'Chameleon', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🦎', bg: '#e8f5e9', cat: 'standard-trampoline', popular: false, detail: 'Ryškaspalvė kompaktiška aikštelė su įvairiais kliūčių elementais. Lanksti ir lengvai surenkama bet kokioje aplinkoje.', tags: ['chameleon','kompaktiškas'] },
+    { name: 'Milžiniškas smiginis', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'pagal užklausą', icon: '🎯', bg: '#e3f2fd', cat: 'addon', popular: false, detail: 'Didelės formato smiginio žaidimas su lipniomis kamuoliukais. Puikiai papildo bet kurią šventę ar renginį. Amžiaus apribojimų nėra.', tags: ['smiginis','darts','žaidimas','interaktyvus'] },
+    { name: 'Cukraus vatos aparatas', type: 'Papildoma paslauga', capacity: '-', price: 'pagal užklausą', icon: '🍬', bg: '#fce4ec', cat: 'party-equipment', popular: false, detail: 'Elektrinis cukraus vatos aparatas su medžiagomis. Galima nuomoti kartu su batutais arba atskirai. Tinka lauko ir salės renginiams.', tags: ['cukraus vata','cotton candy','maistas','papildoma'] }
   ];
 
   /* -- Booking Storage -- */
@@ -1324,21 +1493,33 @@
       if (matches.length === 0) matches = TRAMPOLINES;
 
       var cards = matches.map(function(p) {
-        return '<div class="chat-product-card">' +
-          '<div class="chat-product-thumb" style="background:' + p.bg + '">' + p.icon + '</div>' +
-          '<div class="chat-product-detail">' +
-            '<div class="chat-product-name">' + escHtml(p.name) + '</div>' +
-            '<div class="chat-product-price">' + p.price + '</div>' +
-            '<div class="chat-product-meta">' + escHtml(p.type) + ' · ' + p.capacity + '</div>' +
-          '</div></div>';
+        var cat = p.cat || 'standard-trampoline';
+        var isRec = !!p.popular;
+        var cardClass = 'chat-trampoline-select' + (isRec ? ' t-recommended' : '') + ' t-bg-' + cat;
+        var badgeHtml = p.popular ? '<span class="chat-popular-badge">🔥 Populiarus</span>' : '';
+        var thumbHtml = '<div class="chat-trampoline-thumb t-bg-' + cat + '">' + escHtml(p.icon) + '</div>';
+        var detailHtml = p.detail ? '<div class="t-detail' + (isRec ? ' open' : '') + '">' + escHtml(p.detail) + '</div>' : '';
+        return '<button class="' + cardClass + '" data-trampoline="' + escHtml(p.name) + '">' +
+          badgeHtml +
+          '<span class="t-detail-btn" data-chat-detail-toggle title="Daugiau info">ℹ</span>' +
+          thumbHtml +
+          '<div class="chat-trampoline-info">' +
+            '<div class="t-name">' + escHtml(p.name) + '</div>' +
+            '<div class="t-meta">' + escHtml(p.type) + ' · ' + escHtml(p.capacity) + '</div>' +
+            '<div class="t-price">' + escHtml(p.price) + '</div>' +
+          '</div>' +
+          detailHtml +
+        '</button>';
       }).join('');
 
+      var grid = '<div class="chat-trampoline-grid">' + cards + '</div>';
+
       if (lang === 'en') {
-        return '{{HTML}}<div class="chat-products"><p>Here are our trampolines and attractions (' + matches.length + '):</p>' + cards +
+        return '{{HTML}}<div class="chat-products"><div class="chat-section-title">Our trampolines &amp; attractions (' + matches.length + ')</div>' + grid +
           '<p>Want to know more about any of these?</p>' +
           optionButtons(['Užsakyti batutą', 'Nuomos kainos', 'Pristatymo zonos']) + '</div>';
       }
-      return '{{HTML}}<div class="chat-products"><p>Štai mūsų turimi batutai ir atrakcijos (' + matches.length + '):</p>' + cards +
+      return '{{HTML}}<div class="chat-products"><div class="chat-section-title">Mūsų batutai ir atrakcijos (' + matches.length + ')</div>' + grid +
         '<p>Norėtumėte sužinoti daugiau arba užsisakyti?</p>' +
         optionButtons(['Užsakyti batutą', 'Nuomos kainos', 'Pristatymo zonos']) + '</div>';
     }
@@ -1682,8 +1863,51 @@
     w.appendChild(tb);
     document.body.appendChild(w);
 
-    // Event delegation for option buttons, date inputs, and date confirm buttons
+    // Event delegation for option buttons, date inputs, date confirm buttons, zoom, and detail toggle
     w.addEventListener('click', function(e) {
+      // Image zoom
+      var zoomImg = e.target.closest('[data-chat-zoom]');
+      if (zoomImg && zoomImg.tagName === 'IMG') {
+        e.stopPropagation();
+        e.preventDefault();
+        var overlay = document.createElement('div');
+        overlay.className = 't-zoom-overlay';
+        var fullImg = document.createElement('img');
+        fullImg.src = zoomImg.src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=800');
+        fullImg.alt = zoomImg.alt || '';
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 't-zoom-close';
+        closeBtn.textContent = '\u00d7';
+        overlay.appendChild(fullImg);
+        overlay.appendChild(closeBtn);
+        if (zoomImg.alt) {
+          var caption = document.createElement('div');
+          caption.className = 't-zoom-caption';
+          caption.textContent = zoomImg.alt;
+          overlay.appendChild(caption);
+        }
+        function closeOverlay() { overlay.remove(); }
+        overlay.addEventListener('click', closeOverlay);
+        fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
+        closeBtn.addEventListener('click', function(ev) { ev.stopPropagation(); closeOverlay(); });
+        function onKey(ev) { if (ev.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', onKey); } }
+        document.addEventListener('keydown', onKey);
+        document.body.appendChild(overlay);
+        return;
+      }
+
+      // Detail expand toggle
+      var detailBtn = e.target.closest('[data-chat-detail-toggle]');
+      if (detailBtn) {
+        e.stopPropagation();
+        var card = detailBtn.closest('.chat-trampoline-select');
+        if (card) {
+          var detail = card.querySelector('.t-detail');
+          if (detail) detail.classList.toggle('open');
+        }
+        return;
+      }
+
       var optBtn = e.target.closest('[data-chat-option]');
       if (optBtn && !optBtn.disabled && !optBtn.hasAttribute('disabled')) {
         handleOptionClick(optBtn);
