@@ -9,7 +9,7 @@
   'use strict';
 
   const STORAGE_KEY = 'batutynas_chat';
-  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+  const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   const LANGUAGES = {
     lt: { name: 'Lietuvi\u0173', placeholder: 'Ra\u0161ykite \u017einut\u0119...', welcome: 'Sveiki! Kuo galiu pad\u0117ti?', escalate: 'Kalb\u0117ti su \u017emogumi', welcomeTitle: 'Sveiki!' },
@@ -23,6 +23,7 @@
 
   let config = {
     webhookUrl: '',
+    authToken: '', // Bearer token for webhook authentication
     position: 'bottom-right',
     primaryColor: '#6C3CE1',
     storeName: 'Batutynas.lt',
@@ -187,12 +188,12 @@
     }
 
     var lastTimestamp = 0;
-    state.messages.forEach(function (msg) {
+    state.messages.forEach(function (msg, idx) {
       if (msg.time && msg.time - lastTimestamp > 5 * 60 * 1000) {
         messagesContainer.appendChild(el('div', { className: 'woo-chat-time' }, formatTimestamp(msg.time)));
       }
       lastTimestamp = msg.time || lastTimestamp;
-      messagesContainer.appendChild(createMessageBubble(msg));
+      messagesContainer.appendChild(createMessageBubble(msg, idx));
     });
 
     // Typing indicator
@@ -290,8 +291,8 @@
     }
   }
 
-  function createMessageBubble(msg) {
-    var bubble = el('div', { className: 'woo-chat-msg ' + msg.role });
+  function createMessageBubble(msg, msgIndex) {
+    var bubble = el('div', { className: 'woo-chat-msg ' + msg.role, 'data-msg-index': String(msgIndex) });
     if (msg.text && msg.text.indexOf('{{HTML}}') === 0) {
       bubble.innerHTML = sanitizeHtml(msg.text.substring(8));
       bubble.classList.add('html-content');
@@ -306,7 +307,9 @@
       'input', 'textarea', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
     var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
       'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
-      'data-chat-custom-submit', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
+      'data-chat-custom-submit', 'data-chat-address', 'data-chat-address-confirm',
+      'data-chat-address-fill', 'data-chat-detail-toggle', 'data-chat-addon',
+      'data-chat-addon-continue', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
       'target', 'rel', 'src', 'alt', 'style', 'placeholder', 'id', 'role', 'tabindex', 'rows'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
@@ -482,9 +485,14 @@
       name: config.userName || null
     };
 
+    var fetchHeaders = { 'Content-Type': 'application/json' };
+    if (config.authToken) {
+      fetchHeaders['Authorization'] = 'Bearer ' + config.authToken;
+    }
+
     fetch(config.webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: fetchHeaders,
       body: JSON.stringify(payload)
     })
       .then(function (res) {
@@ -532,23 +540,23 @@
 
   function escalate() {
     if (state.sending) return;
-    addMessage('customer', t('escalate'));
-    _sendToWebhook('Nor\u0117\u010Diau pasikalb\u0117ti su \u017emogumi.');
+    var label = t('escalate');
+    addMessage('customer', label);
+    _sendToWebhook(label);
   }
 
   // --- Persist interactive state back to stored messages ---
 
   function persistInteractionState(chatBubble) {
-    var container = document.getElementById('woo-chat-messages');
-    if (!container || !chatBubble) return;
-    var bubbles = Array.from(container.querySelectorAll('.woo-chat-msg'));
-    var index = bubbles.indexOf(chatBubble);
-    if (index >= 0 && index < state.messages.length) {
-      var msg = state.messages[index];
-      if (msg.text && msg.text.indexOf('{{HTML}}') === 0) {
-        state.messages[index].text = '{{HTML}}' + chatBubble.innerHTML;
-        saveSession();
-      }
+    if (!chatBubble) return;
+    var indexStr = chatBubble.getAttribute('data-msg-index');
+    if (indexStr === null) return;
+    var index = parseInt(indexStr, 10);
+    if (isNaN(index) || index < 0 || index >= state.messages.length) return;
+    var msg = state.messages[index];
+    if (msg.text && msg.text.indexOf('{{HTML}}') === 0) {
+      state.messages[index].text = '{{HTML}}' + chatBubble.innerHTML;
+      saveSession();
     }
   }
 
@@ -633,6 +641,107 @@
           var emailBubble = emailConfirmBtn.closest('.woo-chat-msg');
           if (emailBubble) persistInteractionState(emailBubble);
           quickSend('Mano el. paštas katalogui: ' + emailValue);
+        } else if (emailInput) {
+          emailInput.focus();
+          emailInput.style.borderColor = '#e74c3c';
+          var errEl = emailInput.parentElement.querySelector('.form-error');
+          if (!errEl) {
+            errEl = document.createElement('div');
+            errEl.className = 'form-error';
+            errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
+            emailInput.parentElement.appendChild(errEl);
+          }
+          errEl.textContent = 'Neteisingas el. pašto formatas';
+        }
+        return;
+      }
+
+      // Detail expand toggle
+      var detailBtn = e.target.closest('[data-chat-detail-toggle]');
+      if (detailBtn) {
+        e.stopPropagation();
+        var card = detailBtn.closest('.chat-trampoline-select');
+        if (card) {
+          var detail = card.querySelector('.t-detail');
+          if (detail) detail.classList.toggle('open');
+        }
+        return;
+      }
+
+      // Addon multi-select toggle
+      var addonCard = e.target.closest('[data-chat-addon]');
+      if (addonCard) {
+        if (addonCard.hasAttribute('disabled')) return;
+        addonCard.classList.toggle('addon-selected');
+        return;
+      }
+
+      // Addon continue button
+      var addonContinueBtn = e.target.closest('[data-chat-addon-continue]');
+      if (addonContinueBtn) {
+        if (addonContinueBtn.hasAttribute('disabled') || addonContinueBtn.disabled) return;
+        var addonBubble = addonContinueBtn.closest('.chat-products') || addonContinueBtn.closest('.woo-chat-msg');
+        var selected = [];
+        if (addonBubble) {
+          addonBubble.querySelectorAll('[data-chat-addon].addon-selected').forEach(function (card) {
+            selected.push(card.getAttribute('data-chat-addon'));
+          });
+          // Disable everything
+          addonContinueBtn.disabled = true;
+          addonContinueBtn.setAttribute('disabled', 'true');
+          addonBubble.querySelectorAll('[data-chat-addon]').forEach(function (card) {
+            card.setAttribute('disabled', 'true');
+          });
+        }
+        var chatBubble = addonContinueBtn.closest('.woo-chat-msg');
+        if (chatBubble) persistInteractionState(chatBubble);
+        var msg = selected.length > 0
+          ? 'Papildomos pramogos: ' + selected.join(', ')
+          : 'Be papildomų pramogų';
+        quickSend(msg);
+        return;
+      }
+
+      // Address city fill button
+      var addressFillBtn = e.target.closest('[data-chat-address-fill]');
+      if (addressFillBtn) {
+        if (addressFillBtn.hasAttribute('disabled')) return;
+        var city = addressFillBtn.getAttribute('data-chat-address-fill');
+        var addressForm = addressFillBtn.closest('.chat-products') || addressFillBtn.closest('.woo-chat-msg');
+        if (addressForm) {
+          var addrInput = addressForm.querySelector('[data-chat-address]');
+          if (addrInput && !addrInput.disabled) {
+            addrInput.value = city + ', ';
+            addrInput.focus();
+            var addrConfirm = addressForm.querySelector('[data-chat-address-confirm]');
+            if (addrConfirm) addrConfirm.disabled = !addrInput.value.trim();
+          }
+        }
+        return;
+      }
+
+      // Address confirm button
+      var addressConfirmBtn = e.target.closest('[data-chat-address-confirm]');
+      if (addressConfirmBtn) {
+        if (addressConfirmBtn.hasAttribute('disabled') || addressConfirmBtn.disabled) return;
+        var addrInput = addressConfirmBtn.parentElement.querySelector('[data-chat-address]');
+        if (addrInput && addrInput.value.trim()) {
+          var addressValue = addrInput.value.trim();
+          addressConfirmBtn.disabled = true;
+          addressConfirmBtn.setAttribute('disabled', 'true');
+          addrInput.disabled = true;
+          addrInput.setAttribute('disabled', 'true');
+          // Disable city fill buttons
+          var addrBubble = addressConfirmBtn.closest('.chat-products') || addressConfirmBtn.closest('.woo-chat-msg');
+          if (addrBubble) {
+            addrBubble.querySelectorAll('[data-chat-address-fill]').forEach(function (btn) {
+              btn.setAttribute('disabled', 'true');
+              if (btn.tagName === 'BUTTON') btn.disabled = true;
+            });
+          }
+          var chatBubble = addressConfirmBtn.closest('.woo-chat-msg');
+          if (chatBubble) persistInteractionState(chatBubble);
+          quickSend(addressValue);
         }
         return;
       }
@@ -648,10 +757,39 @@
         fields.forEach(function (field) {
           formData[field.getAttribute('data-custom-field')] = field.value.trim();
         });
-        // Validate email field if present
-        if (formData.email && !isValidEmail(formData.email)) {
-          var emailField = form.querySelector('[data-custom-field="email"]');
-          if (emailField) emailField.focus();
+        // Validate email field — required
+        if (!formData.email || !isValidEmail(formData.email)) {
+          var emailInput = form.querySelector('[name="email"]');
+          if (emailInput) {
+            emailInput.focus();
+            emailInput.style.borderColor = '#e74c3c';
+            var errEl = emailInput.parentElement.querySelector('.form-error');
+            if (!errEl) {
+              errEl = document.createElement('div');
+              errEl.className = 'form-error';
+              errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
+              emailInput.parentElement.appendChild(errEl);
+            }
+            errEl.textContent = !formData.email ? 'El. paštas privalomas' : 'Neteisingas el. pašto formatas';
+          }
+          return;
+        }
+        // Validate phone field — require at least 8 digits
+        var phoneVal = formData.phone || '';
+        if (phoneVal.replace(/\D/g, '').length < 8) {
+          var phoneInput = form.querySelector('[name="phone"]');
+          if (phoneInput) {
+            phoneInput.focus();
+            phoneInput.style.borderColor = '#e74c3c';
+            var errEl2 = phoneInput.parentElement.querySelector('.form-error');
+            if (!errEl2) {
+              errEl2 = document.createElement('div');
+              errEl2.className = 'form-error';
+              errEl2.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
+              phoneInput.parentElement.appendChild(errEl2);
+            }
+            errEl2.textContent = 'Telefono numeris per trumpas';
+          }
           return;
         }
         // Disable all form fields
@@ -698,6 +836,7 @@
             saveSession();
           }
         }
+        addMessage('customer', textToRetry);
         _sendToWebhook(textToRetry);
         render();
       }
@@ -719,6 +858,19 @@
         if (optBtn) {
           e.preventDefault();
           optBtn.click();
+          return;
+        }
+        var addonBtn = e.target.closest('[data-chat-addon]');
+        if (addonBtn) {
+          e.preventDefault();
+          addonBtn.click();
+          return;
+        }
+        var addonContinue = e.target.closest('[data-chat-addon-continue]');
+        if (addonContinue) {
+          e.preventDefault();
+          addonContinue.click();
+          return;
         }
       }
     });
@@ -740,6 +892,15 @@
         var confirmBtn = emailInput.parentElement.querySelector('[data-chat-email-confirm]');
         if (confirmBtn) {
           confirmBtn.disabled = !isValidEmail(emailInput.value.trim());
+        }
+      }
+
+      // Address input live validation
+      var addrInput = e.target.closest('[data-chat-address]');
+      if (addrInput) {
+        var addrConfirm = addrInput.parentElement.querySelector('[data-chat-address-confirm]');
+        if (addrConfirm) {
+          addrConfirm.disabled = !addrInput.value.trim();
         }
       }
     });

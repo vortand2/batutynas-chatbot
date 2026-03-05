@@ -7,7 +7,14 @@ var agentOutput = $input.first().json || {};
 var response = agentOutput.output || agentOutput.text || '';
 var isMessenger = $('Filter & Extract').item.json.isMessenger || false;
 var conversationId = $('Filter & Extract').item.json.conversationId;
-var chatwootBase = 'https://batutynas-chatwoot-chatwoot.0uvai5.easypanel.host/api/v1/accounts/1';
+
+if (!conversationId) {
+  return [{ json: { _skip: true, _error: 'No conversationId — cannot send messages' } }];
+}
+
+// Use n8n workflow variable — set CHATWOOT_BASE_URL in Settings → Variables
+// Fallback to hardcoded URL if variable not set (for backwards compatibility)
+var chatwootBase = (typeof $vars !== 'undefined' && $vars.CHATWOOT_BASE_URL) ? $vars.CHATWOOT_BASE_URL : 'https://batutynas-chatwoot-chatwoot.0uvai5.easypanel.host/api/v1/accounts/1';
 
 function formatOutput(msgs) {
   var url = chatwootBase + '/conversations/' + conversationId + '/messages';
@@ -41,6 +48,14 @@ function formatOutput(msgs) {
     }});
   }
 
+  // Turn off typing indicator after sending all messages
+  if (hasHeavyContent) {
+    result.push({ json: {
+      _url: typingUrl,
+      _body: JSON.stringify({ typing_status: 'off' })
+    }});
+  }
+
   return result;
 }
 
@@ -52,18 +67,21 @@ if (!response || !response.trim()) {
   }]);
 }
 
+// Fix #4 helper: local-timezone date formatting (avoids UTC midnight rollover bug)
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
 // --- Equipment data ---
 var TRAMPOLINES = [
   // --- big-park (for public events only) ---
-  { name: 'Džiumandži parkas', icon: '\u{1F334}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', type: 'Nuotykių parkas \u00b7 14x16 m', capacity: 'Iki 40 vaikų', bg: '#fef9f0', min: 15, max: 40, cat: 'big-park', popular: true, shortDesc: 'Iki 40 vaikų \u00b7 nuo 4 m.' },
-  { name: 'Fantazijų parkas', icon: '\u{1F3F0}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', type: 'Batutų parkas \u00b7 14x14 m', capacity: 'Iki 30 vaikų', bg: '#f5f0ff', min: 10, max: 30, cat: 'big-park', shortDesc: 'Iki 30 vaikų \u00b7 nuo 4 m.' },
-  { name: 'Giga ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', type: 'Kliūčių trasa 40 m \u00b7 45x8 m', capacity: '360 dalyvių/val.', bg: '#f0f9ff', min: 10, max: 100, cat: 'big-park', popular: true, shortDesc: '360 dalyvių/val. \u00b7 6+ m.' },
+  { name: 'Džiumandži parkas', icon: '\u{1F334}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', type: 'Nuotykių parkas \u00b7 14x16 m', capacity: 'Iki 40 vaikų', bg: '#fef9f0', min: 15, max: 200, cat: 'big-park', popular: true, shortDesc: 'Iki 40 vaikų \u00b7 nuo 4 m.' },
+  { name: 'Fantazijų parkas', icon: '\u{1F3F0}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', type: 'Batutų parkas \u00b7 14x14 m', capacity: 'Iki 30 vaikų', bg: '#f5f0ff', min: 10, max: 150, cat: 'big-park', shortDesc: 'Iki 30 vaikų \u00b7 nuo 4 m.' },
+  { name: 'Giga ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', type: 'Kliūčių trasa 40 m \u00b7 45x8 m', capacity: '360 dalyvių/val.', bg: '#f0f9ff', min: 10, max: 1000, cat: 'big-park', popular: true, shortDesc: '360 dalyvių/val. \u00b7 6+ m.' },
 
   // --- mega-trampoline (for birthdays + public) ---
   { name: 'Mega Waikiki', icon: '\u{1F30A}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg', type: 'Aukščiausias 8,5 m \u00b7 16x4 m', capacity: 'Iki 15 vaikų', bg: '#e0f7fa', min: 5, max: 15, cat: 'mega-trampoline', popular: true, shortDesc: 'Iki 15 vaikų \u00b7 nuo 4 m.' },
   { name: 'Mega Rocket', icon: '\u{1F680}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg', type: '2 dalių batutas \u00b7 14x5 m', capacity: 'Iki 15 vaikų', bg: '#fff0f0', min: 5, max: 15, cat: 'mega-trampoline', shortDesc: 'Iki 15 vaikų \u00b7 nuo 4 m.' },
   { name: 'Mega Ufonautai', icon: '\u{1F6F8}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg', type: '2 dalių batutas \u00b7 14x5 m', capacity: 'Iki 15 vaikų', bg: '#ede7f6', min: 5, max: 15, cat: 'mega-trampoline', shortDesc: 'Iki 15 vaikų \u00b7 nuo 4 m.' },
-  { name: 'Mega ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', type: 'Kliūčių trasa 21 m \u00b7 25x6 m', capacity: '240 dalyvių/val.', bg: '#e8f5e9', min: 8, max: 100, cat: 'mega-trampoline', shortDesc: '240 dalyvių/val. \u00b7 6+ m.' },
+  { name: 'Mega ruožas', icon: '\u{1F3C3}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', type: 'Kliūčių trasa 21 m \u00b7 25x6 m', capacity: '240 dalyvių/val.', bg: '#e8f5e9', min: 8, max: 600, cat: 'mega-trampoline', shortDesc: '240 dalyvių/val. \u00b7 6+ m.' },
 
   // --- standard-trampoline (for birthdays) ---
   { name: 'Monstrai', icon: '\u{1F47E}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=300,h=200,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png', type: 'Su Dart žaidimu \u00b7 8x5 m', capacity: 'Iki 12 vaikų', bg: '#fce4ec', min: 4, max: 12, cat: 'standard-trampoline', shortDesc: 'Iki 12 vaikų \u00b7 nuo 3 m.' },
@@ -88,7 +106,10 @@ var TRAMPOLINES = [
 // --- Helper: format item for text (Messenger fallback) ---
 function formatItemText(t) {
   var pop = t.popular ? ' \u{1F525}' : '';
-  var line = t.icon + ' *' + t.name + '*' + pop + '\n';
+  // Messenger renders asterisks literally — use plain text there
+  var line = isMessenger
+    ? t.icon + ' ' + t.name + pop + '\n'
+    : t.icon + ' *' + t.name + '*' + pop + '\n';
   line += t.shortDesc || (t.type + ' \u00b7 ' + t.capacity);
   return line;
 }
@@ -119,8 +140,9 @@ function buildTrampolineCards(items, buttonText) {
 // --- Build input_select items from trampoline list ---
 function buildTrampolineSelectItems(items) {
   return items.map(function(t) {
-    var pop = t.popular ? ' \u{1F525}' : '';
-    return { title: t.icon + ' ' + t.name + pop, value: t.name };
+    var title = t.icon + ' ' + t.name;
+    if (t.popular && (title.length + 3) <= 20) title += ' \u{1F525}';
+    return { title: title, value: t.name };
   });
 }
 
@@ -156,6 +178,13 @@ function buildGroupEquipment(items, headerText, guestCount, btnText) {
     others = items.filter(function(t) { return !(t.min <= guestCount && guestCount <= t.max); });
   } else {
     recommended = items;
+  }
+
+  if (guestCount && recommended.length === 0 && others.length > 0) {
+    var sorted = others.slice().sort(function(a, b) { return b.max - a.max; });
+    recommended = sorted.slice(0, 3);
+    others = sorted.slice(3);
+    headerText = '\u{1F3AA} Dideliam renginiui geriausiai tinka';
   }
 
   if (isMessenger) {
@@ -217,15 +246,44 @@ function buildGroupBirthdayEquipment(guestCount) {
   var standard = TRAMPOLINES.filter(function(t) { return t.cat === 'standard-trampoline'; });
   var mega = TRAMPOLINES.filter(function(t) { return t.cat === 'mega-trampoline'; });
   var all = standard.concat(mega);
-  return buildGroupEquipment(all, '\u{1F382} Rekomenduojami jūsų šventei', guestCount);
+  // Fix #6: for very large groups, suggest the public event package instead
+  var header = '\u{1F382} Rekomenduojami jūsų šventei';
+  if (guestCount && guestCount > 40) {
+    header = '\u{1F382} Didelei šventei — galbūt norėtumėte apsvarstyti viešo renginio paketą?';
+  }
+  var msgs = buildGroupEquipment(all, header, guestCount);
+  // M-4: Add a CTA button for large birthday groups to switch to public event flow
+  if (guestCount && guestCount > 40) {
+    msgs.push({
+      content: '',
+      content_type: 'input_select',
+      content_attributes: {
+        items: [
+          { title: '\u{1F3AA} Viešo renginio paketas', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
+          { title: '\u27A1\uFE0F Tęsti su gimtadieniu', value: 'Tęsti gimtadienio užsakymą' }
+        ]
+      },
+      message_type: 'outgoing'
+    });
+  }
+  return msgs;
 }
 
 function buildGroupPublicEquipment(guestCount) {
   var bigParks = TRAMPOLINES.filter(function(t) { return t.cat === 'big-park'; });
   var mega = TRAMPOLINES.filter(function(t) { return t.cat === 'mega-trampoline'; });
-  var standard = TRAMPOLINES.filter(function(t) { return t.cat === 'standard-trampoline'; });
-  var all = bigParks.concat(mega).concat(standard);
-  return buildGroupEquipment(all, '\u{1F3AA} Rekomenduojami jūsų renginiui', guestCount);
+  var all = bigParks.concat(mega);
+  var messages = [];
+  if (guestCount && guestCount > 100) {
+    messages.push({
+      content: 'Dideliam renginiui rekomenduojame derinti kelias atrakcijas \u2014 m\u016bs\u0173 komanda pad\u0117s sud\u0117lioti geriausią derin\u012f! Pasirinkite vieną ar keletą:',
+      content_type: 'text',
+      message_type: 'outgoing'
+    });
+  }
+  var equipmentMsgs = buildGroupEquipment(all, '\u{1F3AA} Rekomenduojami j\u016bs\u0173 renginiui', guestCount);
+  messages.push.apply(messages, equipmentMsgs);
+  return messages;
 }
 
 function buildGroupPartyEquipment() {
@@ -271,37 +329,61 @@ function buildGroupPartyEquipment() {
 
 // --- Main Menu ---
 function buildMainMenu() {
+  // Fix #5: Messenger quick-reply titles are capped at 20 chars — use shorter titles there
+  var items;
+  if (isMessenger) {
+    items = [
+      { title: '\u{1F382} Gimtadienis', value: 'Planuoju vaikų gimtadienį arba krikštynas' },
+      { title: '\u{1F3AA} Viešas renginys', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
+      { title: '\u{1F389} Vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
+      { title: '\u{1F6D2} Pirkti batutą', value: 'Noriu pirkti batutą' },
+      { title: '\u2139\uFE0F DUK / Kontaktai', value: 'Saugumas, DUK ir kontaktai' }
+    ];
+  } else {
+    items = [
+      { title: '\u{1F382} Vaikų gimtadienis ar krikštynos', value: 'Planuoju vaikų gimtadienį arba krikštynas' },
+      { title: '\u{1F3AA} Viešas renginys ar įmonės sąskrydis', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
+      { title: '\u{1F389} Triukšmingas vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
+      { title: '\u{1F6D2} Noriu pirkti batutą', value: 'Noriu pirkti batutą' },
+      { title: '\u2139\uFE0F Saugumas, DUK ir kontaktai', value: 'Saugumas, DUK ir kontaktai' }
+    ];
+  }
   return [{
     content: 'Kuo galiu padėti? \u{1F60A}',
     content_type: 'input_select',
-    content_attributes: {
-      items: [
-        { title: '\u{1F382} Vaikų gimtadienis ar krikštynos', value: 'Planuoju vaikų gimtadienį arba krikštynas' },
-        { title: '\u{1F3AA} Viešas renginys ar įmonės sąskrydis', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
-        { title: '\u{1F389} Triukšmingas vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
-        { title: '\u{1F6D2} Noriu pirkti batutą', value: 'Noriu pirkti batutą' },
-        { title: '\u2139\uFE0F Saugumas, DUK ir kontaktai', value: 'Saugumas, DUK ir kontaktai' }
-      ]
-    },
+    content_attributes: { items: items },
     message_type: 'outgoing'
   }];
 }
 
 // --- Date Picker ---
 function buildDatePicker() {
-  var days = [];
-  var now = new Date();
-  var d = new Date(now);
+  var dates = [];
+  var d = new Date();
+  // Find next Saturday
   d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
-  for (var i = 0; i < 4; i++) {
-    var iso = d.toISOString().split('T')[0];
-    var label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });
-    days.push({ title: label, value: iso });
-    d.setDate(d.getDate() + 7);
-  }
+  dates.push(new Date(d));
+  // The Sunday right after
+  var sun = new Date(d);
+  sun.setDate(sun.getDate() + 1);
+  dates.push(sun);
+  // Next Saturday
+  d.setDate(d.getDate() + 7);
+  dates.push(new Date(d));
+  // Next Sunday
+  var sun2 = new Date(d);
+  sun2.setDate(sun2.getDate() + 1);
+  dates.push(sun2);
+
+  var days = dates.map(function(dt) {
+    // Use local date parts to avoid UTC midnight rollover (Lithuania is UTC+2/+3)
+    var iso = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
+    var label = dt.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });
+    return { title: label, value: iso };
+  });
 
   return [{
-    content: 'Populiariausi laikai \u2014 šeštadieniai:\n(galite ir parašyti savo datą)',
+    content: 'Populiariausi laikai \u2014 savaitgaliai:\n(galite ir parašyti savo datą)',
     content_type: 'input_select',
     content_attributes: { items: days },
     message_type: 'outgoing'
@@ -311,14 +393,33 @@ function buildDatePicker() {
 // --- Guest Count ---
 function buildGuestCountOptions() {
   return [{
-    content: 'Kiek mažųjų svečių bus? \u{1F466}\u{1F467}',
+    content: 'Kiek svečių planuojate? \u{1F465}',
     content_type: 'input_select',
     content_attributes: {
       items: [
-        { title: 'Iki 6 vaikų', value: 'Apie 6 svečių' },
-        { title: '7\u201312 vaikų', value: 'Apie 10 svečių' },
-        { title: '13\u201320 vaikų', value: 'Apie 15 svečių' },
-        { title: 'Daugiau nei 20', value: 'Apie 30 svečių' }
+        { title: 'Iki 6', value: 'Apie 6 svečių' },
+        { title: '7\u201312', value: 'Apie 10 svečių' },
+        { title: '13\u201320', value: 'Apie 15 svečių' },
+        { title: '21\u201350', value: 'Apie 35 svečių' },
+        { title: '50+', value: 'Daugiau nei 50 svečių' }
+      ]
+    },
+    message_type: 'outgoing'
+  }];
+}
+
+// --- Guest Count (Public events — larger buckets) ---
+function buildGuestCountOptionsPublic() {
+  return [{
+    content: 'Kiek dalyvių planuojate? \u{1F465}\u{1F465}',
+    content_type: 'input_select',
+    content_attributes: {
+      items: [
+        { title: '20\u201350',   value: 'Apie 35 svečių' },
+        { title: '50\u2013100',  value: 'Apie 75 svečių' },
+        { title: '100\u2013200', value: 'Apie 150 svečių' },
+        { title: '200\u2013500', value: 'Apie 350 svečių' },
+        { title: '500+',    value: 'Apie 700 svečių' }
       ]
     },
     message_type: 'outgoing'
@@ -380,7 +481,7 @@ function buildPurchaseSubmenu() {
     content_type: 'input_select',
     content_attributes: {
       items: [
-        { title: '\u{1F4E7} Gauti katalogą el. paštu', value: 'Noriu gauti batutų katalogą el. paštu' },
+        { title: '\u{1F4E7} Gauti katalogą', value: 'Noriu gauti batutų katalogą el. paštu' },
         { title: '\u{1F3A8} Individuali gamyba', value: 'Noriu individualios batuto gamybos' }
       ]
     },
@@ -409,7 +510,7 @@ function buildPurchaseEmailInput() {
 function buildPurchaseCustomForm() {
   if (isMessenger) {
     return [{
-      content: 'Individualaus batuto užklausa\n\nPrašau nurodyti:\n1. Pageidaujamus matmenis (pvz. 8x5x4 m)\n2. Spalvas\n3. Personažus / temą\n4. Kontaktinį el. paštą\n5. Telefono numerį\n\nGalite parašyti visa informacija vienu pranešimu.',
+      content: 'Individualaus batuto užklausa\n\nPrašau nurodyti:\n1. Pageidaujamus matmenis (pvz. 8x5x4 m)\n2. Spalvas\n3. Personažus / temą\n4. Pastabas (neprivaloma)\n5. Kontaktinį el. paštą\n6. Telefono numerį\n\nGalite parašyti visą informaciją vienu pranešimu.',
       content_type: 'text',
       message_type: 'outgoing'
     }];
@@ -428,6 +529,7 @@ function buildPurchaseCustomForm() {
           { name: 'dimensions', placeholder: 'pvz. 8x5x4 m', type: 'text', label: 'Pageidaujami matmenys' },
           { name: 'colors', placeholder: 'pvz. mėlyna, raudona, geltona', type: 'text', label: 'Spalvos' },
           { name: 'characters', placeholder: 'pvz. Spiderman, dinozaurai', type: 'text', label: 'Personažai / tema' },
+          { name: 'notes', placeholder: 'Papildoma informacija (neprivaloma)', type: 'text', label: 'Pastabos' },
           { name: 'email', placeholder: 'jusu@pastas.lt', type: 'email', label: 'Kontaktinis el. paštas' },
           { name: 'phone', placeholder: '+370 600 00000', type: 'text', label: 'Telefono numeris' }
         ]
@@ -440,9 +542,27 @@ function buildPurchaseCustomForm() {
 // --- Booking Confirm ---
 function buildBookingConfirm(jsonStr) {
   var data;
-  try { data = JSON.parse(jsonStr); } catch (e) { data = {}; }
+  try { data = JSON.parse(jsonStr); } catch (e) { data = null; }
 
-  var text = '\u2705 *Užklausa pateikta!*\n\n';
+  // Fix #3: if JSON.parse failed or produced empty object, show a safe fallback
+  if (!data || Object.keys(data).length === 0) {
+    return [{
+      content: '\u2705 Užklausa gauta!\n\nMūsų komanda susisieks su jumis per 2 darbo valandas.\n\u{1F4DE} +370 648 803 88\n\u{1F4E7} info@batutynas.lt',
+      content_type: 'text',
+      message_type: 'outgoing'
+    }];
+  }
+
+  // H-2 guard: if contact info is missing, append a note so the team follows up
+  var hasContact = data.contact_phone || data.email || data.contact_name;
+  if (!hasContact) {
+    data._missingContact = true;
+  }
+
+  // Fix #7: asterisks render as literal * on Messenger — use plain text there
+  var text = isMessenger
+    ? '\u2705 Užklausa pateikta!\n\n'
+    : '\u2705 *Užklausa pateikta!*\n\n';
 
   // Event details
   if (data.date) text += '\u{1F4C5} ' + data.date + '\n';
@@ -452,7 +572,8 @@ function buildBookingConfirm(jsonStr) {
   if (data.guest_count) text += '\u{1F465} ' + data.guest_count + ' svečių\n';
 
   // Equipment
-  if (data.trampoline) text += '\u{1F3AA} ' + data.trampoline + '\n';
+  if (data.trampolines) text += '\u{1F3AA} ' + data.trampolines + '\n';
+  else if (data.trampoline) text += '\u{1F3AA} ' + data.trampoline + '\n';
   if (data.addons) text += '\u{1F381} ' + data.addons + '\n';
 
   // Custom order details
@@ -465,6 +586,10 @@ function buildBookingConfirm(jsonStr) {
   if (data.contact_name) text += '\u{1F464} ' + data.contact_name + '\n';
   if (data.contact_phone) text += '\u{1F4DE} ' + data.contact_phone + '\n';
   if (data.email) text += '\u{1F4E7} ' + data.email + '\n';
+
+  if (data._missingContact) {
+    text += '\n⚠️ Kad galėtume susisiekti, prašome nurodyti savo vardą ir telefono numerį.\n';
+  }
 
   text += '\nSusisieksime per 2 darbo valandas! \u{1F64F}';
 
@@ -491,45 +616,22 @@ function buildQuickReplies(buttons, headerText) {
 // MARKER PROCESSING
 // ============================================================
 
-var enriched = response;
 var allMessages = [];
-var hasMarker = false;
 
-var markerDefs = [
-  { pattern: /\[DATE_PICKER\]/g, fn: function() { return buildDatePicker(); } },
-  { pattern: /\[GUEST_COUNT\]/g, fn: function() { return buildGuestCountOptions(); } },
-  { pattern: /\[MAIN_MENU\]/g, fn: function() { return buildMainMenu(); } },
-  { pattern: /\[ADDON_UPSELL\]/g, fn: function() { return buildAddonUpsell(); } },
-  { pattern: /\[PURCHASE_SUBMENU\]/g, fn: function() { return buildPurchaseSubmenu(); } },
-  { pattern: /\[PURCHASE_EMAIL_INPUT\]/g, fn: function() { return buildPurchaseEmailInput(); } },
-  { pattern: /\[PURCHASE_CUSTOM_FORM\]/g, fn: function() { return buildPurchaseCustomForm(); } },
-  { pattern: /\[MENU_GROUP_PARTY\]/g, fn: function() { return buildGroupPartyEquipment(); } }
-];
-
-for (var mi = 0; mi < markerDefs.length; mi++) {
-  var m = markerDefs[mi];
-  if (m.pattern.test(enriched)) {
-    hasMarker = true;
-    enriched = enriched.replace(m.pattern, '\n<<MARKER>>\n');
-  }
-}
-
-var birthdayMatch = enriched.match(/\[MENU_GROUP_BIRTHDAY(?::[^\]]+)?\]/);
-var publicMatch = enriched.match(/\[MENU_GROUP_PUBLIC(?::[^\]]+)?\]/);
-var confirmMatch = enriched.match(/\[BOOKING_CONFIRM:(\{[^\]]*\})\]/);
-
-if (birthdayMatch || publicMatch || confirmMatch) hasMarker = true;
+// Quick check: does the response contain any markers?
+var hasMarker = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY|MENU_GROUP_PUBLIC|BOOKING_CONFIRM:)/.test(response);
 
 if (!hasMarker) {
-  var cleanText = response.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, '*$1*');
-  // Plain text — just send it. No trailing button.
-  // User can always type "meniu" to get back to the main menu.
+  var cleanText = response.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, isMessenger ? '$1' : '*$1*');
+  if (isMessenger) { cleanText = cleanText.replace(/\*(.+?)\*/g, '$1'); }
   return formatOutput([{ content: cleanText, content_type: 'text', message_type: 'outgoing' }]);
 }
 
-enriched = response;
+var enriched = response;
 
-var allMarkerRegex = /\[(?:DATE_PICKER|GUEST_COUNT|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY(?::[^\]]+)?|MENU_GROUP_PUBLIC(?::[^\]]+)?|LOCATION_OPTIONS|BOOKING_CONFIRM:\{[^\]]*\})\]/g;
+// Fix #1: BOOKING_CONFIRM regex — handle one level of nested braces so arrays/objects in
+// values (e.g. "addons":"Dart, Rodeo") don't cause premature termination at the first '}'.
+var allMarkerRegex = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY(?::[^\]]*)?|MENU_GROUP_PUBLIC(?::[^\]]*)?|BOOKING_CONFIRM:\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g;
 
 var lastIndex = 0;
 var match;
@@ -551,7 +653,8 @@ var contextFlags = { hadCatalog: false, hadDatePicker: false, hadGuestCount: fal
 for (var si = 0; si < segments.length; si++) {
   var seg = segments[si];
   if (seg.type === 'text') {
-    var trimmed = seg.content.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, '*$1*').trim();
+    var trimmed = seg.content.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, isMessenger ? '$1' : '*$1*').trim();
+    if (isMessenger) { trimmed = trimmed.replace(/\*(.+?)\*/g, '$1'); }
     if (trimmed) {
       allMessages.push({ content: trimmed, content_type: 'text', message_type: 'outgoing' });
     }
@@ -566,6 +669,9 @@ for (var si = 0; si < segments.length; si++) {
       contextFlags.hadDatePicker = true;
     } else if (marker === '[GUEST_COUNT]') {
       allMessages.push.apply(allMessages, buildGuestCountOptions());
+      contextFlags.hadGuestCount = true;
+    } else if (marker === '[GUEST_COUNT_PUBLIC]') {
+      allMessages.push.apply(allMessages, buildGuestCountOptionsPublic());
       contextFlags.hadGuestCount = true;
     } else if (marker === '[ADDON_UPSELL]') {
       allMessages.push.apply(allMessages, buildAddonUpsell());
@@ -582,30 +688,31 @@ for (var si = 0; si < segments.length; si++) {
     } else if (marker === '[MENU_GROUP_PARTY]') {
       allMessages.push.apply(allMessages, buildGroupPartyEquipment());
       contextFlags.hadCatalog = true;
-    } else if (marker === '[LOCATION_OPTIONS]') {
-      // Chatwoot: location handled as plain text by AI — skip silently
     } else {
+      // Fix #2: all three checks are independent — no else chaining between them.
+      // Previously BOOKING_CONFIRM was nested inside the else of MENU_GROUP_PUBLIC,
+      // so a response containing both MENU_GROUP_PUBLIC and BOOKING_CONFIRM would
+      // silently drop the booking confirmation.
       var bMatch = marker.match(/\[MENU_GROUP_BIRTHDAY(?::([^\]]+))?\]/);
       if (bMatch) {
         var rawB = bMatch[1] ? parseInt(bMatch[1]) : null;
-        var countB = (rawB && !isNaN(rawB)) ? rawB : null;
+        var countB = (rawB && !isNaN(rawB) && rawB > 0) ? rawB : null;
         allMessages.push.apply(allMessages, buildGroupBirthdayEquipment(countB));
         contextFlags.hadCatalog = true;
-        continue;
       }
       var pMatch = marker.match(/\[MENU_GROUP_PUBLIC(?::([^\]]+))?\]/);
       if (pMatch) {
         var rawP = pMatch[1] ? parseInt(pMatch[1]) : null;
-        var countP = (rawP && !isNaN(rawP)) ? rawP : null;
+        var countP = (rawP && !isNaN(rawP) && rawP > 0) ? rawP : null;
         allMessages.push.apply(allMessages, buildGroupPublicEquipment(countP));
         contextFlags.hadCatalog = true;
-        continue;
       }
-      var cMatch = marker.match(/\[BOOKING_CONFIRM:(\{[^\]]*\})\]/);
+      // Fix #1 + #2: BOOKING_CONFIRM is its own independent check (not else of MENU_GROUP_PUBLIC)
+      // and uses the balanced-brace regex that handles one level of nested objects.
+      var cMatch = marker.match(/\[BOOKING_CONFIRM:(\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/);
       if (cMatch) {
         allMessages.push.apply(allMessages, buildBookingConfirm(cMatch[1]));
         contextFlags.hadBookingConfirm = true;
-        continue;
       }
     }
   }
@@ -619,6 +726,15 @@ if (contextFlags.hadBookingConfirm) {
     { label: '\u{1F501} Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },
     { label: '\u{1F3E0} Pradžia', value: 'Pagrindinis meniu' }
   ]));
+}
+
+// H-4: empty allMessages fallback — prevents silent n8n failure
+if (allMessages.length === 0) {
+  allMessages.push({
+    content: 'Atsiprašome, kažkas nutiko. Rašykite dar kartą arba skambinkite +370 648 803 88.',
+    content_type: 'text',
+    message_type: 'outgoing'
+  });
 }
 
 return formatOutput(allMessages);
