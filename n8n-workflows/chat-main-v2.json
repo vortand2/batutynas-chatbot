@@ -171,7 +171,7 @@
         "responsePropertyName": "result",
         "specifyInputSchema": true,
         "schemaType": "fromJson",
-        "jsonSchemaExample": "{\"group_type\": \"birthday\", \"date\": \"2026-02-21\", \"location\": \"Tauragė\", \"address\": \"Tauragė, Žemaitės g. 15\", \"event_type\": \"Gimtadienis\", \"guest_count\": \"10\", \"contact_name\": \"Jonas\", \"contact_phone\": \"+37061234567\", \"trampoline_preference\": \"Mega Rocket\", \"dimensions\": \"\", \"colors\": \"\", \"characters\": \"\", \"email\": \"\"}"
+        "jsonSchemaExample": "{\"group_type\": \"birthday\", \"date\": \"2026-02-21\", \"location\": \"Tauragė\", \"address\": \"Tauragė, Žemaitės g. 15\", \"event_type\": \"Gimtadienis\", \"guest_count\": \"10\", \"contact_name\": \"Jonas\", \"contact_phone\": \"+37061234567\", \"trampoline_preference\": \"Mega Rocket\", \"addons\": \"Milžiniškas Dart, Rodeo bulius\", \"dimensions\": \"\", \"colors\": \"\", \"characters\": \"\", \"notes\": \"\", \"email\": \"\"}"
       },
       "id": "chat-tool-booking",
       "name": "Tool: Booking Notify",
