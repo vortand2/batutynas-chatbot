@@ -278,291 +278,666 @@
       padding-top: 24px;
     }
 
+
     /* === CHAT WIDGET STYLES === */
+    /* Batutynas.lt AI Chat Widget — Production */
     :root {
       --chat-primary: #6C3CE1;
       --chat-primary-hover: #5A2DC7;
+      --chat-gradient: linear-gradient(135deg, #6C3CE1, #8B5CF6);
+      --chat-gradient-dark: linear-gradient(135deg, #4C1D95, #6C3CE1);
       --chat-bg: #ffffff;
+      --chat-messages-bg: #f8f6fd;
       --chat-msg-customer: #EDE5FF;
       --chat-msg-agent: #f4f5f7;
       --chat-text: #1a1a2e;
-      --chat-text-light: #6b7588;
+      --chat-text-light: #596578;
       --chat-border: #e8eaef;
-      --chat-shadow: 0 8px 40px rgba(15,15,30,0.15);
+      --chat-shadow: 0 8px 40px rgba(15, 15, 30, 0.15);
       --chat-radius: 16px;
       --chat-width: 390px;
       --chat-height: 560px;
     }
+    
     #woo-ai-chat-widget {
-      position: fixed; bottom: 24px; right: 24px;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
       z-index: 999999;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 14px; line-height: 1.5; color: var(--chat-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--chat-text);
     }
-
-    /* Toggle */
+    
+    /* Toggle Button */
     .woo-chat-toggle {
-      width: 60px; height: 60px; border-radius: 50%;
-      background: linear-gradient(135deg, #6C3CE1, #8B5CF6);
-      border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(108,60,225,0.4);
-      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--chat-gradient);
+      border: none;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(108, 60, 225, 0.4);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
     }
+    
     .woo-chat-toggle:hover {
       transform: scale(1.1);
-      box-shadow: 0 6px 24px rgba(108,60,225,0.5);
+      box-shadow: 0 6px 24px rgba(108, 60, 225, 0.5);
     }
-    .woo-chat-toggle svg { width: 26px; height: 26px; fill: white; }
-    .woo-chat-toggle .chat-close-icon { display: none; }
-    .woo-chat-toggle.open .chat-open-icon { display: none; }
-    .woo-chat-toggle.open .chat-close-icon { display: block; }
-
-    /* Notification dot */
+    
+    .woo-chat-toggle svg {
+      width: 26px;
+      height: 26px;
+      fill: white;
+    }
+    
+    .woo-chat-toggle .chat-close-icon {
+      display: none;
+    }
+    
+    .woo-chat-toggle.open .chat-open-icon {
+      display: none;
+    }
+    
+    .woo-chat-toggle.open .chat-close-icon {
+      display: block;
+    }
+    
+    /* Notification badge — only shown when .has-unread is set */
     .woo-chat-toggle::after {
-      content: '1'; position: absolute; top: 0; right: 0;
-      width: 20px; height: 20px; border-radius: 50%;
-      background: #e94560; color: white;
-      font-size: 11px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 6px rgba(233,69,96,0.4);
-      animation: notifPulse 2s ease-in-out infinite;
+      content: '1';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e94560;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(233, 69, 96, 0.4);
+      animation: woo-notifPulse 2s ease-in-out infinite;
     }
-    .woo-chat-toggle.open::after { display: none; }
-    @keyframes notifPulse {
+    
+    .woo-chat-toggle.has-unread::after {
+      display: flex;
+    }
+    
+    .woo-chat-toggle.open::after {
+      display: none;
+    }
+    
+    @keyframes woo-notifPulse {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.15); }
     }
-
-    /* Window */
+    
+    /* Chat Window */
     .woo-chat-window {
-      display: none; position: absolute; bottom: 74px; right: 0;
-      width: var(--chat-width); height: var(--chat-height);
+      display: none;
+      position: absolute;
+      bottom: 74px;
+      right: 0;
+      width: var(--chat-width);
+      height: var(--chat-height);
       background: var(--chat-bg);
       border-radius: var(--chat-radius);
       box-shadow: var(--chat-shadow);
-      flex-direction: column; overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.06);
-      animation: chatIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.06);
     }
-    .woo-chat-window.open { display: flex; }
-    @keyframes chatIn {
+    
+    .woo-chat-window.open {
+      display: flex;
+    }
+    
+    .woo-chat-window.woo-animate-in {
+      animation: woo-chatIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes woo-chatIn {
       from { opacity: 0; transform: translateY(12px) scale(0.95); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
-
+    
+    .woo-chat-window.woo-animate-out {
+      animation: woo-chatOut 0.2s ease forwards;
+    }
+    
+    @keyframes woo-chatOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(12px) scale(0.95); }
+    }
+    
     /* Header */
     .woo-chat-header {
-      background: linear-gradient(135deg, #4C1D95, #6C3CE1);
-      color: white; padding: 16px 18px;
-      display: flex; align-items: center; justify-content: space-between;
+      background: var(--chat-gradient-dark);
+      color: white;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       flex-shrink: 0;
     }
-    .woo-chat-header-info { display: flex; align-items: center; gap: 12px; }
+    
+    .woo-chat-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
     .woo-chat-header-avatar {
-      width: 36px; height: 36px; border-radius: 10px;
-      background: rgba(255,255,255,0.15);
-      display: flex; align-items: center; justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 18px;
     }
-    .woo-chat-header-text h3 { margin: 0; font-size: 14px; font-weight: 700; }
+    
+    .woo-chat-header-text h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    
     .woo-chat-header-text p {
-      margin: 0; font-size: 11px; opacity: 0.7;
-      display: flex; align-items: center; gap: 5px;
+      margin: 0;
+      font-size: 11px;
+      opacity: 0.7;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
-    .woo-chat-header-text .online-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #4ade80; display: inline-block;
+    
+    .online-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      display: inline-block;
     }
+    
     .woo-chat-lang-select {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white; border-radius: 8px;
-      padding: 5px 8px; font-size: 11px;
-      cursor: pointer; outline: none;
-      font-family: inherit; font-weight: 500;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+      font-family: inherit;
+      font-weight: 500;
     }
-    .woo-chat-lang-select option { color: #333; background: white; }
-
-    /* Messages */
+    
+    .woo-chat-lang-select option {
+      color: #333;
+      background: white;
+    }
+    
+    /* Messages Area */
     .woo-chat-messages {
-      flex: 1; overflow-y: auto; padding: 18px;
-      display: flex; flex-direction: column; gap: 8px;
-      background: #fafbfc;
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--chat-messages-bg);
     }
-    .woo-chat-messages::-webkit-scrollbar { width: 3px; }
-    .woo-chat-messages::-webkit-scrollbar-thumb { background: #d0d4db; border-radius: 3px; }
-
+    
+    .woo-chat-messages::-webkit-scrollbar {
+      width: 3px;
+    }
+    
+    .woo-chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .woo-chat-messages::-webkit-scrollbar-thumb {
+      background: #d0d4db;
+      border-radius: 3px;
+    }
+    
+    /* Message Bubbles */
     .woo-chat-msg {
-      max-width: 82%; padding: 10px 14px;
-      border-radius: 14px; word-wrap: break-word; white-space: pre-wrap;
-      font-size: 13px; line-height: 1.55;
-      animation: msgIn 0.25s ease;
+      max-width: 82%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.55;
+      animation: woo-msgIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
-    @keyframes msgIn {
+    
+    @keyframes woo-msgIn {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
     .woo-chat-msg.agent {
-      background: white; align-self: flex-start;
+      background: white;
+      align-self: flex-start;
       border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 4px rgba(124, 58, 237, 0.08);
+      border: 1px solid #e8e0f0;
     }
+    
     .woo-chat-msg.customer {
-      background: linear-gradient(135deg, #6C3CE1, #8B5CF6);
-      color: white; align-self: flex-end;
+      background: var(--chat-gradient);
+      color: white;
+      align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
-    .woo-chat-msg.customer a { color: #c4b5fd; }
+    
+    .woo-chat-msg.customer a {
+      color: #c4b5fd;
+    }
+    
     .woo-chat-msg.system {
-      background: #fff7ed; border: 1px solid #fed7aa;
-      align-self: center; text-align: center;
-      font-size: 12px; color: #9a3412;
-      border-radius: 8px; max-width: 90%;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      align-self: center;
+      text-align: center;
+      font-size: 12px;
+      color: #9a3412;
+      border-radius: 8px;
+      max-width: 90%;
     }
-    .woo-chat-msg.html-content { white-space: normal; max-width: 92%; }
-
-    /* Chat product/service cards */
-    .chat-products > p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #1a1a2e; }
-    .chat-products > p:last-child { margin: 8px 0 0; }
-
-    /* Booking confirmation */
-    .booking-confirm {
-      background: #f0fdf4; border: 1px solid #bbf7d0;
-      border-radius: 10px; padding: 12px; margin: 6px 0;
+    
+    .woo-chat-retry {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 5px 14px;
+      background: #c2410c;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
     }
-    .booking-confirm h4 {
-      font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 6px;
+    
+    .woo-chat-retry:hover {
+      background: #9a3412;
     }
-    .booking-confirm p {
-      font-size: 12px; color: #15803d; line-height: 1.5; margin: 0;
+    
+    .woo-chat-msg.html-content {
+      white-space: normal;
+      max-width: 92%;
     }
-
-    /* Inline option buttons in chat */
-    .chat-options {
-      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+    
+    /* Timestamp Separator */
+    .woo-chat-time {
+      align-self: center;
+      font-size: 10px;
+      color: var(--chat-text-light);
+      opacity: 0.7;
+      padding: 4px 0;
+      user-select: none;
     }
-    .chat-option-btn {
-      background: #f5f0ff; border: 1px solid #d8ccf5;
-      border-radius: 20px; padding: 7px 14px;
-      font-size: 12px; font-weight: 500;
-      cursor: pointer; transition: all 0.2s;
-      color: #6C3CE1; font-family: inherit;
-    }
-    .chat-option-btn:hover {
-      background: #6C3CE1; color: white; border-color: #6C3CE1;
-    }
-    .chat-option-btn.selected {
-      background: #6C3CE1; color: white; border-color: #6C3CE1;
-    }
-    .chat-option-btn:disabled {
-      opacity: 0.5; cursor: default; pointer-events: none;
-    }
-    .chat-option-btn:disabled.selected {
-      opacity: 1;
-    }
-
-    /* Inline date input */
-    .chat-date-input {
-      width: 100%; margin-top: 8px; padding: 9px 12px;
-      border: 1px solid #d8ccf5; border-radius: 10px;
-      font-size: 13px; font-family: inherit;
-      color: #1a1a2e; background: white;
-      cursor: pointer; outline: none;
-      transition: border-color 0.2s;
-    }
-    .chat-date-input:focus { border-color: #6C3CE1; }
-    .chat-date-confirm {
-      margin-top: 6px; padding: 8px 18px;
-      background: #6C3CE1; color: white; border: none;
-      border-radius: 20px; font-size: 12px; font-weight: 600;
-      cursor: pointer; font-family: inherit; transition: background 0.2s;
-    }
-    .chat-date-confirm:hover { background: #5A2DC7; }
-    .chat-date-confirm:disabled { background: #d0d4db; cursor: default; }
-
-    /* Typing */
+    
+    /* Typing Indicator */
     .woo-chat-typing {
-      display: none; align-self: flex-start;
-      padding: 12px 16px; background: white;
-      border-radius: 14px; border-bottom-left-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      display: none;
+      align-self: flex-start;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
-    .woo-chat-typing.visible { display: flex; gap: 5px; align-items: center; }
+    
+    .woo-chat-typing.visible {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    
     .woo-chat-typing span {
-      width: 7px; height: 7px; background: #b0b8c5;
-      border-radius: 50%; animation: bounce 1.4s infinite;
+      width: 7px;
+      height: 7px;
+      background: #a78bfa;
+      border-radius: 50%;
+      animation: woo-chat-bounce 1.4s infinite;
     }
-    .woo-chat-typing span:nth-child(2) { animation-delay: 0.2s; }
-    .woo-chat-typing span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bounce {
+    
+    .woo-chat-typing span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .woo-chat-typing span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes woo-chat-bounce {
       0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
       30% { transform: translateY(-5px); opacity: 1; }
     }
-
-    /* Input */
+    
+    /* Input Area */
     .woo-chat-input-area {
-      padding: 14px; border-top: 1px solid var(--chat-border);
-      display: flex; gap: 8px; align-items: flex-end;
-      flex-shrink: 0; background: white;
+      padding: 14px;
+      border-top: 1px solid var(--chat-border);
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-shrink: 0;
+      background: white;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
     }
+    
+    .woo-chat-input-area input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+      border-color: #a78bfa;
+    }
+    
     .woo-chat-input {
-      flex: 1; border: 1px solid var(--chat-border);
-      border-radius: 12px; padding: 10px 14px;
-      font-size: 13px; font-family: inherit;
-      outline: none; resize: none;
-      max-height: 80px; min-height: 40px;
-      line-height: 1.4; transition: border-color 0.2s;
+      flex: 1;
+      border: 1px solid var(--chat-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      max-height: 80px;
+      min-height: 40px;
+      line-height: 1.4;
+      transition: border-color 0.2s;
       background: #f8f9fb;
     }
-    .woo-chat-input:focus { border-color: #6C3CE1; background: white; }
-    .woo-chat-input::placeholder { color: #b0b8c5; }
+    
+    .woo-chat-input:focus {
+      border-color: var(--chat-primary);
+      background: white;
+    }
+    
+    .woo-chat-input::placeholder {
+      color: #b0b8c5;
+    }
+    
     .woo-chat-send {
-      width: 40px; height: 40px; border-radius: 10px;
-      background: linear-gradient(135deg, #6C3CE1, #8B5CF6);
-      border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: all 0.2s;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--chat-gradient);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
     }
-    .woo-chat-send:hover { transform: scale(1.05); }
-    .woo-chat-send:disabled { background: #d0d4db; cursor: not-allowed; transform: none; }
-    .woo-chat-send svg { width: 16px; height: 16px; fill: white; }
-
+    
+    .woo-chat-send:hover {
+      transform: scale(1.05);
+    }
+    
+    .woo-chat-send:disabled {
+      background: #d0d4db;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .woo-chat-send svg {
+      width: 16px;
+      height: 16px;
+      fill: white;
+    }
+    
+    /* Escalation Button */
     .woo-chat-escalate {
-      display: block; width: 100%; padding: 10px;
-      background: white; border: none;
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background: white;
+      border: none;
       border-top: 1px solid var(--chat-border);
-      color: var(--chat-text-light); font-size: 12px;
-      cursor: pointer; text-align: center;
-      flex-shrink: 0; transition: all 0.2s;
-      font-family: inherit; font-weight: 500;
+      color: var(--chat-text-light);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      font-family: inherit;
+      font-weight: 500;
     }
-    .woo-chat-escalate:hover { background: #fff7ed; color: #c2410c; }
-
+    
+    .woo-chat-escalate:hover {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+    
+    /* --- Welcome Screen --- */
     .woo-chat-welcome {
-      text-align: center; padding: 24px 16px;
-      color: var(--chat-text-light); font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+      gap: 0;
     }
-    .woo-chat-welcome h4 {
-      color: var(--chat-text); margin: 0 0 4px; font-size: 16px; font-weight: 700;
+    .welcome-hero {
+      width: 100%;
+      background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #c4b5fd 100%);
+      border-radius: 0 0 24px 24px;
+      padding: 32px 20px 24px;
+      text-align: center;
+      color: white;
     }
-    .woo-chat-welcome p { margin-bottom: 16px; }
+    .welcome-emoji-row {
+      font-size: 28px;
+      letter-spacing: 8px;
+      margin-bottom: 12px;
+    }
+    .welcome-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: white;
+    }
+    .welcome-subtitle {
+      font-size: 13px;
+      opacity: 0.9;
+      color: rgba(255,255,255,0.9);
+    }
+    .welcome-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      padding: 16px 16px 0;
+    }
+    .welcome-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #f3f0ff;
+      color: #7c3aed;
+      font-weight: 600;
+      border: 1px solid #e9e0ff;
+    }
+    .welcome-divider {
+      font-size: 13px;
+      color: #8b95a5;
+      padding: 14px 0 8px;
+      text-align: center;
+      width: 100%;
+    }
+    .welcome-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 0 16px 16px;
+      width: 100%;
+    }
+    .welcome-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      color: white;
+      text-align: left;
+    }
+    .welcome-action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .welcome-action-btn.wa-birthday {
+      background: linear-gradient(135deg, #f472b6, #ec4899);
+    }
+    .welcome-action-btn.wa-event {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    }
+    .welcome-action-btn.wa-buy {
+      background: linear-gradient(135deg, #34d399, #10b981);
+    }
+    .welcome-action-btn.wa-info {
+      background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+    }
+    .welcome-action-emoji {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    
+    /* Quick Prompt Buttons */
     .woo-chat-quick-btns {
-      display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
     }
+    
     .woo-chat-quick-btn {
-      background: white; border: 1px solid var(--chat-border);
-      border-radius: 20px; padding: 6px 14px;
-      font-size: 12px; font-weight: 500;
-      cursor: pointer; transition: all 0.2s;
-      color: var(--chat-text); font-family: inherit;
+      background: white;
+      border: 1px solid var(--chat-border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--chat-text);
+      font-family: inherit;
     }
+    
     .woo-chat-quick-btn:hover {
-      border-color: #6C3CE1; color: #6C3CE1; background: #f5f0ff;
+      border-color: var(--chat-primary);
+      color: var(--chat-primary);
+      background: #f5f0ff;
     }
-    .woo-chat-msg strong { font-weight: 600; }
-    .woo-chat-msg a { color: #6C3CE1; text-decoration: underline; }
-
+    
+    /* Option Buttons (interactive HTML from n8n) */
+    .chat-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    
+    .chat-option-btn {
+      background: #f5f0ff;
+      border: 1px solid #d8ccf5;
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--chat-primary);
+      font-family: inherit;
+    }
+    
+    .chat-option-btn:hover {
+      background: var(--chat-primary);
+      color: white;
+      border-color: var(--chat-primary);
+    }
+    
+    .chat-option-btn:hover:not([disabled]) {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+    }
+    
+    .chat-option-btn.selected {
+      background: var(--chat-primary);
+      color: white;
+      border-color: var(--chat-primary);
+    }
+    
+    .chat-option-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+      pointer-events: none;
+    }
+    
+    .chat-option-btn:disabled.selected {
+      opacity: 1;
+    }
+    
+    /* Date Input (interactive HTML) */
+    .chat-date-input {
+      box-sizing: border-box;
+      width: 100%;
+      margin-top: 8px;
+      padding: 9px 12px;
+      border: 1px solid #d8ccf5;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--chat-text);
+      background: white;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    .chat-date-input:focus {
+      border-color: var(--chat-primary);
+    }
+    
+    /* Markdown-like formatting in messages */
+    .woo-chat-msg strong {
+      font-weight: 600;
+    }
+    
+    .woo-chat-msg a {
+      color: var(--chat-primary);
+      text-decoration: underline;
+    }
+    
+    /* Trampoline Catalog Grid */
+    .chat-products > p {
+      margin: 0 0 4px 0;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    
     /* === Trampoline Card Grid === */
     .chat-trampoline-grid {
       display: flex;
@@ -570,16 +945,18 @@
       gap: 10px;
       margin-top: 10px;
     }
+    
     /* Compact 2-col grid for "others" section */
     .chat-trampoline-grid.t-grid-compact {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+    
     /* === Card Base === */
     .chat-trampoline-select {
       background: white;
-      border: 2px solid #e8eaef;
+      border: 2px solid var(--chat-border);
       border-radius: 12px;
       padding: 0;
       cursor: pointer;
@@ -590,6 +967,7 @@
       display: flex;
       flex-direction: column;
     }
+    
     /* Popular choice badge */
     .chat-popular-badge {
       position: absolute;
@@ -607,27 +985,33 @@
       z-index: 3;
       letter-spacing: 0.3px;
     }
+    
     .chat-trampoline-select:hover {
-      border-color: #6C3CE1;
+      border-color: var(--chat-primary);
       box-shadow: 0 4px 16px rgba(108, 60, 225, 0.15);
       transform: translateY(-1px);
     }
+    
     .chat-trampoline-select:active {
       transform: translateY(0);
       box-shadow: 0 2px 8px rgba(108, 60, 225, 0.2);
     }
+    
     .chat-trampoline-select.selected {
-      border-color: #6C3CE1;
+      border-color: var(--chat-primary);
       background: #faf5ff;
       box-shadow: 0 2px 12px rgba(108, 60, 225, 0.25);
     }
+    
     .chat-trampoline-select[disabled] {
       opacity: 0.5;
       pointer-events: none;
     }
+    
     .chat-trampoline-select[disabled].selected {
       opacity: 1;
     }
+    
     /* === Featured card image (full-width, large) === */
     .chat-trampoline-thumb {
       width: 100%;
@@ -640,15 +1024,20 @@
       position: relative;
       overflow: hidden;
     }
+    
     .chat-trampoline-thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform 0.3s ease;
     }
+    
     .chat-trampoline-select:hover .chat-trampoline-thumb img {
       transform: scale(1.03);
     }
+    
+    /* Note: img::after removed — pseudo-elements don't work on replaced elements (img) */
+    
     /* === Card Info Section === */
     .chat-trampoline-info {
       padding: 10px 12px 12px;
@@ -656,24 +1045,28 @@
       flex-direction: column;
       gap: 3px;
     }
+    
     .t-name {
       font-size: 14px;
       font-weight: 700;
-      color: #1a1a2e;
+      color: var(--chat-text);
       line-height: 1.3;
     }
+    
     .t-meta {
       font-size: 12px;
-      color: #8b95a5;
+      color: var(--chat-text-light);
       margin-top: 1px;
       line-height: 1.4;
     }
+    
     .t-price {
       font-size: 12px;
       font-weight: 600;
-      color: #6C3CE1;
+      color: var(--chat-primary);
       margin-top: 3px;
     }
+    
     /* === Detail Expand === */
     .t-detail-btn {
       position: absolute;
@@ -683,7 +1076,7 @@
       height: 24px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.9);
-      color: #8b95a5;
+      color: var(--chat-text-light);
       font-size: 13px;
       display: flex;
       align-items: center;
@@ -695,48 +1088,59 @@
       backdrop-filter: blur(4px);
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
+    
     .t-detail-btn:hover {
-      background: #6C3CE1;
+      background: var(--chat-primary);
       color: white;
       transform: scale(1.1);
     }
+    
     .t-detail {
       display: none;
       font-size: 11px;
-      color: #8b95a5;
+      color: var(--chat-text-light);
       line-height: 1.6;
       padding: 8px 12px 10px;
       border-top: 1px solid rgba(0, 0, 0, 0.06);
       background: #fafbfc;
     }
+    
     .t-detail.open {
       display: block;
     }
+    
     /* Auto-show details on recommended cards */
     .chat-trampoline-select.t-recommended .t-detail {
       display: block;
     }
-    /* Compact grid card overrides */
+    
+    /* Compact grid card overrides — smaller for "others" section */
     .t-grid-compact .chat-trampoline-thumb {
       height: 90px;
       font-size: 36px;
     }
+    
     .t-grid-compact .chat-trampoline-info {
       padding: 6px 8px 8px;
     }
+    
     .t-grid-compact .t-name {
       font-size: 12px;
     }
+    
     .t-grid-compact .t-meta {
       font-size: 10px;
     }
+    
     .t-grid-compact .t-price {
       font-size: 11px;
     }
+    
     .t-grid-compact .t-detail {
       font-size: 10px;
       padding: 5px 8px 6px;
     }
+    
     .t-grid-compact .t-detail-btn {
       width: 20px;
       height: 20px;
@@ -744,12 +1148,14 @@
       top: 6px;
       left: 6px;
     }
+    
     .t-grid-compact .chat-popular-badge {
       font-size: 9px;
       padding: 2px 7px;
       top: 6px;
       right: 6px;
     }
+    
     /* Image zoom overlay */
     .t-zoom-overlay {
       position: fixed;
@@ -763,10 +1169,12 @@
       animation: t-zoom-in 0.2s ease;
       backdrop-filter: blur(4px);
     }
+    
     @keyframes t-zoom-in {
       from { opacity: 0; }
       to { opacity: 1; }
     }
+    
     .t-zoom-overlay img {
       max-width: 90vw;
       max-height: 85vh;
@@ -774,6 +1182,7 @@
       border-radius: 12px;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
     }
+    
     .t-zoom-close {
       position: absolute;
       top: 16px;
@@ -790,6 +1199,7 @@
       align-items: center;
       justify-content: center;
     }
+    
     .t-zoom-caption {
       position: absolute;
       bottom: 20px;
@@ -801,47 +1211,454 @@
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
       text-align: center;
     }
-    /* Section title */
+    
+    /* Addon Multi-Select */
+    .chat-trampoline-select[data-chat-addon] {
+      transition: all 0.2s;
+    }
+    
+    .chat-trampoline-select[data-chat-addon].addon-selected {
+      border-color: var(--chat-primary);
+      box-shadow: 0 0 0 2px rgba(108, 60, 225, 0.2);
+    }
+    
+    .chat-trampoline-select[data-chat-addon].addon-selected::after {
+      content: '✓';
+      position: absolute;
+      top: -6px;
+      left: -4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--chat-primary);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+    
+    .chat-addon-continue {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 20px;
+      background: var(--chat-primary);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    
+    .chat-addon-continue:hover {
+      background: var(--chat-primary-hover);
+    }
+    
+    .chat-addon-continue:disabled {
+      background: #d0d4db;
+      cursor: default;
+    }
+    
+    /* Booking Progress Bar */
+    .booking-progress {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    
+    .booking-progress .bp-step {
+      height: 3px;
+      flex: 1;
+      border-radius: 2px;
+      background: var(--chat-border);
+      transition: background 0.3s;
+    }
+    
+    .booking-progress .bp-step.done {
+      background: var(--chat-primary);
+    }
+    
+    .booking-progress .bp-step.current {
+      background: var(--chat-primary);
+      opacity: 0.5;
+    }
+    
+    /* Booking Confirmation Card */
+    .booking-confirm {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    
+    .booking-confirm h4 {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #166534;
+    }
+    
+    .booking-confirm p {
+      margin: 2px 0;
+      font-size: 12px;
+      color: #15803d;
+      line-height: 1.5;
+    }
+    
+    /* Main Menu (5 use-case groups) */
+    .chat-main-menu {
+      margin-top: 10px;
+    }
+    
+    .chat-menu-options {
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .chat-menu-btn {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 13px;
+      border-radius: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    /* Email Input Form (purchase catalog flow) */
+    .chat-email-form {
+      margin-top: 10px;
+      padding: 12px;
+      background: #fafbfc;
+      border: 1px solid var(--chat-border);
+      border-radius: 10px;
+    }
+    
+    /* Shared input styles (email / address / custom) */
+    .chat-email-input,
+    .chat-address-input,
+    .chat-custom-input,
+    .chat-custom-textarea {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d8ccf5;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--chat-text);
+      background: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    .chat-email-input:focus,
+    .chat-address-input:focus,
+    .chat-custom-input:focus,
+    .chat-custom-textarea:focus {
+      border-color: var(--chat-primary);
+    }
+    
+    /* Textarea-specific overrides */
+    .chat-custom-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    
+    /* Shared confirm button styles (date / email / address) */
+    .chat-date-confirm,
+    .chat-email-confirm,
+    .chat-address-confirm {
+      margin-top: 6px;
+      padding: 8px 18px;
+      background: var(--chat-primary);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    
+    .chat-date-confirm:hover,
+    .chat-email-confirm:hover,
+    .chat-address-confirm:hover {
+      background: var(--chat-primary-hover);
+    }
+    
+    .chat-date-confirm:disabled,
+    .chat-email-confirm:disabled,
+    .chat-address-confirm:disabled {
+      background: #d0d4db;
+      cursor: default;
+    }
+    
+    /* email-confirm / address-confirm individual margin override */
+    .chat-email-confirm,
+    .chat-address-confirm {
+      margin-top: 8px;
+    }
+    
+    .chat-address-hint {
+      font-size: 11px;
+      color: #8b95a5;
+      margin-top: 4px;
+      padding-left: 2px;
+    }
+    
+    /* Address Input Form (location step) */
+    .chat-address-form {
+      margin-top: 10px;
+      padding: 12px;
+      background: #fafbfc;
+      border: 1px solid var(--chat-border);
+      border-radius: 10px;
+    }
+    
+    /* Custom Manufacturing Form (purchase flow) */
+    .chat-custom-form {
+      margin-top: 10px;
+      padding: 12px;
+      background: #fafbfc;
+      border: 1px solid var(--chat-border);
+      border-radius: 10px;
+    }
+    
+    .chat-custom-submit {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: var(--chat-primary);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    
+    .chat-custom-submit:hover {
+      background: var(--chat-primary-hover);
+    }
+    
+    .chat-custom-submit:disabled {
+      background: #d0d4db;
+      cursor: default;
+    }
+    
+    /* FR-5.7: Focus Visible Styles */
+    .woo-chat-toggle:focus-visible,
+    .woo-chat-send:focus-visible,
+    .woo-chat-quick-btn:focus-visible,
+    .chat-option-btn:focus-visible,
+    .chat-date-confirm:focus-visible,
+    .woo-chat-escalate:focus-visible,
+    .chat-addon-continue:focus-visible,
+    .woo-chat-lang-select:focus-visible,
+    .chat-email-confirm:focus-visible,
+    .chat-address-confirm:focus-visible,
+    .chat-custom-submit:focus-visible,
+    .chat-trampoline-select:focus-visible {
+      outline: 2px solid var(--chat-primary);
+      outline-offset: 2px;
+    }
+    
+    .woo-chat-input:focus-visible,
+    .chat-date-input:focus-visible,
+    .chat-email-input:focus-visible,
+    .chat-address-input:focus-visible,
+    .chat-custom-input:focus-visible,
+    .chat-custom-textarea:focus-visible {
+      outline: 2px solid var(--chat-primary);
+      outline-offset: 1px;
+    }
+    
+    /* FR-6.2: Enricher CSS classes (replacing inline styles) */
     .chat-section-title {
       font-size: 14px;
       font-weight: 700;
-      color: #6C3CE1;
+      color: var(--chat-primary);
       margin-bottom: 10px;
       padding: 6px 10px;
       background: linear-gradient(90deg, #f5f0ff 0%, transparent 100%);
-      border-left: 3px solid #6C3CE1;
+      border-left: 3px solid var(--chat-primary);
       border-radius: 0 8px 8px 0;
     }
+    
+    .chat-section-subtitle {
+      font-size: 13px;
+      color: #888;
+      margin: 16px 0 8px;
+      padding: 4px 10px;
+      border-left: 2px solid #ddd;
+      font-weight: 500;
+    }
+    
+    .chat-birthday-cta {
+      margin: 12px 0;
+      padding: 10px 14px;
+      background: #fff8e1;
+      border-radius: 10px;
+      border: 1px solid #ffe082;
+      font-size: 13px;
+    }
+    
+    .chat-cta-btn {
+      margin-top: 8px;
+      font-size: 13px;
+      padding: 6px 14px;
+      background: var(--chat-primary);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+    
+    .chat-cta-btn:hover {
+      background: var(--chat-primary-hover);
+    }
+    
+    .chat-form-text {
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    
+    .chat-form-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .chat-form-label {
+      font-size: 12px;
+      color: #555;
+      display: block;
+      margin: 8px 0 4px;
+    }
+    
+    .chat-form-label:first-child {
+      margin-top: 0;
+    }
+    
+    .chat-quick-replies {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    
+    .chat-quick-reply-menu {
+      font-size: 13px;
+      padding: 6px 14px;
+      background: transparent;
+      color: #888;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+    
+    .chat-quick-reply-menu:hover {
+      background: #f5f5f5;
+    }
+    
     /* Trampoline card category backgrounds */
     .t-bg-big-park { background-color: #f0f9ff; }
     .t-bg-mega-trampoline { background-color: #ede7f6; }
     .t-bg-standard-trampoline { background-color: #fdf0ff; }
     .t-bg-addon { background-color: #fffff0; }
     .t-bg-party-equipment { background-color: #f5f0ff; }
-    /* Recommended card */
+    
     .chat-trampoline-select.t-recommended {
-      border-color: #6C3CE1;
+      border-color: var(--chat-primary);
       box-shadow: 0 3px 12px rgba(108, 60, 225, 0.18);
       background: linear-gradient(180deg, #fff 0%, #faf5ff 100%);
     }
+    
     .chat-trampoline-select.t-recommended .t-name {
-      color: #6C3CE1;
+      color: var(--chat-primary);
     }
-
+    
+    /* FR-6.1: Out-of-hours booking qualifier */
+    .booking-confirm-hours {
+      font-size: 11px;
+      color: #92400e;
+      margin-top: 6px;
+      font-style: italic;
+    }
+    
+    /* FR-6.3: Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      .woo-chat-window.woo-animate-in,
+      .woo-chat-window.woo-animate-out {
+        animation: none;
+      }
+    
+      .woo-chat-msg {
+        animation: none;
+      }
+    
+      .woo-chat-toggle {
+        transition: none;
+      }
+    
+      .woo-chat-toggle:hover {
+        transform: none;
+      }
+    
+      .woo-chat-send:hover {
+        transform: none;
+      }
+    
+      .woo-chat-typing span {
+        animation: none;
+        opacity: 0.6;
+      }
+    
+      .woo-chat-toggle::after {
+        animation: none;
+      }
+    
+      .chat-option-btn,
+      .chat-date-confirm,
+      .chat-email-confirm,
+      .chat-address-confirm,
+      .chat-custom-submit,
+      .chat-addon-continue,
+      .woo-chat-escalate,
+      .woo-chat-send,
+      .chat-trampoline-select {
+        transition: none;
+      }
+    }
+    
+    /* Mobile Responsive */
     @media (max-width: 480px) {
       .woo-chat-window {
-        width: calc(100vw - 16px); height: calc(100dvh - 100px);
-        bottom: 70px; right: -12px;
+        width: calc(100vw - 16px);
+        height: calc(100dvh - 100px);
+        bottom: 70px;
+        right: -12px;
         border-radius: 16px 16px 0 0;
       }
-      #woo-ai-chat-widget { bottom: 12px; right: 12px; }
-      .demo-bar { padding: 0 12px; gap: 8px; height: auto; padding: 8px 12px; flex-wrap: wrap; }
-      .demo-bar-title { display: none; }
-      .hero h1 { font-size: 28px; }
-      .footer-grid { grid-template-columns: 1fr; gap: 20px; }
-      .store-links { display: none; }
-      .services-grid { grid-template-columns: 1fr; }
-
+    
+      #woo-ai-chat-widget {
+        bottom: 12px;
+        right: 12px;
+      }
+    
       /* Mobile touch targets (Apple HIG 44px minimum) */
       .chat-option-btn,
       .chat-date-confirm,
@@ -850,39 +1667,108 @@
         padding: 10px 16px;
         font-size: 13px;
       }
+    
       .chat-date-input {
         min-height: 44px;
         font-size: 16px; /* prevents iOS zoom */
       }
+    
       .woo-chat-input {
         min-height: 44px;
         font-size: 16px; /* prevents iOS zoom */
       }
+    
       .woo-chat-send {
         min-height: 44px;
         min-width: 44px;
       }
+    
       .woo-chat-escalate {
         min-height: 44px;
       }
+    
       .chat-options {
         gap: 8px;
       }
-      .woo-chat-messages {
-        -webkit-overflow-scrolling: touch;
+    
+      .chat-trampoline-select {
+        min-height: 44px;
       }
+    
       .chat-trampoline-thumb {
-        height: 80px;
-        font-size: 30px;
+        height: 120px;
+        font-size: 36px;
       }
+    
+      .t-grid-compact .chat-trampoline-thumb {
+        height: 70px;
+        font-size: 28px;
+      }
+    
       .t-name {
-        font-size: 12px;
+        font-size: 13px;
       }
+    
       .t-meta {
-        font-size: 10px;
+        font-size: 11px;
       }
+    
       .t-price {
         font-size: 11px;
+      }
+    
+      .t-grid-compact .t-name {
+        font-size: 11px;
+      }
+    
+      .t-grid-compact .t-meta {
+        font-size: 9px;
+      }
+    
+      .chat-address-input {
+        min-height: 44px;
+        font-size: 16px;
+      }
+    
+      .chat-address-confirm {
+        min-height: 44px;
+        font-size: 13px;
+      }
+    
+      .chat-email-input,
+      .chat-custom-input {
+        min-height: 44px;
+        font-size: 16px;
+      }
+    
+      .chat-custom-textarea {
+        font-size: 16px;
+      }
+    
+      .chat-email-confirm,
+      .chat-custom-submit {
+        min-height: 44px;
+        font-size: 13px;
+      }
+    
+      .chat-menu-btn {
+        min-height: 44px;
+        font-size: 13px;
+      }
+    
+      .chat-addon-continue {
+        min-height: 44px;
+        font-size: 14px;
+      }
+    
+      .t-detail-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
+      }
+    
+      .woo-chat-messages {
+        -webkit-overflow-scrolling: touch;
       }
     }
   </style>
@@ -1014,858 +1900,609 @@
 
 <!-- === CHAT WIDGET JS === -->
 <script>
+/**
+ * Batutynas.lt AI Chat Widget
+ * Self-contained, embeddable customer support chat widget.
+ * No framework dependencies — vanilla JS only.
+ *
+ * Usage: Include this script + CSS, then call BatutynasChat.init({ webhookUrl: '...' })
+ */
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'batutynas_chat_demo';
-  var SESSION_TTL_MS = 30 * 60 * 1000;
-  var MAX_MESSAGE_LENGTH = 2000;
+  const STORAGE_KEY = 'batutynas_chat';
+  const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-  var LANGUAGES = {
-    lt: { name: 'LT', placeholder: 'Rašykite žinutę...', welcome: 'Sveiki! Esu Batutynas.lt asistentas. Kuo galiu padėti?', escalate: 'Kalbėti su žmogumi', welcomeTitle: 'Sveiki!' },
-    en: { name: 'EN', placeholder: 'Type your message...', welcome: 'Hi! I\'m the Batutynas.lt assistant. How can I help you?', escalate: 'Talk to a human', welcomeTitle: 'Welcome!' }
+  const LANGUAGES = {
+    lt: { name: 'Lietuvi\u0173', placeholder: 'Ra\u0161ykite \u017einut\u0119...', welcome: 'Sveiki! Kuo galiu pad\u0117ti?', escalate: 'Kalb\u0117ti su \u017emogumi', welcomeTitle: 'Sveiki!' },
+    en: { name: 'English', placeholder: 'Type your message...', welcome: 'Hi! How can I help you today?', escalate: 'Talk to a human', welcomeTitle: 'Welcome!' }
   };
 
-  var QUICK_PROMPTS = {
-    lt: ['Planuoju šventę', 'Noriu pirkti batutą', 'Kainos', 'Kontaktai'],
+  const QUICK_PROMPTS = {
+    lt: ['Planuoju \u0161vent\u0119', 'Noriu pirkti batut\u0105', 'Kainos', 'Kontaktai'],
     en: ['Plan an event', 'Buy a trampoline', 'Prices', 'Contacts']
   };
 
-  var config = { webhookUrl: 'demo', primaryColor: '#6C3CE1', storeName: 'Batutynas.lt', userEmail: null, userName: null, language: null };
-  var state = { open: false, sessionId: null, messages: [], language: 'lt', sending: false };
-
-  // Booking flow state
-  var bookingState = { active: false, step: 0, data: {}, awaitingCustomInput: null };
-
-  /* -- Mock Data -- */
-  var TRAMPOLINES = [
-    { name: 'Fantazijų parkas', type: 'Didžiulis batutų parkas', capacity: 'Iki 30 vaikų', price: 'pagal užklausą', icon: '🏰', bg: '#f5f0ff', cat: 'big-park', popular: true, detail: 'Didelis daugiafunkcis batutų parkas su kliūčių ruožu, sporto aikštele ir šlaičiu. Tinka 2–14 metų vaikams. Rekomenduojamas gimtadieniams ir šeimų šventėms.', tags: ['parkas','didelis','fantazija','batutų parkas'] },
-    { name: 'Džiumandži parkas', type: 'Nuotykių parkas', capacity: 'Iki 40 vaikų', price: 'pagal užklausą', icon: '🌴', bg: '#f0fff4', cat: 'big-park', popular: false, detail: 'Džiunglių tematikos nuotykių parkas su laipiojimo elementais, kilimais ir šlaičiu. Idealus viešiems renginiams ir didelėms grupėms.', tags: ['džiumandži','nuotykiu','parkas'] },
-    { name: 'Mega kliūčių ruožas', type: 'Kliūčių ruožas', capacity: '360 dalyvių/val.', price: 'pagal užklausą', icon: '🏃', bg: '#fff0f5', cat: 'mega-trampoline', popular: true, detail: 'Ilgas kliūčių ruožas su kūgeliais, tuneliais ir oro pagalvėmis. Didelė pralaidumas — iki 360 dalyvių per valandą. Rekomenduojamas viešiems festivaliams.', tags: ['kliūčių','ruožas','mega','obstacle'] },
-    { name: 'Mega Rocket', type: '2 dalių batutas', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', icon: '🚀', bg: '#fff8e1', cat: 'mega-trampoline', popular: false, detail: 'Dviejų sekcijų batutas su šlaičiu ir atšokimo zona. Puikiai tinka privačioms šventėms ir gimtadieniams sodo ar kiemo aplinkoje.', tags: ['rocket','raketa','2 dalių'] },
-    { name: 'Candy Pop', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🍭', bg: '#fce4ec', cat: 'standard-trampoline', popular: false, detail: 'Saldainių tematikos kompaktiška aikštelė su šlaičiu ir batuto zona. Tinka mažesnėms erdvėms — sodoms, terasoms ar salėms.', tags: ['candy','pop','kompaktiškas','mažas'] },
-    { name: 'Chameleon', type: 'Kompaktiška žaidimų aikštelė', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', icon: '🦎', bg: '#e8f5e9', cat: 'standard-trampoline', popular: false, detail: 'Ryškaspalvė kompaktiška aikštelė su įvairiais kliūčių elementais. Lanksti ir lengvai surenkama bet kokioje aplinkoje.', tags: ['chameleon','kompaktiškas'] },
-    { name: 'Milžiniškas smiginis', type: 'Interaktyvi pramoga', capacity: 'Neribota', price: 'pagal užklausą', icon: '🎯', bg: '#e3f2fd', cat: 'addon', popular: false, detail: 'Didelės formato smiginio žaidimas su lipniomis kamuoliukais. Puikiai papildo bet kurią šventę ar renginį. Amžiaus apribojimų nėra.', tags: ['smiginis','darts','žaidimas','interaktyvus'] },
-    { name: 'Cukraus vatos aparatas', type: 'Papildoma paslauga', capacity: '-', price: 'pagal užklausą', icon: '🍬', bg: '#fce4ec', cat: 'party-equipment', popular: false, detail: 'Elektrinis cukraus vatos aparatas su medžiagomis. Galima nuomoti kartu su batutais arba atskirai. Tinka lauko ir salės renginiams.', tags: ['cukraus vata','cotton candy','maistas','papildoma'] }
-  ];
-
-  /* -- Booking Storage -- */
-  var BOOKINGS_KEY = 'batutynas_bookings_demo';
-
-  function generateBookingId() {
-    var now = new Date();
-    var dateStr = now.getFullYear().toString() +
-      ('0' + (now.getMonth() + 1)).slice(-2) +
-      ('0' + now.getDate()).slice(-2);
-    var suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return 'BT-' + dateStr + '-' + suffix;
-  }
-
-  function loadBookings() {
-    try {
-      var raw = localStorage.getItem(BOOKINGS_KEY);
-      if (!raw) return { bookings: [] };
-      return JSON.parse(raw);
-    } catch (e) { return { bookings: [] }; }
-  }
-
-  function saveBookings(data) {
-    try { localStorage.setItem(BOOKINGS_KEY, JSON.stringify(data)); } catch (e) {}
-  }
-
-  function getLastBooking() {
-    var data = loadBookings();
-    if (data.bookings.length === 0) return null;
-    return data.bookings[data.bookings.length - 1];
-  }
-
-  function getBookingById(id) {
-    var data = loadBookings();
-    for (var i = 0; i < data.bookings.length; i++) {
-      if (data.bookings[i].id === id) return data.bookings[i];
-    }
-    return null;
-  }
-
-  function addBooking(bookingData) {
-    var data = loadBookings();
-    var booking = {
-      id: generateBookingId(),
-      date: bookingData.date || '',
-      location: bookingData.location || '',
-      eventType: bookingData.eventType || '',
-      contact: bookingData.contact || '',
-      trampoline: bookingData.trampoline || '',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      modifiedAt: null
-    };
-    data.bookings.push(booking);
-    saveBookings(data);
-    return booking;
-  }
-
-  function updateBooking(id, updates) {
-    var data = loadBookings();
-    for (var i = 0; i < data.bookings.length; i++) {
-      if (data.bookings[i].id === id) {
-        Object.keys(updates).forEach(function(k) { data.bookings[i][k] = updates[k]; });
-        data.bookings[i].modifiedAt = new Date().toISOString();
-        saveBookings(data);
-        return data.bookings[i];
-      }
-    }
-    return null;
-  }
-
-  function cancelBooking(id) {
-    return updateBooking(id, { status: 'cancelled' });
-  }
-
-  function formatBookingCard(booking, lang, isModified) {
-    var isPending = booking.status === 'pending';
-    var isCancelled = booking.status === 'cancelled';
-    var bgColor = isPending ? '#fffbeb' : '#fef2f2';
-    var borderColor = isPending ? '#fde68a' : '#fecaca';
-    var textColor = isPending ? '#92400e' : '#991b1b';
-    var headerColor = isPending ? '#78350f' : '#7f1d1d';
-
-    var statusLabel = isCancelled
-      ? (lang === 'en' ? '&#10060; Cancelled' : '&#10060; Atšauktas')
-      : (lang === 'en' ? '&#9200; Pending confirmation' : '&#9200; Laukiama patvirtinimo');
-
-    var header = isModified
-      ? (lang === 'en' ? '&#9989; Booking updated' : '&#9989; Užsakymas atnaujintas')
-      : statusLabel;
-
-    var card = '<div class="booking-confirm" style="background:' + bgColor + ';border-color:' + borderColor + ';">' +
-      '<h4 style="color:' + headerColor + ';">' + header + '</h4>' +
-      '<p style="color:' + textColor + ';">' +
-      '<strong>' + (lang === 'en' ? 'Reference:' : 'Numeris:') + '</strong> ' + escHtml(booking.id) + '<br>' +
-      '<strong>' + (lang === 'en' ? 'Status:' : 'Būsena:') + '</strong> ' + statusLabel + '<br>' +
-      '<strong>' + (lang === 'en' ? 'Date:' : 'Data:') + '</strong> ' + escHtml(booking.date) + '<br>' +
-      '<strong>' + (lang === 'en' ? 'Location:' : 'Vieta:') + '</strong> ' + escHtml(booking.location) + '<br>' +
-      '<strong>' + (lang === 'en' ? 'Event:' : 'Renginys:') + '</strong> ' + escHtml(booking.eventType) + '<br>' +
-      '<strong>' + (lang === 'en' ? 'Contact:' : 'Kontaktai:') + '</strong> ' + escHtml(booking.contact) + '<br>' +
-      '<strong>' + (lang === 'en' ? 'Trampoline:' : 'Batutas:') + '</strong> ' + escHtml(booking.trampoline) + '</p>' +
-      '</div>';
-
-    if (isPending) {
-      card += optionButtons(lang === 'en'
-        ? ['Change booking', 'Cancel booking']
-        : ['Keisti užsakymą', 'Atšaukti užsakymą']);
-    }
-
-    return card;
-  }
-
-  /* -- Modify/Cancel State -- */
-  var modifyState = { active: false, bookingId: null, field: null, cancelling: false };
-
-  function handleModifyStep(message, lang) {
-    var msg = message.trim();
-
-    // Cancel confirmation
-    if (modifyState.cancelling) {
-      modifyState.cancelling = false;
-      if (/^(taip|yes|jo|taip, atšaukti)/i.test(msg)) {
-        var cancelled = cancelBooking(modifyState.bookingId);
-        modifyState.active = false;
-        modifyState.bookingId = null;
-        if (cancelled) {
-          return '{{HTML}}<div class="chat-products">' + formatBookingCard(cancelled, lang, false) +
-            '<p>' + (lang === 'en'
-              ? 'Your booking has been cancelled. If you change your mind, you can create a new booking.'
-              : 'Jūsų užsakymas atšauktas. Jei persigalvosite, galite sukurti naują užsakymą.') + '</p>' +
-            optionButtons(lang === 'en' ? ['Book a trampoline'] : ['Užsakyti batutą']) + '</div>';
-        }
-      }
-      modifyState.active = false;
-      modifyState.bookingId = null;
-      if (lang === 'en') return 'Okay, your booking remains active.';
-      return 'Gerai, jūsų užsakymas lieka aktyvus.';
-    }
-
-    // Field selection
-    if (!modifyState.field) {
-      if (/dat|data|date/i.test(msg)) { modifyState.field = 'date'; }
-      else if (/viet|location|miest|city/i.test(msg)) { modifyState.field = 'location'; }
-      else if (/rengin|event|tip/i.test(msg)) { modifyState.field = 'eventType'; }
-      else if (/kontakt|contact|telefon|phone|vard|name/i.test(msg)) { modifyState.field = 'contact'; }
-      else if (/batut|trampoline/i.test(msg)) { modifyState.field = 'trampoline'; }
-      else {
-        return '{{HTML}}<div class="chat-products"><p>' +
-          (lang === 'en' ? 'Which field would you like to change?' : 'Kurį lauką norėtumėte pakeisti?') + '</p>' +
-          optionButtons(lang === 'en'
-            ? ['Date', 'Location', 'Event type', 'Contact info', 'Trampoline']
-            : ['Data', 'Vieta', 'Renginio tipas', 'Kontaktai', 'Batutas']) + '</div>';
-      }
-      var fieldLabels = {
-        date: lang === 'en' ? 'new date' : 'naują datą',
-        location: lang === 'en' ? 'new location' : 'naują vietą',
-        eventType: lang === 'en' ? 'new event type' : 'naują renginio tipą',
-        contact: lang === 'en' ? 'new contact info' : 'naujus kontaktus',
-        trampoline: lang === 'en' ? 'new trampoline choice' : 'naują batuto pasirinkimą'
-      };
-      if (lang === 'en') return 'Please enter the ' + fieldLabels[modifyState.field] + ':';
-      return 'Įveskite ' + fieldLabels[modifyState.field] + ':';
-    }
-
-    // Apply update
-    var updates = {};
-    updates[modifyState.field] = msg;
-    var updated = updateBooking(modifyState.bookingId, updates);
-    modifyState.active = false;
-    modifyState.field = null;
-    modifyState.bookingId = null;
-
-    if (updated) {
-      return '{{HTML}}<div class="chat-products">' + formatBookingCard(updated, lang, true) + '</div>';
-    }
-    if (lang === 'en') return 'Booking not found. Please try again.';
-    return 'Užsakymas nerastas. Bandykite dar kartą.';
-  }
-
-  var FAQ = {
-    working_hours: { q: 'Koks darbo laikas?', a_lt: 'Mūsų darbo laikas — **8:00-21:00** kiekvieną dieną. Galite kreiptis bet kuriuo metu šiuo laikotarpiu.', a_en: 'Our working hours are **8:00-21:00** every day. You can contact us any time during this period.' },
-    safety: { q: 'Kokios saugumo taisyklės?', a_lt: 'Saugumo taisyklės naudojantis mūsų batutais:\n\n- **Nusiauti batus** prieš lipant\n- **Nusiimti papuošalus** (karolius, apyrankes, auskarus)\n- **Draudžiami salto** ir akrobatiniai triukai\n- **Amžius**: 2-14 metų\n- **Svorio apribojimas**: iki 70 kg\n- **Būtina suaugusiojo priežiūra** vaikams iki 6 metų\n- Nesišokinėti galva žemyn\n- Nenaudoti esant blogam orui (vėjas >10 m/s)', a_en: 'Safety rules for using our trampolines:\n\n- **Remove shoes** before entering\n- **Remove jewelry** (necklaces, bracelets, earrings)\n- **No flips** or acrobatic tricks\n- **Age**: 2-14 years\n- **Weight limit**: up to 70 kg\n- **Adult supervision required** for children under 6\n- No head-first jumping\n- Do not use in bad weather (wind >10 m/s)' },
-    weather: { q: 'Kas jei bus blogas oras?', a_lt: 'Mūsų orų politika:\n\n- Jei prognozuojamas **lietus** arba **vėjas >10 m/s** — **nemokamas perkėlimas** į kitą datą\n- Jei oras pablogėja renginio metu — saugiai išmontuojame įrangą\n- Galite **atšaukti nemokamai** iki 48 val. prieš renginį\n- Atšaukimas <24 val. — 50% mokestis\n\nVisada stebime orų prognozes ir perspėjame iš anksto!', a_en: 'Our weather policy:\n\n- If **rain** or **wind >10 m/s** is forecast — **free reschedule** to another date\n- If weather worsens during event — we safely disassemble equipment\n- You can **cancel for free** up to 48h before the event\n- Cancellation <24h — 50% fee\n\nWe always monitor weather forecasts and warn in advance!' },
-    delivery_private: { q: 'Kur pristatote privačioms šventėms?', a_lt: 'Pristatymo zonos privačioms šventėms:\n\n**NEMOKAMAS pristatymas:**\n- Tauragė\n- Šilalė\n\n**Su papildomu mokesčiu:**\n- Jurbarkas\n- Pagėgiai\n- Raseiniai\n- Kelmė\n- Rietavas\n\nKonkrečią kainą sužinosite užsakymo metu.', a_en: 'Delivery zones for private events:\n\n**FREE delivery:**\n- Tauragė\n- Šilalė\n\n**With additional fee:**\n- Jurbarkas\n- Pagėgiai\n- Raseiniai\n- Kelmė\n- Rietavas\n\nExact pricing available during booking.' },
-    delivery_public: { q: 'Kur pristatote viešiems renginiams?', a_lt: 'Viešiems renginiams — pristatome į **visą Lietuvą**! Kaina priklauso nuo atstumo ir užsakymo apimties. Generatoriai ir aptarnavimas įskaičiuota.', a_en: 'For public events — we deliver **across all of Lithuania**! Price depends on distance and order scope. Generators and service included.' },
-    pricing_private: { q: 'Kiek kainuoja privačiai šventei?', a_lt: 'Kainos privačioms šventėms — **pagal užklausą**.\n\n- Antra diena iš eilės — **50% nuolaida**\n- Pristatymas Tauragėje/Šilalėje — **NEMOKAMAS**\n- Pristatymas kitose zonose — papildomas mokestis\n\nKonkreti kaina priklauso nuo pasirinkto batuto. Susisiekite dėl individualaus pasiūlymo!', a_en: 'Prices for private events — **pricing upon request**.\n\n- Second consecutive day — **50% discount**\n- Delivery in Tauragė/Šilalė — **FREE**\n- Delivery in other zones — additional fee\n\nExact price depends on the trampoline chosen. Contact us for a custom quote!' },
-    pricing_public: { q: 'Kiek kainuoja viešam renginiui?', a_lt: 'Viešų renginių kainos yra **individualios** — priklauso nuo:\n\n- Pasirinktos įrangos kiekio ir tipo\n- Renginio trukmės\n- Vietos (atstumas pristatymui)\n- Aptarnavimo apimties\n\n**Susisiekite** su mumis ir paruošime individualų pasiūlymą!\nTel: +370 648 803 88\nEl. paštas: info@batutynas.lt', a_en: 'Public event prices are **individual** — depending on:\n\n- Equipment quantity and type\n- Event duration\n- Location (delivery distance)\n- Service scope\n\n**Contact us** and we\'ll prepare a custom quote!\nPhone: +370 648 803 88\nEmail: info@batutynas.lt' },
-    certification: { q: 'Ar jūsų batutai sertifikuoti?', a_lt: 'Taip! Visi mūsų pripučiami batutai yra **EN14960 sertifikuoti** — tai Europos saugos standartas pripučiamiems žaidimų įrenginiams.\n\nTai reiškia:\n- Reguliariai tikrinami ir testuojami\n- Atitinka griežtus saugos reikalavimus\n- Tinka viešiems renginiams\n- Draudimas galioja', a_en: 'Yes! All our inflatable trampolines are **EN14960 certified** — the European safety standard for inflatable play equipment.\n\nThis means:\n- Regularly inspected and tested\n- Meet strict safety requirements\n- Suitable for public events\n- Insurance valid' },
-    custom_manufacturing: { q: 'Ar galite pagaminti pagal užsakymą?', a_lt: 'Taip! Gaminame **individualius pripučiamus batutus** pagal jūsų poreikius:\n\n- **Individualūs dydžiai** — nuo mažų iki milžiniškų\n- **Spalvos** — bet kokia spalvų kombinacija\n- **Logotipai** — jūsų įmonės ar renginio logotipas\n- **Unikalus dizainas** — pagal jūsų eskizą\n\nGamybos laikas: **4-8 savaitės**\nSusisiekite dėl kainos: info@batutynas.lt', a_en: 'Yes! We manufacture **custom inflatable trampolines** to your needs:\n\n- **Custom sizes** — from small to giant\n- **Colors** — any color combination\n- **Logos** — your company or event logo\n- **Unique design** — based on your sketch\n\nProduction time: **4-8 weeks**\nContact for pricing: info@batutynas.lt' },
-    booking_process: { q: 'Kaip užsisakyti?', a_lt: 'Užsakymo procesas:\n\n1. **Susisiekite** su mumis (telefonu, el. paštu arba per šį čatą)\n2. **Pasirinkite** batutą ir datą\n3. **Patvirtinkite** užsakymą\n4. **Pristatymas** — atvežame ir surenkame nurodytu laiku\n5. **Pasibaigus** nuomai — išmontuojame ir pasiimame\n\nRezervuoti galite iki 6 mėnesių į priekį!', a_en: 'Booking process:\n\n1. **Contact** us (phone, email or via this chat)\n2. **Choose** a trampoline and date\n3. **Confirm** booking\n4. **Delivery** — we deliver and set up at the specified time\n5. **After** rental — we disassemble and pick up\n\nYou can book up to 6 months in advance!' }
+  let config = {
+    webhookUrl: '',
+    authToken: '', // Bearer token for webhook authentication
+    position: 'bottom-right',
+    primaryColor: '#6C3CE1',
+    storeName: 'Batutynas.lt',
+    userEmail: null,
+    userName: null,
+    language: null, // auto-detect if null, defaults to Lithuanian
+    quickPrompts: null // override with array, or null to use defaults
   };
 
-  /* -- Language Detection -- */
-  // Default is Lithuanian. Only switch to English if message is clearly English.
-  function detectLang(text) {
-    // Explicitly English patterns
-    if (/\b(hello|hi|hey|please|thanks|thank you|how much|what|where|when|can you|do you|I want|I need|trampoline|delivery|price|book|safety|hours|about)\b/i.test(text)
-        && !/[ąčęėįšųūž]/i.test(text)) return 'en';
-    return 'lt';
+  let state = {
+    open: false,
+    sessionId: null,
+    messages: [],
+    language: 'lt',
+    sending: false,
+    animatedOpen: false
+  };
+
+  // --- Session Management ---
+
+  var MAX_MESSAGE_LENGTH = 2000;
+
+  function generateSessionId() {
+    var rand = crypto.getRandomValues(new Uint8Array(10));
+    var randStr = Array.from(rand, function (b) { return b.toString(36); }).join('').substring(0, 12);
+    return 'sess_' + Date.now().toString(36) + '_' + randStr;
   }
 
-  /* -- Option button helper (no inline handlers — uses event delegation) -- */
-  function optionButtons(options) {
-    return '<div class="chat-options">' +
-      options.map(function(opt) {
-        return '<button class="chat-option-btn" data-chat-option="' + escHtml(opt) + '">' + escHtml(opt) + '</button>';
-      }).join('') +
-      '</div>';
-  }
-
-  /* -- Date picker helper for booking -- */
-  function datePicker() {
-    var today = new Date();
-    var dates = [];
-    // Next 4 Saturdays
-    var d = new Date(today);
-    d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
-    for (var i = 0; i < 4; i++) {
-      var label = d.toLocaleDateString('lt-LT', { month: 'long', day: 'numeric', weekday: 'short' });
-      var iso = d.toISOString().substring(0, 10);
-      dates.push({ label: label, value: iso });
-      d.setDate(d.getDate() + 7);
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (Date.now() - data.timestamp > SESSION_TTL_MS) {
+        localStorage.removeItem(STORAGE_KEY);
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
     }
-    var minDate = today.toISOString().substring(0, 10);
-    var maxDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate()).toISOString().substring(0, 10);
-
-    return '<div class="chat-options">' +
-      dates.map(function(dt) {
-        return '<button class="chat-option-btn" data-chat-option="' + escHtml(dt.value) + '">' + escHtml(dt.label) + '</button>';
-      }).join('') +
-      '</div>' +
-      '<input type="date" class="chat-date-input" data-chat-date min="' + minDate + '" max="' + maxDate + '" />' +
-      '<button class="chat-date-confirm" data-chat-date-confirm disabled>Pasirinkti datą</button>';
   }
 
-  /* -- Trampoline selection cards for booking step 5 -- */
-  function trampolineCards() {
-    var cards = TRAMPOLINES.slice(0, 6).map(function(t) {
-      return '<div class="chat-trampoline-select" data-chat-option="' + escHtml(t.name) + '">' +
-        '<div class="chat-trampoline-thumb" style="background:' + t.bg + '">' + t.icon + '</div>' +
-        '<div class="chat-trampoline-info">' +
-          '<div class="t-name">' + escHtml(t.name) + '</div>' +
-          '<div class="t-meta">' + escHtml(t.type) + '<br>' + escHtml(t.capacity) + '</div>' +
-          '<div class="t-price">' + escHtml(t.price) + '</div>' +
-        '</div></div>';
-    }).join('');
-    return '<div class="chat-trampoline-grid">' + cards + '</div>';
+  function saveSession() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        sessionId: state.sessionId,
+        messages: state.messages.slice(-50),
+        language: state.language,
+        timestamp: Date.now()
+      }));
+    } catch {
+      // localStorage full or unavailable
+    }
   }
 
-  /* -- Knowledge Base for Smart Fallback -- */
-  var KNOWLEDGE_BASE = [
-    { keywords: ['pristatymas','valanda','pristatot','laikas','kelinta','delivery','time','hour','when','arrive','atvežat','atvykstat'],
-      a_lt: 'Batutus pristatome **ryte**, dažniausiai iki 10:00. Surinkimas užtrunka **15-30 min** — mes viską surenkame ir paruošiame naudojimui. Tikslesnį laiką suderinsime užsakymo metu.',
-      a_en: 'We deliver trampolines **in the morning**, usually by 10:00. Setup takes **15-30 min** — we assemble everything and prepare it for use. Exact time is agreed during booking.' },
-    { keywords: ['nuolaida','pigiau','discount','akcija','antra','second','cheaper','deal','special','promo'],
-      a_lt: '**Nuolaidos:**\n- Antra diena iš eilės — **50% nuolaida**\n- Individualios nuolaidos didesnėms užsakymams\n- Ilgalaikė nuoma — susitariame dėl kainos\n\nSusisiekite dėl geriausio pasiūlymo!',
-      a_en: '**Discounts:**\n- Second consecutive day — **50% off**\n- Individual discounts for larger orders\n- Long-term rental — price negotiable\n\nContact us for the best offer!' },
-    { keywords: ['draudimas','insurance','apdrausti','damage','žala','sugadin','broken','garantija','warranty','atsakomybė'],
-      a_lt: 'Visi mūsų batutai yra **apdrausti** ir atitinka **EN14960** saugos standartą. Draudimas apima civilinę atsakomybę renginio metu. Laikantis saugumo taisyklių — galite jaustis ramiai!',
-      a_en: 'All our trampolines are **insured** and meet the **EN14960** safety standard. Insurance covers civil liability during the event. Following safety rules — you can feel at ease!' },
-    { keywords: ['elektra','electricity','generatorius','generator','maitinimas','power','220','kištukas','plug','šaltinis'],
-      a_lt: 'Privačioms šventėms reikia **220V elektros lizdo** (įprastas namų). Viešiems renginiams — **generatorius įskaičiuotas** į kainą, tad jokio papildomo rūpesčio!',
-      a_en: 'For private events you need a **220V power outlet** (standard household). For public events — **generators are included** in the price, so no extra hassle!' },
-    { keywords: ['surinkimas','surinkti','setup','install','montavimas','pastatyti','kiek','laiko','long','take','trukmė'],
-      a_lt: 'Batuto surinkimas užtrunka **15-30 min** — mes viską surenkame patys! Jums nieko nereikia daryti. Po renginio — irgi patys išmontuojame ir pasiimame.',
-      a_en: 'Trampoline setup takes **15-30 min** — we assemble everything ourselves! You don\'t need to do anything. After the event — we also disassemble and pick up.' },
-    { keywords: ['mokėjimas','payment','apmokėjimas','avansas','deposit','pavedimas','transfer','grynais','cash','kortele','card','sąskaita','invoice'],
-      a_lt: 'Jokių išankstinių mokėjimų — mokama renginio dieną arba po jo.',
-      a_en: 'No advance payments. Pay on event day or after.' },
-    { keywords: ['vieta','plotas','space','kiek','reikia','area','dydis','size','telpa','talpina','aikštelė','kiemas','requirements'],
-      a_lt: 'Reikalingas plotas priklauso nuo batuto:\n- Mažesni batutai — **5x5m**\n- Vidutiniai — **7x6m**\n- Dideli parkai — **10x8m**\n\nReikia **lygaus paviršiaus** (žolė, asfaltas). Be medžių ir laidų viršuje.',
-      a_en: 'Required space depends on the trampoline:\n- Smaller trampolines — **5x5m**\n- Medium — **7x6m**\n- Large parks — **10x8m**\n\nNeeds a **flat surface** (grass, asphalt). No trees or wires above.' },
-    { keywords: ['amžius','metų','age','vaikai','children','kids','suaugęs','adult','mažas','small','young','old','tinka','suitable','kūdikis','baby'],
-      a_lt: 'Mūsų batutai tinka vaikams nuo **2 iki 14 metų**, iki **70 kg** svorio. Vaikams iki 6 metų — **būtina suaugusiojo priežiūra**. Suaugusieji gali prižiūrėti, bet šokinėti nerekomenduojama dėl svorio limito.',
-      a_en: 'Our trampolines are suitable for children **ages 2-14**, up to **70 kg**. Children under 6 — **adult supervision required**. Adults can supervise but jumping is not recommended due to weight limits.' }
-  ];
+  function initSession() {
+    const saved = loadSession();
+    if (saved) {
+      state.sessionId = saved.sessionId;
+      state.messages = saved.messages || [];
+      state.language = saved.language || detectLanguage();
+    } else {
+      state.sessionId = generateSessionId();
+      state.messages = [];
+      state.language = config.language || detectLanguage();
+    }
+  }
 
-  function smartFallback(message, lang) {
-    var words = message.toLowerCase().replace(/[?!.,]/g, '').split(/\s+/).filter(function(w) { return w.length > 2; });
-    var bestScore = 0;
-    var bestEntry = null;
-    KNOWLEDGE_BASE.forEach(function(entry) {
-      var score = 0;
-      entry.keywords.forEach(function(kw) {
-        words.forEach(function(w) {
-          if (kw.includes(w) || w.includes(kw)) {
-            score += kw.length > 4 ? 2 : 1;
-          }
-        });
+  // --- Language Detection ---
+
+  function detectLanguage() {
+    if (config.language) return config.language;
+    const browserLang = (navigator.language || navigator.userLanguage || 'lt').substring(0, 2).toLowerCase();
+    return LANGUAGES[browserLang] ? browserLang : 'lt';
+  }
+
+  function t(key) {
+    return (LANGUAGES[state.language] || LANGUAGES.lt)[key] || LANGUAGES.lt[key];
+  }
+
+  // --- DOM Helpers ---
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'className') node.className = attrs[k];
+        else if (k === 'innerHTML') node.innerHTML = attrs[k];
+        else if (k.startsWith('on')) node.addEventListener(k.substring(2).toLowerCase(), attrs[k]);
+        else node.setAttribute(k, attrs[k]);
       });
-      if (score > bestScore) { bestScore = score; bestEntry = entry; }
+    }
+    if (children) {
+      (Array.isArray(children) ? children : [children]).forEach(function (child) {
+        if (typeof child === 'string') node.appendChild(document.createTextNode(child));
+        else if (child) node.appendChild(child);
+      });
+    }
+    return node;
+  }
+
+  // --- Rendering ---
+
+  function render() {
+    var existing = document.getElementById('woo-ai-chat-widget');
+    // Cleanup viewport listener from previous render
+    if (existing && existing._cleanupViewport) {
+      existing._cleanupViewport();
+    }
+    if (existing) existing.remove();
+
+    var widget = el('div', { id: 'woo-ai-chat-widget' });
+
+    // Chat window
+    var windowClasses = 'woo-chat-window' + (state.open ? ' open' : '');
+    if (state.open && !state.animatedOpen) {
+      windowClasses += ' woo-animate-in';
+      state.animatedOpen = true;
+    }
+    var chatWindow = el('div', { className: windowClasses });
+
+    // Header with online dot
+    var header = el('div', { className: 'woo-chat-header' }, [
+      el('div', { className: 'woo-chat-header-info' }, [
+        el('div', { className: 'woo-chat-header-avatar', innerHTML: '&#129302;' }),
+        el('div', { className: 'woo-chat-header-text' }, [
+          el('h3', null, config.storeName),
+          el('p', { innerHTML: '<span class="online-dot"></span> AI Asistentas' })
+        ])
+      ]),
+      createLanguageSelect()
+    ]);
+    chatWindow.appendChild(header);
+
+    chatWindow.setAttribute('role', 'dialog');
+    chatWindow.setAttribute('aria-label', 'Pokalbis');
+    chatWindow.setAttribute('aria-modal', 'true');
+
+    // Messages
+    var messagesContainer = el('div', { className: 'woo-chat-messages', id: 'woo-chat-messages', role: 'log', 'aria-live': 'polite' });
+
+    if (state.messages.length === 0) {
+      var welcomeDiv = el('div', { className: 'woo-chat-welcome' });
+      welcomeDiv.innerHTML = '<div class="welcome-hero">' +
+        '<div class="welcome-emoji-row">\uD83C\uDFAA \uD83C\uDFF0 \uD83C\uDF89 \uD83E\uDD84</div>' +
+        '<div class="welcome-title">Batutynas.lt</div>' +
+        '<div class="welcome-subtitle">Batut\u0173 nuoma \u0161vent\u0117ms ir renginiams</div>' +
+        '</div>' +
+        '<div class="welcome-pills">' +
+        '<span class="welcome-pill">Gimtadieniai</span>' +
+        '<span class="welcome-pill">Renginiai</span>' +
+        '<span class="welcome-pill">Vakar\u0117liai</span>' +
+        '<span class="welcome-pill">Pirkimas</span>' +
+        '</div>' +
+        '<div class="welcome-divider">K\u0105 norite veikti?</div>' +
+        '<div class="welcome-actions">' +
+        '<button class="welcome-action-btn wa-birthday" data-welcome-action="Planuoju vaik\u0173 gimtadien\u012F arba krik\u0161tynas"><span class="welcome-action-emoji">\uD83C\uDF82</span>Planuoti gimtadien\u012F</button>' +
+        '<button class="welcome-action-btn wa-event" data-welcome-action="Planuoju vie\u0161\u0105 rengin\u012F arba \u012Fmon\u0117s s\u0105skrydi"><span class="welcome-action-emoji">\uD83C\uDFAA</span>Vie\u0161as renginys</button>' +
+        '<button class="welcome-action-btn wa-buy" data-welcome-action="Noriu pirkti batut\u0105"><span class="welcome-action-emoji">\uD83D\uDED2</span>Pirkti batut\u0105</button>' +
+        '<button class="welcome-action-btn wa-info" data-welcome-action="Saugumas, DUK ir kontaktai"><span class="welcome-action-emoji">\u2139\uFE0F</span>Info ir kontaktai</button>' +
+        '</div>';
+
+      messagesContainer.appendChild(welcomeDiv);
+    }
+
+    var lastTimestamp = 0;
+    state.messages.forEach(function (msg, idx) {
+      if (msg.time && msg.time - lastTimestamp > 5 * 60 * 1000) {
+        messagesContainer.appendChild(el('div', { className: 'woo-chat-time' }, formatTimestamp(msg.time)));
+      }
+      lastTimestamp = msg.time || lastTimestamp;
+      messagesContainer.appendChild(createMessageBubble(msg, idx));
     });
 
-    if (bestScore >= 3 && bestEntry) {
-      var answer = lang === 'en' ? bestEntry.a_en : bestEntry.a_lt;
-      return '{{HTML}}<div class="chat-products"><p>' + fmt(answer) + '</p>' +
-        optionButtons(lang === 'en' ? ['Trampoline catalog', 'Rental prices', 'Book a trampoline'] : ['Batutų katalogas', 'Nuomos kainos', 'Užsakyti batutą']) + '</div>';
-    }
+    // Typing indicator
+    var typing = el('div', { className: 'woo-chat-typing', id: 'woo-chat-typing' }, [
+      el('span'), el('span'), el('span')
+    ]);
+    messagesContainer.appendChild(typing);
 
-    // Warm fallback with contact info
-    if (lang === 'en') {
-      return '{{HTML}}<div class="chat-products"><p>I don\'t have a specific answer for that, but our team can help! You can reach us directly:</p>' +
-        '<p><strong>Phone:</strong> +370 648 803 88 (8:00-21:00)<br><strong>Email:</strong> info@batutynas.lt</p>' +
-        '<p>Or I can help you with one of these:</p>' +
-        optionButtons(['Trampoline catalog', 'Rental prices', 'Book a trampoline', 'Delivery areas', 'Safety rules']) + '</div>';
-    }
-    return '{{HTML}}<div class="chat-products"><p>Deja, neturiu konkretaus atsakymo, bet mūsų komanda tikrai padės! Galite susisiekti tiesiogiai:</p>' +
-      '<p><strong>Telefonas:</strong> +370 648 803 88 (8:00-21:00)<br><strong>El. paštas:</strong> info@batutynas.lt</p>' +
-      '<p>Arba galiu padėti su vienu iš šių:</p>' +
-      optionButtons(['Batutų katalogas', 'Nuomos kainos', 'Užsakyti batutą', 'Pristatymo zonos', 'Saugumo taisyklės']) + '</div>';
-  }
+    chatWindow.appendChild(messagesContainer);
 
-  /* -- Mock AI Engine -- */
-  function respond(message) {
-    var msg = message.toLowerCase().trim();
-    var lang = detectLang(message);
-
-    // -- Modify/Cancel flow --
-    if (modifyState.active) {
-      return handleModifyStep(message, lang);
-    }
-
-    // -- Booking flow --
-    if (bookingState.active) {
-      return handleBookingStep(message, lang);
-    }
-
-    // -- Greetings → show main menu --
-    if (/^(hi|hello|hey|good\s*(morning|afternoon|evening)|labas|laba diena|sveiki|sveikas)\b/i.test(msg)) {
-      if (lang === 'en') return '{{HTML}}<div class="chat-products"><p>Hello! I\'m the Batutynas.lt assistant. How can I help you?</p>' +
-        '<div class="chat-main-menu"><div class="chat-options chat-menu-options">' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju vaikų gimtadienį arba krikštynas">🎂 Children\'s birthday</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Public event</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju triukšmingą vakarėlį">🎉 Party</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Noriu pirkti batutą">🛒 Buy a trampoline</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Saugumas, DUK ir kontaktai">ℹ️ Safety & FAQ</button>' +
-        '</div></div></div>';
-      return '{{HTML}}<div class="chat-products"><p>Sveiki! Esu Batutynas.lt asistentas. Kuo galiu padėti?</p>' +
-        '<div class="chat-main-menu"><div class="chat-options chat-menu-options">' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju vaikų gimtadienį arba krikštynas">🎂 Vaikų gimtadienis ar krikštynos</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Viešas renginys ar įmonės sąskrydis</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju triukšmingą vakarėlį">🎉 Triukšmingas vakarėlis</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Noriu pirkti batutą">🛒 Noriu pirkti batutą</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Saugumas, DUK ir kontaktai">ℹ️ Saugumas, DUK ir kontaktai</button>' +
-        '</div></div></div>';
-    }
-
-    // -- Thanks / Bye --
-    if (/^(thanks|thank you|thx|bye|goodbye|ačiū|dėkoju|viso gero|iki|sudie)\b/i.test(msg)) {
-      if (lang === 'en') return 'Thank you for reaching out! If you have more questions, feel free to ask. Have a great day!';
-      return 'Ačiū, kad kreipėtės! Jei turėsite daugiau klausimų, drąsiai rašykite. Geros dienos!';
-    }
-
-    // -- 5-group menu selections --
-    if (/planuoju vaikų gimtadienį|gimtadienis.*krikštyn/i.test(msg)) {
-      bookingState.active = true;
-      bookingState.step = 1;
-      bookingState.data = { groupType: 'birthday' };
-      bookingState.lang = lang;
-      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu suplanuoti gimtadienį ar krikštynas.</p><p><strong>Kada planuojate renginį?</strong></p>' + datePicker() + '</div>';
-    }
-    if (/planuoju viešą renginį|įmonės sąskrydį|viešas renginys/i.test(msg)) {
-      bookingState.active = true;
-      bookingState.step = 1;
-      bookingState.data = { groupType: 'public' };
-      bookingState.lang = lang;
-      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu suplanuoti viešą renginį.</p><p><strong>Kada planuojate renginį?</strong></p>' + datePicker() + '</div>';
-    }
-    if (/planuoju triukšmingą vakarėlį|triukšmingas vakarėlis/i.test(msg)) {
-      bookingState.active = true;
-      bookingState.step = 1;
-      bookingState.data = { groupType: 'party' };
-      bookingState.lang = lang;
-      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu suplanuoti vakarėlį.</p><p><strong>Kada planuojate renginį?</strong></p>' + datePicker() + '</div>';
-    }
-    if (/noriu pirkti batutą|pirkti batut/i.test(msg)) {
-      return '{{HTML}}<div class="chat-products"><p>Ką norėtumėte?</p>' +
-        '<div class="chat-options">' +
-        '<button class="chat-option-btn" data-chat-option="Noriu gauti batutų katalogą el. paštu">📧 Gauti katalogą el. paštu</button>' +
-        '<button class="chat-option-btn" data-chat-option="Noriu individualios batuto gamybos">🎨 Individuali gamyba</button>' +
-        '</div></div>';
-    }
-    if (/saugumas.*duk.*kontakt|saugumas.*kontakt/i.test(msg)) {
-      var safetyText = FAQ.safety.a_lt;
-      return '{{HTML}}<div class="chat-products"><p>' + fmt(safetyText) + '</p>' +
-        '<p><strong>Kontaktai:</strong> +370 648 803 88 · info@batutynas.lt<br><strong>Darbo laikas:</strong> 8:00-21:00 kasdien</p>' +
-        optionButtons(['Nuomos kainos', 'Orų politika', 'Pristatymo zonos', 'Pagrindinis meniu']) + '</div>';
-    }
-    if (/pagrindinis meniu|pradžia|grįžti/i.test(msg)) {
-      return '{{HTML}}<div class="chat-products"><p>Kuo galiu padėti? Pasirinkite kategoriją:</p>' +
-        '<div class="chat-main-menu"><div class="chat-options chat-menu-options">' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju vaikų gimtadienį arba krikštynas">🎂 Vaikų gimtadienis ar krikštynos</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Viešas renginys ar įmonės sąskrydis</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Planuoju triukšmingą vakarėlį">🎉 Triukšmingas vakarėlis</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Noriu pirkti batutą">🛒 Noriu pirkti batutą</button>' +
-        '<button class="chat-option-btn chat-menu-btn" data-chat-option="Saugumas, DUK ir kontaktai">ℹ️ Saugumas, DUK ir kontaktai</button>' +
-        '</div></div></div>';
-    }
-    // -- Purchase sub-flows --
-    if (/noriu gauti batutų katalogą/i.test(msg)) {
-      return '{{HTML}}<div class="chat-products"><p>Įveskite savo el. pašto adresą ir atsiųsime batutų katalogą:</p>' +
-        '<div class="chat-email-form">' +
-        '<input type="email" class="chat-email-input" data-chat-email placeholder="jusu@pastas.lt">' +
-        '<button class="chat-email-confirm" data-chat-email-confirm disabled>Siųsti katalogą</button>' +
-        '</div></div>';
-    }
-    if (/noriu individualios batuto gamybos/i.test(msg)) {
-      return '{{HTML}}<div class="chat-products"><p style="font-size:13px;font-weight:600;margin-bottom:10px">Individualaus batuto užklausa:</p>' +
-        '<div class="chat-custom-form">' +
-        '<label style="font-size:12px;color:#555;display:block;margin-bottom:4px">Pageidaujami matmenys:</label>' +
-        '<input type="text" class="chat-custom-input" data-custom-field="dimensions" placeholder="pvz. 8x5x4 m">' +
-        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Spalvos:</label>' +
-        '<input type="text" class="chat-custom-input" data-custom-field="colors" placeholder="pvz. mėlyna, raudona">' +
-        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Personažai / tema:</label>' +
-        '<input type="text" class="chat-custom-input" data-custom-field="characters" placeholder="pvz. Spiderman">' +
-        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Papildomi pageidavimai:</label>' +
-        '<textarea class="chat-custom-textarea" data-custom-field="notes" placeholder="Aprašykite viziją..." rows="3"></textarea>' +
-        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">El. paštas:</label>' +
-        '<input type="email" class="chat-custom-input" data-custom-field="email" placeholder="jusu@pastas.lt">' +
-        '<label style="font-size:12px;color:#555;display:block;margin:8px 0 4px">Telefonas:</label>' +
-        '<input type="text" class="chat-custom-input" data-custom-field="phone" placeholder="+370 600 00000">' +
-        '<button class="chat-custom-submit" data-chat-custom-submit>Pateikti užklausą</button>' +
-        '</div></div>';
-    }
-
-    // -- Booking inquiry (generic) --
-    if (/užsisakyti|užsakyti|rezervuoti|noriu.*batut|book|reserve|order.*trampoline|want.*rent/i.test(msg)) {
-      bookingState.active = true;
-      bookingState.step = 1;
-      bookingState.data = {};
-      bookingState.lang = lang;
-      if (lang === 'en') return '{{HTML}}<div class="chat-products"><p>Great! I\'ll help you book a trampoline.</p><p><strong>1. Choose the event date:</strong></p>' + datePicker() + '</div>';
-      return '{{HTML}}<div class="chat-products"><p>Puiku! Padėsiu jums užsisakyti batutą.</p><p><strong>1. Pasirinkite renginio datą:</strong></p>' + datePicker() + '</div>';
-    }
-
-    // -- Available trampolines --
-    if (/kokius|kokie|batut|katalogas|trampoline|catalog|what.*have|show|available|parkas|kliūč|rocket|candy|chameleon|smiginis|cukraus vat/i.test(msg)) {
-      var searchTerms = msg.replace(/[?!.,]/g, '').split(/\s+/).filter(function(t) { return t.length > 2; });
-      var matches = TRAMPOLINES.filter(function(p) {
-        return searchTerms.some(function(t) {
-          return p.name.toLowerCase().includes(t) || p.tags.some(function(tag) { return tag.includes(t); }) || p.type.toLowerCase().includes(t);
-        });
-      });
-      if (matches.length === 0) matches = TRAMPOLINES;
-
-      var cards = matches.map(function(p) {
-        var cat = p.cat || 'standard-trampoline';
-        var isRec = !!p.popular;
-        var cardClass = 'chat-trampoline-select' + (isRec ? ' t-recommended' : '') + ' t-bg-' + cat;
-        var badgeHtml = p.popular ? '<span class="chat-popular-badge">🔥 Populiarus</span>' : '';
-        var thumbHtml = '<div class="chat-trampoline-thumb t-bg-' + cat + '">' + escHtml(p.icon) + '</div>';
-        var detailHtml = p.detail ? '<div class="t-detail' + (isRec ? ' open' : '') + '">' + escHtml(p.detail) + '</div>' : '';
-        return '<button class="' + cardClass + '" data-trampoline="' + escHtml(p.name) + '">' +
-          badgeHtml +
-          '<span class="t-detail-btn" data-chat-detail-toggle title="Daugiau info">ℹ</span>' +
-          thumbHtml +
-          '<div class="chat-trampoline-info">' +
-            '<div class="t-name">' + escHtml(p.name) + '</div>' +
-            '<div class="t-meta">' + escHtml(p.type) + ' · ' + escHtml(p.capacity) + '</div>' +
-            '<div class="t-price">' + escHtml(p.price) + '</div>' +
-          '</div>' +
-          detailHtml +
-        '</button>';
-      }).join('');
-
-      var grid = '<div class="chat-trampoline-grid">' + cards + '</div>';
-
-      if (lang === 'en') {
-        return '{{HTML}}<div class="chat-products"><div class="chat-section-title">Our trampolines &amp; attractions (' + matches.length + ')</div>' + grid +
-          '<p>Want to know more about any of these?</p>' +
-          optionButtons(['Užsakyti batutą', 'Nuomos kainos', 'Pristatymo zonos']) + '</div>';
-      }
-      return '{{HTML}}<div class="chat-products"><div class="chat-section-title">Mūsų batutai ir atrakcijos (' + matches.length + ')</div>' + grid +
-        '<p>Norėtumėte sužinoti daugiau arba užsisakyti?</p>' +
-        optionButtons(['Užsakyti batutą', 'Nuomos kainos', 'Pristatymo zonos']) + '</div>';
-    }
-
-    // -- Pricing --
-    if (/kaina|kainuoja|kiek|price|cost|how much|pigiau|nuolaid|discount|nuomos kain/i.test(msg)) {
-      if (/viešų|viešas|viešam|public/i.test(msg)) {
-        return lang === 'en' ? FAQ.pricing_public.a_en : FAQ.pricing_public.a_lt;
-      }
-      var priceText = lang === 'en' ? FAQ.pricing_private.a_en : FAQ.pricing_private.a_lt;
-      return '{{HTML}}<div class="chat-products"><p>' + fmt(priceText) + '</p>' +
-        optionButtons(lang === 'en' ? ['View trampolines', 'Book a trampoline', 'Public event prices'] : ['Batutų katalogas', 'Užsakyti batutą', 'Viešų renginių kainos']) + '</div>';
-    }
-
-    // -- Delivery --
-    if (/pristat|deliver|kur.*vež|atvež|ship|zonos|kaunas|vilnius|klaipėd|šiauli|panev/i.test(msg)) {
-      var askingSpecificCity = msg.match(/kaunas|vilnius|klaipėd|šiauli|panev|alyt|marijamp|utena|telši/i);
-      if (askingSpecificCity) {
-        var city = askingSpecificCity[0];
-        if (lang === 'en') return 'We deliver to **' + city.charAt(0).toUpperCase() + city.slice(1) + '** only for **public events**. For private parties — Tauragė region only (Tauragė, Šilalė, Jurbarkas, Pagėgiai, Raseiniai, Kelmė, Rietavas).\n\nPlanning a public event? Contact us for a custom quote!\nPhone: +370 648 803 88';
-        return 'Į **' + city.charAt(0).toUpperCase() + city.slice(1) + '** pristatome tik **viešiems renginiams**. Privačioms šventėms — tik Tauragės regione (Tauragė, Šilalė, Jurbarkas, Pagėgiai, Raseiniai, Kelmė, Rietavas).\n\nJei planuojate viešą renginį — susisiekite dėl individualaus pasiūlymo!\nTel: +370 648 803 88';
-      }
-      if (/viešų|viešas|viešam|public/i.test(msg)) {
-        return lang === 'en' ? FAQ.delivery_public.a_en : FAQ.delivery_public.a_lt;
-      }
-      return lang === 'en' ? FAQ.delivery_private.a_en : FAQ.delivery_private.a_lt;
-    }
-
-    // -- Safety rules --
-    if (/saug|safety|taisykl|rules|draudžiam|neleidž|amžius|svoris|age|weight/i.test(msg)) {
-      return lang === 'en' ? FAQ.safety.a_en : FAQ.safety.a_lt;
-    }
-
-    // -- Weather --
-    if (/oras|weather|lietus|rain|vėjas|wind|perkėl|reschedul/i.test(msg)) {
-      return lang === 'en' ? FAQ.weather.a_en : FAQ.weather.a_lt;
-    }
-
-    // -- Working hours --
-    if (/darbo.*laik|hours|open|kada|when|laikas/i.test(msg)) {
-      return lang === 'en' ? FAQ.working_hours.a_en : FAQ.working_hours.a_lt;
-    }
-
-    // -- Certification --
-    if (/sertifik|certif|en14960|standar|kokybė|quality/i.test(msg)) {
-      return lang === 'en' ? FAQ.certification.a_en : FAQ.certification.a_lt;
-    }
-
-    // -- Custom manufacturing --
-    if (/gamin|custom|individual|manufactur|pagamint|pagal užsakym|logotip|logo/i.test(msg)) {
-      return lang === 'en' ? FAQ.custom_manufacturing.a_en : FAQ.custom_manufacturing.a_lt;
-    }
-
-    // -- Booking process (how to book) --
-    if (/kaip.*užsisakyti|kaip.*rezervuot|how.*book|how.*order|procesas|process/i.test(msg)) {
-      return lang === 'en' ? FAQ.booking_process.a_en : FAQ.booking_process.a_lt;
-    }
-
-    // -- Contact info --
-    if (/kontakt|contact|email|telefon|phone|call|susisiek|adresas|address|facebook|instagram|social/i.test(msg)) {
-      if (lang === 'en') return 'Our contacts:\n\n- **Phone:** +370 648 803 88\n- **Email:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n- **Hours:** 8:00-21:00 daily\n- **Address:** Tauragė, Lithuania\n\nThis AI assistant is available 24/7!';
-      return 'Mūsų kontaktai:\n\n- **Telefonas:** +370 648 803 88\n- **El. paštas:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n- **Darbo laikas:** 8:00-21:00 kasdien\n- **Adresas:** Tauragė, Lietuva\n\nŠis AI asistentas dirba 24/7!';
-    }
-
-    // -- About the company --
-    if (/apie|about|kas jūs|who are you|company|įmonė/i.test(msg)) {
-      if (lang === 'en') return '**Batutynas.lt** — inflatable trampoline rental company, operating **since 2015**.\n\nWe specialize in:\n- Inflatable trampoline rental for private parties\n- Entertainment park rental for public events\n- Custom trampoline manufacturing\n\n**Key facts:**\n- Based in: Tauragė, Lithuania\n- All trampolines EN14960 certified\n- 10+ years of experience\n- Free delivery in Tauragė region\n- Public events — all of Lithuania';
-      return '**Batutynas.lt** — pripučiamų batutų nuomos įmonė, veikianti **nuo 2015 metų**.\n\nMes specializuojamės:\n- Pripučiamų batutų nuomoje privačioms šventėms\n- Pramogų parkų nuomoje viešiems renginiams\n- Individualių batutų gamyboje\n\n**Pagrindiniai faktai:**\n- Bazė: Tauragė, Lietuva\n- Visi batutai EN14960 sertifikuoti\n- 10+ metų patirties\n- Nemokamas pristatymas Tauragės regione\n- Viešiems renginiams — visa Lietuva';
-    }
-
-    // -- Services overview --
-    if (/paslaug|servic|ką.*siūl|what.*offer|ko.*turit/i.test(msg)) {
-      if (lang === 'en') return 'Our services:\n\n**1. Private party rental**\n- Trampolines for birthdays and family events\n- From 50 EUR/day\n- Free delivery in Tauragė region\n\n**2. Public event rental**\n- Trampoline parks for festivals\n- All of Lithuania\n- Generators and service included\n\n**3. Trampoline shop**\n- Custom trampolines made to order\n- Choose size, color, logo';
-      return 'Mūsų paslaugos:\n\n**1. Nuoma privačioms šventėms**\n- Batutai gimtadieniams ir šeimos šventėms\n- Nuo 50 EUR/dieną\n- Nemokamas pristatymas Tauragės regione\n\n**2. Nuoma viešiems renginiams**\n- Batutų parkai ir atrakcijos festivaliams\n- Visa Lietuva\n- Generatoriai ir aptarnavimas įskaičiuota\n\n**3. Batutų parduotuvė**\n- Individualūs batutai pagal užsakymą\n- Pasirinkite dydį, spalvą, logotipą';
-    }
-
-    // -- Second day discount --
-    if (/antr.*dien|second.*day|nuolaid|discount|ilgiau|longer/i.test(msg)) {
-      if (lang === 'en') return 'Yes! When renting for **two consecutive days**, the second day is **50% off**!\n\nExample:\n- Candy Pop: 1 day 60 EUR, 2 days — 90 EUR (instead of 120 EUR)\n- Mega Rocket: 1 day 80 EUR, 2 days — 120 EUR (instead of 160 EUR)';
-      return 'Taip! Nuomojant batutą **dvi dienas iš eilės**, antra diena su **50% nuolaida**!\n\nPavyzdžiui:\n- Candy Pop: 1 diena 60 EUR, 2 dienos — 90 EUR (vietoj 120 EUR)\n- Mega Rocket: 1 diena 80 EUR, 2 dienos — 120 EUR (vietoj 160 EUR)\n\nTaip pat galime pasiūlyti individualias kainas ilgesniam laikotarpiui.';
-    }
-
-    // -- Escalation --
-    if (/human|person|agent|žmog|vadov|manager|speak|complaint|skund/i.test(msg)) {
-      if (lang === 'en') return 'I understand you\'d like to speak with our team. You can reach us:\n\n- **Phone:** +370 648 803 88 (8:00-21:00)\n- **Email:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n\nOr leave your contact info and we\'ll call you back!';
-      return 'Suprantu, kad norėtumėte pasikalbėti su mūsų komanda. Galite susisiekti:\n\n- **Telefonas:** +370 648 803 88 (8:00-21:00)\n- **El. paštas:** info@batutynas.lt\n- **Facebook:** facebook.com/batutynas\n\nArba palikite savo kontaktus ir mes paskambinsime!';
-    }
-
-    // -- Viešų renginių kainos (button match) --
-    if (/viešų renginių kain/i.test(msg)) {
-      return lang === 'en' ? FAQ.pricing_public.a_en : FAQ.pricing_public.a_lt;
-    }
-
-    // -- Retrieve booking --
-    if (/mano užsakym|my booking|užsakymo status|booking status|BT-\d{8}/i.test(msg)) {
-      var idMatch = msg.match(/BT-\d{8}-[A-Z0-9]{4}/i);
-      var booking = idMatch ? getBookingById(idMatch[0].toUpperCase()) : getLastBooking();
-      if (booking) {
-        return '{{HTML}}<div class="chat-products">' + formatBookingCard(booking, lang, false) + '</div>';
-      }
-      if (lang === 'en') return '{{HTML}}<div class="chat-products"><p>No bookings found. Would you like to create one?</p>' +
-        optionButtons(['Book a trampoline']) + '</div>';
-      return '{{HTML}}<div class="chat-products"><p>Užsakymų nerasta. Ar norėtumėte sukurti naują?</p>' +
-        optionButtons(['Užsakyti batutą']) + '</div>';
-    }
-
-    // -- Modify booking --
-    if (/keisti užsakym|pakeisti|change booking|modify booking|koreguoti/i.test(msg)) {
-      var lastBooking = getLastBooking();
-      if (lastBooking && lastBooking.status === 'pending') {
-        modifyState.active = true;
-        modifyState.bookingId = lastBooking.id;
-        modifyState.field = null;
-        return '{{HTML}}<div class="chat-products"><p>' +
-          (lang === 'en' ? 'Which field would you like to change?' : 'Kurį lauką norėtumėte pakeisti?') + '</p>' +
-          optionButtons(lang === 'en'
-            ? ['Date', 'Location', 'Event type', 'Contact info', 'Trampoline']
-            : ['Data', 'Vieta', 'Renginio tipas', 'Kontaktai', 'Batutas']) + '</div>';
-      }
-      if (lang === 'en') return '{{HTML}}<div class="chat-products"><p>No active bookings found to modify.</p>' +
-        optionButtons(['Book a trampoline']) + '</div>';
-      return '{{HTML}}<div class="chat-products"><p>Nėra aktyvių užsakymų, kuriuos būtų galima keisti.</p>' +
-        optionButtons(['Užsakyti batutą']) + '</div>';
-    }
-
-    // -- Cancel booking --
-    if (/atšaukti užsakym|cancel booking|noriu atšaukti/i.test(msg)) {
-      var lastB = getLastBooking();
-      if (lastB && lastB.status === 'pending') {
-        modifyState.active = true;
-        modifyState.bookingId = lastB.id;
-        modifyState.cancelling = true;
-        var warning = lang === 'en'
-          ? 'Are you sure you want to cancel your booking **' + lastB.id + '**?\n\n**Cancellation policy:**\n- Free cancellation >48h before event\n- 50% fee <24h before event'
-          : 'Ar tikrai norite atšaukti užsakymą **' + lastB.id + '**?\n\n**Atšaukimo politika:**\n- Nemokamas atšaukimas >48 val. prieš renginį\n- 50% mokestis <24 val. prieš renginį';
-        return '{{HTML}}<div class="chat-products"><p>' + fmt(warning) + '</p>' +
-          optionButtons(lang === 'en' ? ['Yes, cancel', 'No, keep it'] : ['Taip, atšaukti', 'Ne, palikti']) + '</div>';
-      }
-      if (lang === 'en') return '{{HTML}}<div class="chat-products"><p>No active bookings found to cancel.</p>' +
-        optionButtons(['Book a trampoline']) + '</div>';
-      return '{{HTML}}<div class="chat-products"><p>Nėra aktyvių užsakymų, kuriuos būtų galima atšaukti.</p>' +
-        optionButtons(['Užsakyti batutą']) + '</div>';
-    }
-
-    // -- Fallback (smart) --
-    return smartFallback(message, lang);
-  }
-
-  /* -- Booking Flow Handler -- */
-  function handleBookingStep(message, lang) {
-    var msg = message.trim();
-    var l = bookingState.lang || 'lt';
-
-    // Handle custom input for "Other" options
-    if (bookingState.awaitingCustomInput) {
-      var field = bookingState.awaitingCustomInput;
-      bookingState.awaitingCustomInput = null;
-      if (field === 'location') {
-        bookingState.data.location = msg;
-        bookingState.step = 3;
-        if (l === 'en') return '{{HTML}}<div class="chat-products"><p>Location: <strong>' + escHtml(msg) + '</strong></p><p><strong>3. What type of event?</strong></p>' +
-          optionButtons(['Birthday', 'Family celebration', 'Public event', 'Corporate event', 'Other']) + '</div>';
-        return '{{HTML}}<div class="chat-products"><p>Vieta: <strong>' + escHtml(msg) + '</strong></p><p><strong>3. Koks renginio tipas?</strong></p>' +
-          optionButtons(['Gimtadienis', 'Šeimos šventė', 'Viešas renginys', 'Įmonės renginys', 'Kita']) + '</div>';
-      }
-      if (field === 'eventType') {
-        bookingState.data.eventType = msg;
-        bookingState.step = 4;
-        if (l === 'en') return 'Event type: **' + msg + '**\n\n**4. Your name and phone number?**\n(e.g., Jonas, +370 612 34567)';
-        return 'Renginio tipas: **' + msg + '**\n\n**4. Jūsų vardas ir telefono numeris?**\n(pvz., Jonas, +370 612 34567)';
-      }
-    }
-
-    switch(bookingState.step) {
-      case 1: // Date
-        bookingState.data.date = msg;
-        bookingState.step = 2;
-        if (l === 'en') return '{{HTML}}<div class="chat-products"><p>Date: <strong>' + escHtml(msg) + '</strong></p><p><strong>2. What is the event address?</strong></p>' +
-          optionButtons(['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kitas miestas']) + '</div>';
-        return '{{HTML}}<div class="chat-products"><p>Data: <strong>' + escHtml(msg) + '</strong></p><p><strong>2. Koks renginio adresas?</strong></p>' +
-          optionButtons(['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kitas miestas']) + '</div>';
-
-      case 2: // Location / Address
-        if (/^(kitas miestas|other city)$/i.test(msg)) {
-          bookingState.awaitingCustomInput = 'location';
-          if (l === 'en') return 'Please enter the full address:';
-          return 'Įveskite pilną adresą (miestas, gatvė):';
+    // Input area
+    var textarea = el('textarea', {
+      className: 'woo-chat-input',
+      id: 'woo-chat-input',
+      placeholder: t('placeholder'),
+      maxlength: String(MAX_MESSAGE_LENGTH),
+      rows: '1',
+      onKeydown: function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
         }
-        bookingState.data.location = msg;
-        bookingState.step = 3;
-        if (l === 'en') return '{{HTML}}<div class="chat-products"><p>Location: <strong>' + escHtml(msg) + '</strong></p><p><strong>3. What type of event?</strong></p>' +
-          optionButtons(['Birthday', 'Family celebration', 'Public event', 'Corporate event', 'Other']) + '</div>';
-        return '{{HTML}}<div class="chat-products"><p>Vieta: <strong>' + escHtml(msg) + '</strong></p><p><strong>3. Koks renginio tipas?</strong></p>' +
-          optionButtons(['Gimtadienis', 'Šeimos šventė', 'Viešas renginys', 'Įmonės renginys', 'Kita']) + '</div>';
+      },
+      onInput: function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+      }
+    });
 
-      case 3: // Event type
-        if (/^(kita|other)$/i.test(msg)) {
-          bookingState.awaitingCustomInput = 'eventType';
-          if (l === 'en') return 'Please describe the event type:';
-          return 'Aprašykite renginio tipą:';
+    var sendBtn = el('button', {
+      className: 'woo-chat-send',
+      id: 'woo-chat-send-btn',
+      'aria-label': 'Si\u0173sti \u017einut\u0119',
+      onClick: sendMessage,
+      innerHTML: '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>'
+    });
+
+    chatWindow.appendChild(el('div', { className: 'woo-chat-input-area' }, [textarea, sendBtn]));
+
+    // Escalation button
+    chatWindow.appendChild(el('button', {
+      className: 'woo-chat-escalate',
+      onClick: escalate
+    }, t('escalate')));
+
+    widget.appendChild(chatWindow);
+
+    // Toggle button
+    var toggleClasses = 'woo-chat-toggle' + (state.open ? ' open' : '');
+    if (state._hasUnread && !state.open) toggleClasses += ' has-unread';
+    var toggleBtn = el('button', {
+      className: toggleClasses,
+      'aria-label': state.open ? 'U\u017edaryti pokalb\u012F' : 'Atidaryti pokalb\u012F',
+      onClick: toggleChat,
+      innerHTML: '<svg class="chat-open-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg><svg class="chat-close-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'
+    });
+    widget.appendChild(toggleBtn);
+
+    document.body.appendChild(widget);
+
+    // Apply custom color
+    if (config.primaryColor !== '#6C3CE1') {
+      widget.style.setProperty('--chat-primary', config.primaryColor);
+      widget.style.setProperty('--chat-primary-hover', adjustColor(config.primaryColor, -20));
+    }
+
+    // Scroll to bottom
+    if (state.open) {
+      scrollToBottom();
+      var input = document.getElementById('woo-chat-input');
+      if (input) input.focus();
+    }
+
+    // Mobile keyboard handling
+    if (state.open && window.visualViewport && window.innerWidth <= 480) {
+      var vv = window.visualViewport;
+      var initialHeight = vv.height;
+
+      function onViewportResize() {
+        var diff = initialHeight - vv.height;
+        var win = document.querySelector('.woo-chat-window');
+        if (!win) return;
+        if (diff > 100) {
+          win.style.height = vv.height - 80 + 'px';
+        } else {
+          win.style.height = '';
         }
-        bookingState.data.eventType = msg;
-        bookingState.step = 4;
-        if (l === 'en') return 'Event type: **' + msg + '**\n\n**4. Your name and phone number?**\n(e.g., Jonas, +370 612 34567)';
-        return 'Renginio tipas: **' + msg + '**\n\n**4. Jūsų vardas ir telefono numeris?**\n(pvz., Jonas, +370 612 34567)';
+        scrollToBottom();
+      }
 
-      case 4: // Contact info
-        bookingState.data.contact = msg;
-        bookingState.step = 5;
-        var notSureLabel = l === 'en' ? 'Not sure yet' : 'Dar nežinau';
-        if (l === 'en') return '{{HTML}}<div class="chat-products"><p>Contact: <strong>' + escHtml(msg) + '</strong></p><p><strong>5. Which trampoline would you like?</strong></p>' +
-          trampolineCards() + '<div style="margin-top:8px">' + optionButtons([notSureLabel]) + '</div></div>';
-        return '{{HTML}}<div class="chat-products"><p>Kontaktai: <strong>' + escHtml(msg) + '</strong></p><p><strong>5. Kokį batutą norėtumėte?</strong></p>' +
-          trampolineCards() + '<div style="margin-top:8px">' + optionButtons([notSureLabel]) + '</div></div>';
-
-      case 5: // Trampoline preference
-        bookingState.data.trampoline = msg;
-        bookingState.active = false;
-        bookingState.step = 0;
-
-        var savedBooking = addBooking(bookingState.data);
-        var disclaimer = l === 'en'
-          ? '<p><strong>This is an inquiry, not a confirmed booking.</strong> Our team will review your request and contact you <strong>within 2 business hours</strong>.</p>'
-          : '<p><strong>Tai yra užklausa, o ne patvirtintas užsakymas.</strong> Mūsų komanda peržiūrės jūsų prašymą ir susisieks su jumis <strong>per 2 darbo valandas</strong>.</p>';
-
-        return '{{HTML}}<div class="chat-products">' +
-          formatBookingCard(savedBooking, l, false) +
-          disclaimer +
-          optionButtons(l === 'en'
-            ? ['My booking', 'Change booking']
-            : ['Mano užsakymas', 'Keisti užsakymą']) + '</div>';
-
-      default:
-        bookingState.active = false;
-        return respond(message);
+      vv.addEventListener('resize', onViewportResize);
+      widget._cleanupViewport = function () {
+        vv.removeEventListener('resize', onViewportResize);
+      };
     }
   }
 
-  /* -- Widget Engine -- */
-  function genId() {
-    var r = crypto.getRandomValues(new Uint8Array(10));
-    return 'sess_' + Date.now().toString(36) + '_' + Array.from(r, function(b){return b.toString(36)}).join('').substring(0,12);
+  function createMessageBubble(msg, msgIndex) {
+    var bubble = el('div', { className: 'woo-chat-msg ' + msg.role, 'data-msg-index': String(msgIndex) });
+    if (msg.text && msg.text.indexOf('{{HTML}}') === 0) {
+      bubble.innerHTML = sanitizeHtml(msg.text.substring(8));
+      bubble.classList.add('html-content');
+    } else {
+      bubble.innerHTML = formatMessage(msg.text);
+    }
+    return bubble;
   }
-  function loadSession() { try { var r=localStorage.getItem(STORAGE_KEY); if(!r)return null; var d=JSON.parse(r); if(Date.now()-d.ts>SESSION_TTL_MS){localStorage.removeItem(STORAGE_KEY);return null;} return d; } catch(e){return null;} }
-  function saveSession() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({sid:state.sessionId,msgs:state.messages.slice(-50),lang:state.language,ts:Date.now()})); } catch(e){} }
-  function initSession() { var s=loadSession(); if(s){state.sessionId=s.sid;state.messages=s.msgs||[];state.language=s.lang||dl();} else {state.sessionId=genId();state.messages=[];state.language=config.language||dl();} }
-  function dl() { var b=(navigator.language||'lt').substring(0,2).toLowerCase(); return LANGUAGES[b]?b:'lt'; }
-  function t(k) { return (LANGUAGES[state.language]||LANGUAGES.lt)[k]||LANGUAGES.lt[k]; }
-
-  function el(tag,a,ch) {
-    var n=document.createElement(tag);
-    if(a)Object.keys(a).forEach(function(k){if(k==='className')n.className=a[k];else if(k==='innerHTML')n.innerHTML=a[k];else if(k.startsWith('on'))n.addEventListener(k.substring(2).toLowerCase(),a[k]);else n.setAttribute(k,a[k]);});
-    if(ch)(Array.isArray(ch)?ch:[ch]).forEach(function(c){if(typeof c==='string')n.appendChild(document.createTextNode(c));else if(c)n.appendChild(c);});
-    return n;
-  }
-
-  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   function sanitizeHtml(html) {
+    var ALLOWED_TAGS = ['div', 'span', 'p', 'br', 'strong', 'em', 'b', 'i', 'a', 'button',
+      'input', 'textarea', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
+    var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
+      'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
+      'data-chat-custom-submit', 'data-chat-address', 'data-chat-address-confirm',
+      'data-chat-address-fill', 'data-chat-detail-toggle', 'data-chat-addon',
+      'data-chat-addon-continue', 'data-chat-zoom', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
+      'target', 'rel', 'src', 'alt', 'placeholder', 'id', 'role', 'tabindex', 'rows'];
+    var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
+
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
-    tmp.querySelectorAll('script,iframe,object,embed,form').forEach(function(el) { el.remove(); });
-    tmp.querySelectorAll('*').forEach(function(el) {
-      Array.from(el.attributes).forEach(function(attr) {
-        if (attr.name.startsWith('on') || attr.value.indexOf('javascript:') !== -1) {
-          el.removeAttribute(attr.name);
+
+    // Walk all elements with allowlist approach
+    var allEls = Array.from(tmp.querySelectorAll('*'));
+    for (var i = 0; i < allEls.length; i++) {
+      var node = allEls[i];
+      var tag = node.tagName.toLowerCase();
+
+      // Remove disallowed tags entirely
+      if (ALLOWED_TAGS.indexOf(tag) === -1) {
+        node.remove();
+        continue;
+      }
+
+      // Remove disallowed attributes
+      var attrs = Array.from(node.attributes);
+      for (var j = 0; j < attrs.length; j++) {
+        var attrName = attrs[j].name.toLowerCase();
+        if (ALLOWED_ATTRS.indexOf(attrName) === -1) {
+          node.removeAttribute(attrs[j].name);
+          continue;
         }
-      });
-    });
+        // Validate href/src protocols
+        if (attrName === 'href' || attrName === 'src') {
+          try {
+            var url = new URL(attrs[j].value, window.location.href);
+            if (ALLOWED_PROTOCOLS.indexOf(url.protocol) === -1) {
+              node.removeAttribute(attrs[j].name);
+            }
+          } catch (e) {
+            node.removeAttribute(attrs[j].name);
+          }
+        }
+      }
+    }
     return tmp.innerHTML;
   }
 
-  function fmt(text) {
-    if(!text) return '';
-    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/~~(.+?)~~/g,'<s>$1</s>')
-      .replace(/\n/g,'<br>')
-      .replace(/(https?:\/\/[^\s<"&]+)/g,function(u){return '<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>';});
+  function createLanguageSelect() {
+    var select = el('select', {
+      className: 'woo-chat-lang-select',
+      onChange: function () {
+        state.language = this.value;
+        saveSession();
+        render();
+      }
+    });
+
+    Object.keys(LANGUAGES).forEach(function (code) {
+      var opt = el('option', { value: code }, LANGUAGES[code].name);
+      if (code === state.language) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    return select;
   }
 
-  function render() {
-    var ex = document.getElementById('woo-ai-chat-widget');
-    if(ex){
-      var oldWin = ex.querySelector('.woo-chat-window');
-      if(oldWin && oldWin._cleanupViewport) oldWin._cleanupViewport();
-      ex.remove();
-    }
-    var w = el('div',{id:'woo-ai-chat-widget'});
-    var cw = el('div',{className:'woo-chat-window'+(state.open?' open':'')});
-    cw.setAttribute('role','dialog'); cw.setAttribute('aria-label','Pokalbis');
+  // --- Message Formatting ---
 
-    // Header
-    var hdr = el('div',{className:'woo-chat-header'},[
-      el('div',{className:'woo-chat-header-info'},[
-        el('div',{className:'woo-chat-header-avatar',innerHTML:'&#129302;'}),
-        el('div',{className:'woo-chat-header-text'},[
-          el('h3',null,config.storeName),
-          el('p',{innerHTML:'<span class="online-dot"></span> Prisijungęs'})
-        ])
-      ]),
-      mkLangSelect()
-    ]);
-    cw.appendChild(hdr);
-
-    // Messages
-    var mc = el('div',{className:'woo-chat-messages',id:'woo-chat-messages',role:'log','aria-live':'polite'});
-    if(state.messages.length===0) {
-      var welc = el('div',{className:'woo-chat-welcome'});
-      welc.appendChild(el('h4',null,t('welcomeTitle')));
-      welc.appendChild(el('p',null,t('welcome')));
-      var qb = el('div',{className:'woo-chat-quick-btns'});
-      (QUICK_PROMPTS[state.language]||QUICK_PROMPTS.lt).forEach(function(txt){
-        var btn = el('button',{className:'woo-chat-quick-btn',onClick:function(){quickSend(txt);}},txt);
-        qb.appendChild(btn);
+  function formatMessage(text) {
+    if (!text) return '';
+    var escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    return escaped
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>')
+      .replace(/(https?:\/\/[^\s<"&]+)/g, function (url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener">' + url + '</a>';
       });
-      welc.appendChild(qb);
-      mc.appendChild(welc);
+  }
+
+  function formatTimestamp(ts) {
+    var d = new Date(ts);
+    var now = new Date();
+    var hours = String(d.getHours()).padStart(2, '0');
+    var mins = String(d.getMinutes()).padStart(2, '0');
+    var time = hours + ':' + mins;
+    if (d.toDateString() === now.toDateString()) {
+      return time;
     }
-    state.messages.forEach(function(m){
-      var b=el('div',{className:'woo-chat-msg '+m.role});
-      if (m.text.indexOf('{{HTML}}') === 0) { b.innerHTML=sanitizeHtml(m.text.substring(8)); b.classList.add('html-content'); }
-      else { b.innerHTML=fmt(m.text); }
-      mc.appendChild(b);
-    });
-    mc.appendChild(el('div',{className:'woo-chat-typing',id:'woo-chat-typing'},[el('span'),el('span'),el('span')]));
-    cw.appendChild(mc);
+    var yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return (state.language === 'en' ? 'Yesterday' : 'Vakar') + ', ' + time;
+    }
+    var month = d.toLocaleDateString(state.language === 'en' ? 'en-US' : 'lt-LT', { month: 'short', day: 'numeric' });
+    return month + ', ' + time;
+  }
 
-    // Input
-    var ta = el('textarea',{className:'woo-chat-input',id:'woo-chat-input',placeholder:t('placeholder'),maxlength:String(MAX_MESSAGE_LENGTH),rows:'1',
-      onKeydown:function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}},
-      onInput:function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';}
-    });
-    var sb = el('button',{className:'woo-chat-send',id:'woo-chat-send-btn','aria-label':'Siųsti žinutę',onClick:send,innerHTML:'<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>'});
-    cw.appendChild(el('div',{className:'woo-chat-input-area'},[ta,sb]));
-    cw.appendChild(el('button',{className:'woo-chat-escalate',onClick:esc},t('escalate')));
-    w.appendChild(cw);
+  function adjustColor(hex, amount) {
+    hex = hex.replace('#', '');
+    var r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
+    var g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
+    var b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+    return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+  }
 
-    var tb = el('button',{className:'woo-chat-toggle'+(state.open?' open':''),'aria-label':state.open?'Uždaryti pokalbį':'Atidaryti pokalbį',onClick:toggle,
-      innerHTML:'<svg class="chat-open-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg><svg class="chat-close-icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'});
-    w.appendChild(tb);
-    document.body.appendChild(w);
+  // --- Actions ---
 
-    // Event delegation for option buttons, date inputs, date confirm buttons, zoom, and detail toggle
-    w.addEventListener('click', function(e) {
-      // Image zoom
+  function toggleChat() {
+    if (state._animating) return;
+    if (state.open) {
+      var win = document.querySelector('.woo-chat-window');
+      if (win) {
+        state._animating = true;
+        var closed = false;
+        function doClose() {
+          if (closed) return;
+          closed = true;
+          state.open = false;
+          state.animatedOpen = false;
+          state._animating = false;
+          render();
+        }
+        win.classList.add('woo-animate-out');
+        win.addEventListener('animationend', doClose, { once: true });
+        setTimeout(doClose, 300);
+      } else {
+        state.open = false;
+        state.animatedOpen = false;
+        render();
+      }
+    } else {
+      state.open = true;
+      state._hasUnread = false;
+      render();
+    }
+  }
+
+  function scrollToBottom() {
+    setTimeout(function () {
+      var container = document.getElementById('woo-chat-messages');
+      if (container) container.scrollTop = container.scrollHeight;
+    }, 50);
+  }
+
+  function showTyping(visible) {
+    var el = document.getElementById('woo-chat-typing');
+    if (el) el.className = 'woo-chat-typing' + (visible ? ' visible' : '');
+    if (visible) scrollToBottom();
+  }
+
+  function addMessage(role, text) {
+    state.messages.push({ role: role, text: text, time: Date.now() });
+    saveSession();
+    render();
+    scrollToBottom();
+  }
+
+  // --- Shared webhook send logic ---
+
+  function _sendToWebhook(text) {
+    state._lastSentText = text;
+    state.sending = true;
+
+    var sendBtn = document.getElementById('woo-chat-send-btn');
+    if (sendBtn) sendBtn.disabled = true;
+
+    showTyping(true);
+
+    var payload = {
+      message: text,
+      session_id: state.sessionId,
+      language: state.language,
+      email: config.userEmail || null,
+      name: config.userName || null
+    };
+
+    var fetchHeaders = { 'Content-Type': 'application/json' };
+    if (config.authToken) {
+      fetchHeaders['Authorization'] = 'Bearer ' + config.authToken;
+    }
+
+    fetch(config.webhookUrl, {
+      method: 'POST',
+      headers: fetchHeaders,
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        showTyping(false);
+        var response = data.response || data.output || data.text || 'Atsiprašome, \u012Fvyko klaida. Pabandykite dar kart\u0105.';
+        addMessage('agent', response);
+        if (data.session_id) state.sessionId = data.session_id;
+      })
+      .catch(function () {
+        showTyping(false);
+        addMessage('system', '{{HTML}}Ry\u0161io klaida.<br><button class="woo-chat-retry" data-chat-retry>Bandyti dar kart\u0105</button>');
+      })
+      .finally(function () {
+        state.sending = false;
+        var btn = document.getElementById('woo-chat-send-btn');
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  function sendMessage() {
+    if (state.sending) return;
+
+    var input = document.getElementById('woo-chat-input');
+    if (!input) return;
+
+    var text = input.value.trim();
+    if (!text) return;
+    if (text.length > MAX_MESSAGE_LENGTH) {
+      text = text.substring(0, MAX_MESSAGE_LENGTH);
+    }
+
+    addMessage('customer', text);
+    _sendToWebhook(text);
+  }
+
+  function quickSend(text) {
+    if (state.sending) return;
+    addMessage('customer', text);
+    _sendToWebhook(text);
+  }
+
+  function escalate() {
+    if (state.sending) return;
+    var label = t('escalate');
+    addMessage('customer', label);
+    _sendToWebhook(label);
+  }
+
+  // --- Persist interactive state back to stored messages ---
+
+  function persistInteractionState(chatBubble) {
+    if (!chatBubble) return;
+    var indexStr = chatBubble.getAttribute('data-msg-index');
+    if (indexStr === null) return;
+    var index = parseInt(indexStr, 10);
+    if (isNaN(index) || index < 0 || index >= state.messages.length) return;
+    var msg = state.messages[index];
+    if (msg.text && msg.text.indexOf('{{HTML}}') === 0) {
+      state.messages[index].text = '{{HTML}}' + chatBubble.innerHTML;
+      saveSession();
+    }
+  }
+
+  // --- Email validation helper ---
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  // --- Event Delegation for Interactive HTML ---
+
+  var _delegationAttached = false;
+
+  function attachDelegation() {
+    if (_delegationAttached) return;
+    _delegationAttached = true;
+
+    document.addEventListener('click', function (e) {
+      // Welcome screen action buttons
+      var welcomeBtn = e.target.closest('[data-welcome-action]');
+      if (welcomeBtn) {
+        var value = welcomeBtn.getAttribute('data-welcome-action');
+        quickSend(value);
+        var welcomeEl = document.querySelector('.woo-chat-welcome');
+        if (welcomeEl) welcomeEl.remove();
+        return;
+      }
+
+      // Detail expand toggle (MUST be before data-chat-option to prevent parent card capture)
+      var detailBtn = e.target.closest('[data-chat-detail-toggle]');
+      if (detailBtn) {
+        e.stopPropagation();
+        var card = detailBtn.closest('.chat-trampoline-select');
+        if (card) {
+          var detail = card.querySelector('.t-detail');
+          if (detail) detail.classList.toggle('open');
+        }
+        return;
+      }
+
+      // Image zoom on click (MUST be before data-chat-option)
       var zoomImg = e.target.closest('[data-chat-zoom]');
       if (zoomImg && zoomImg.tagName === 'IMG') {
         e.stopPropagation();
@@ -1889,144 +2526,978 @@
         function closeOverlay() { overlay.remove(); }
         overlay.addEventListener('click', closeOverlay);
         fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
-        closeBtn.addEventListener('click', function(ev) { ev.stopPropagation(); closeOverlay(); });
-        function onKey(ev) { if (ev.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', onKey); } }
-        document.addEventListener('keydown', onKey);
         document.body.appendChild(overlay);
         return;
       }
 
-      // Detail expand toggle
-      var detailBtn = e.target.closest('[data-chat-detail-toggle]');
-      if (detailBtn) {
-        e.stopPropagation();
-        var card = detailBtn.closest('.chat-trampoline-select');
-        if (card) {
-          var detail = card.querySelector('.t-detail');
-          if (detail) detail.classList.toggle('open');
-        }
-        return;
-      }
-
+      // Option buttons (pill buttons and trampoline cards)
       var optBtn = e.target.closest('[data-chat-option]');
-      if (optBtn && !optBtn.disabled && !optBtn.hasAttribute('disabled')) {
-        handleOptionClick(optBtn);
+      if (optBtn) {
+        if (optBtn.hasAttribute('disabled')) return;
+        var msgBubble = optBtn.closest('.chat-products') || optBtn.closest('.chat-options') || optBtn.closest('.chat-trampoline-grid') || optBtn.closest('.woo-chat-msg');
+        if (msgBubble) {
+          msgBubble.querySelectorAll('[data-chat-option]').forEach(function (btn) {
+            btn.setAttribute('disabled', 'true');
+            if (btn.tagName === 'BUTTON') btn.disabled = true;
+          });
+          msgBubble.querySelectorAll('[data-chat-date]').forEach(function (inp) {
+            inp.setAttribute('disabled', 'true');
+            inp.disabled = true;
+          });
+          msgBubble.querySelectorAll('[data-chat-date-confirm]').forEach(function (btn) {
+            btn.setAttribute('disabled', 'true');
+            btn.disabled = true;
+          });
+          optBtn.classList.add('selected');
+          var chatBubble = optBtn.closest('.woo-chat-msg');
+          if (chatBubble) persistInteractionState(chatBubble);
+        }
+        var value = optBtn.getAttribute('data-chat-option');
+        quickSend(value);
         return;
       }
-      var dateConfirm = e.target.closest('[data-chat-date-confirm]');
-      if (dateConfirm && !dateConfirm.disabled) {
-        var dateInput = w.querySelector('[data-chat-date]');
+
+      // Date confirm button
+      var dateConfirmBtn = e.target.closest('[data-chat-date-confirm]');
+      if (dateConfirmBtn) {
+        if (dateConfirmBtn.hasAttribute('disabled')) return;
+        var dateInput = dateConfirmBtn.parentElement.querySelector('[data-chat-date]');
         if (dateInput && dateInput.value) {
-          handleOptionClick(dateConfirm, dateInput.value);
+          dateConfirmBtn.setAttribute('disabled', 'true');
+          dateConfirmBtn.disabled = true;
+          dateInput.setAttribute('disabled', 'true');
+          dateInput.disabled = true;
+          // Also disable any sibling option buttons
+          var bubble = dateConfirmBtn.closest('.chat-products') || dateConfirmBtn.closest('.woo-chat-msg');
+          if (bubble) {
+            bubble.querySelectorAll('[data-chat-option]').forEach(function (btn) {
+              btn.setAttribute('disabled', 'true');
+              if (btn.tagName === 'BUTTON') btn.disabled = true;
+            });
+          }
+          var dateBubble = dateConfirmBtn.closest('.woo-chat-msg');
+          if (dateBubble) persistInteractionState(dateBubble);
+          quickSend(dateInput.value);
         }
         return;
       }
-    });
-    w.addEventListener('change', function(e) {
-      if (e.target.matches('[data-chat-date]')) {
-        var confirmBtn = w.querySelector('[data-chat-date-confirm]');
-        if (confirmBtn) confirmBtn.disabled = !e.target.value;
+
+      // Email confirm button (purchase catalog flow)
+      var emailConfirmBtn = e.target.closest('[data-chat-email-confirm]');
+      if (emailConfirmBtn) {
+        if (emailConfirmBtn.hasAttribute('disabled') || emailConfirmBtn.disabled) return;
+        var emailInput = emailConfirmBtn.parentElement.querySelector('[data-chat-email]');
+        if (emailInput && isValidEmail(emailInput.value.trim())) {
+          var emailValue = emailInput.value.trim();
+          emailConfirmBtn.disabled = true;
+          emailConfirmBtn.setAttribute('disabled', 'true');
+          emailInput.disabled = true;
+          emailInput.setAttribute('disabled', 'true');
+          var emailBubble = emailConfirmBtn.closest('.woo-chat-msg');
+          if (emailBubble) persistInteractionState(emailBubble);
+          quickSend('Mano el. paštas katalogui: ' + emailValue);
+        } else if (emailInput) {
+          emailInput.focus();
+          emailInput.style.borderColor = '#e74c3c';
+          var errEl = emailInput.parentElement.querySelector('.form-error');
+          if (!errEl) {
+            errEl = document.createElement('div');
+            errEl.className = 'form-error';
+            errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
+            emailInput.parentElement.appendChild(errEl);
+          }
+          errEl.textContent = 'Neteisingas el. pašto formatas';
+        }
+        return;
+      }
+
+      // Addon multi-select toggle
+      var addonCard = e.target.closest('[data-chat-addon]');
+      if (addonCard) {
+        if (addonCard.hasAttribute('disabled')) return;
+        addonCard.classList.toggle('addon-selected');
+        return;
+      }
+
+      // Addon continue button
+      var addonContinueBtn = e.target.closest('[data-chat-addon-continue]');
+      if (addonContinueBtn) {
+        if (addonContinueBtn.hasAttribute('disabled') || addonContinueBtn.disabled) return;
+        var addonBubble = addonContinueBtn.closest('.chat-products') || addonContinueBtn.closest('.woo-chat-msg');
+        var selected = [];
+        if (addonBubble) {
+          addonBubble.querySelectorAll('[data-chat-addon].addon-selected').forEach(function (card) {
+            selected.push(card.getAttribute('data-chat-addon'));
+          });
+          // Disable everything
+          addonContinueBtn.disabled = true;
+          addonContinueBtn.setAttribute('disabled', 'true');
+          addonBubble.querySelectorAll('[data-chat-addon]').forEach(function (card) {
+            card.setAttribute('disabled', 'true');
+          });
+        }
+        var chatBubble = addonContinueBtn.closest('.woo-chat-msg');
+        if (chatBubble) persistInteractionState(chatBubble);
+        var msg = selected.length > 0
+          ? 'Papildomos pramogos: ' + selected.join(', ')
+          : 'Be papildomų pramogų';
+        quickSend(msg);
+        return;
+      }
+
+      // Address city fill button
+      var addressFillBtn = e.target.closest('[data-chat-address-fill]');
+      if (addressFillBtn) {
+        if (addressFillBtn.hasAttribute('disabled')) return;
+        var city = addressFillBtn.getAttribute('data-chat-address-fill');
+        var addressForm = addressFillBtn.closest('.chat-products') || addressFillBtn.closest('.woo-chat-msg');
+        if (addressForm) {
+          var addrInput = addressForm.querySelector('[data-chat-address]');
+          if (addrInput && !addrInput.disabled) {
+            addrInput.value = city + ', ';
+            addrInput.focus();
+            var addrConfirm = addressForm.querySelector('[data-chat-address-confirm]');
+            if (addrConfirm) addrConfirm.disabled = !addrInput.value.trim();
+          }
+        }
+        return;
+      }
+
+      // Address confirm button
+      var addressConfirmBtn = e.target.closest('[data-chat-address-confirm]');
+      if (addressConfirmBtn) {
+        if (addressConfirmBtn.hasAttribute('disabled') || addressConfirmBtn.disabled) return;
+        var addrInput = addressConfirmBtn.parentElement.querySelector('[data-chat-address]');
+        if (addrInput && addrInput.value.trim()) {
+          var addressValue = addrInput.value.trim();
+          addressConfirmBtn.disabled = true;
+          addressConfirmBtn.setAttribute('disabled', 'true');
+          addrInput.disabled = true;
+          addrInput.setAttribute('disabled', 'true');
+          // Disable city fill buttons
+          var addrBubble = addressConfirmBtn.closest('.chat-products') || addressConfirmBtn.closest('.woo-chat-msg');
+          if (addrBubble) {
+            addrBubble.querySelectorAll('[data-chat-address-fill]').forEach(function (btn) {
+              btn.setAttribute('disabled', 'true');
+              if (btn.tagName === 'BUTTON') btn.disabled = true;
+            });
+          }
+          var chatBubble = addressConfirmBtn.closest('.woo-chat-msg');
+          if (chatBubble) persistInteractionState(chatBubble);
+          quickSend(addressValue);
+        }
+        return;
+      }
+
+      // Custom manufacturing form submit
+      var customSubmitBtn = e.target.closest('[data-chat-custom-submit]');
+      if (customSubmitBtn) {
+        if (customSubmitBtn.hasAttribute('disabled') || customSubmitBtn.disabled) return;
+        var form = customSubmitBtn.closest('.chat-custom-form');
+        if (!form) return;
+        var fields = form.querySelectorAll('[data-custom-field]');
+        var formData = {};
+        fields.forEach(function (field) {
+          formData[field.getAttribute('data-custom-field')] = field.value.trim();
+        });
+        // Validate email field — required
+        if (!formData.email || !isValidEmail(formData.email)) {
+          var emailInput = form.querySelector('[data-custom-field="email"]');
+          if (emailInput) {
+            emailInput.focus();
+            emailInput.style.borderColor = '#e74c3c';
+            var errEl = emailInput.parentElement.querySelector('.form-error');
+            if (!errEl) {
+              errEl = document.createElement('div');
+              errEl.className = 'form-error';
+              errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
+              emailInput.parentElement.appendChild(errEl);
+            }
+            errEl.textContent = !formData.email ? 'El. paštas privalomas' : 'Neteisingas el. pašto formatas';
+          }
+          return;
+        }
+        // Validate phone field — require at least 8 digits
+        var phoneVal = formData.phone || '';
+        if (phoneVal.replace(/\D/g, '').length < 8) {
+          var phoneInput = form.querySelector('[data-custom-field="phone"]');
+          if (phoneInput) {
+            phoneInput.focus();
+            phoneInput.style.borderColor = '#e74c3c';
+            var errEl2 = phoneInput.parentElement.querySelector('.form-error');
+            if (!errEl2) {
+              errEl2 = document.createElement('div');
+              errEl2.className = 'form-error';
+              errEl2.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
+              phoneInput.parentElement.appendChild(errEl2);
+            }
+            errEl2.textContent = 'Telefono numeris per trumpas';
+          }
+          return;
+        }
+        // Disable all form fields
+        customSubmitBtn.disabled = true;
+        customSubmitBtn.setAttribute('disabled', 'true');
+        fields.forEach(function (field) {
+          field.disabled = true;
+          field.setAttribute('disabled', 'true');
+        });
+        var customBubble = customSubmitBtn.closest('.woo-chat-msg');
+        if (customBubble) persistInteractionState(customBubble);
+        var summary = 'Individualaus batuto užklausa:\n';
+        if (formData.dimensions) summary += 'Matmenys: ' + formData.dimensions + '\n';
+        if (formData.colors) summary += 'Spalvos: ' + formData.colors + '\n';
+        if (formData.characters) summary += 'Personažai: ' + formData.characters + '\n';
+        if (formData.notes) summary += 'Papildomi pageidavimai: ' + formData.notes + '\n';
+        if (formData.email) summary += 'El. paštas: ' + formData.email + '\n';
+        if (formData.phone) summary += 'Telefonas: ' + formData.phone;
+        quickSend(summary.trim());
+        return;
       }
     });
 
-    if(state.open){scr();var inp=document.getElementById('woo-chat-input');if(inp)inp.focus();}
-
-    // Mobile keyboard-aware resize
-    if (state.open && window.innerWidth <= 480 && window.visualViewport) {
-      var chatWin = cw;
-      var initialHeight = window.visualViewport.height;
-      var onResize = function() {
-        var diff = initialHeight - window.visualViewport.height;
-        if (diff > 100) {
-          chatWin.style.height = (window.visualViewport.height - 80) + 'px';
-        } else {
-          chatWin.style.height = '';
+    document.addEventListener('click', function (e) {
+      var retryBtn = e.target.closest('[data-chat-retry]');
+      if (retryBtn && !state.sending) {
+        var textToRetry = state._lastSentText;
+        if (!textToRetry) {
+          for (var i = state.messages.length - 1; i >= 0; i--) {
+            if (state.messages[i].role === 'customer') {
+              textToRetry = state.messages[i].text;
+              break;
+            }
+          }
         }
-        scr();
-      };
-      window.visualViewport.addEventListener('resize', onResize);
-      cw._cleanupViewport = function() {
-        window.visualViewport.removeEventListener('resize', onResize);
-      };
-    }
+        if (!textToRetry) return;
+        var systemBubble = retryBtn.closest('.woo-chat-msg');
+        if (systemBubble) {
+          var container = document.getElementById('woo-chat-messages');
+          var bubbles = Array.from(container.querySelectorAll('.woo-chat-msg'));
+          var domIdx = bubbles.indexOf(systemBubble);
+          if (domIdx >= 0 && domIdx < state.messages.length && state.messages[domIdx].role === 'system') {
+            state.messages.splice(domIdx, 1);
+            saveSession();
+          }
+        }
+        addMessage('customer', textToRetry);
+        _sendToWebhook(textToRetry);
+        render();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      // FR-5.6: Focus trap inside open dialog
+      if (e.key === 'Tab' && state.open) {
+        var chatWin = document.querySelector('.woo-chat-window');
+        if (!chatWin) return;
+        var focusable = chatWin.querySelectorAll(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
+        );
+        if (focusable.length === 0) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first || !chatWin.contains(document.activeElement)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last || !chatWin.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+
+      if (e.key === 'Escape' && state.open) {
+        var active = document.activeElement;
+        var tag = active ? active.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+          active.blur();
+          return;
+        }
+        toggleChat();
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') {
+        var optBtn = e.target.closest('div[data-chat-option][role="button"]');
+        if (optBtn) {
+          e.preventDefault();
+          optBtn.click();
+          return;
+        }
+        var addonBtn = e.target.closest('[data-chat-addon]');
+        if (addonBtn) {
+          e.preventDefault();
+          addonBtn.click();
+          return;
+        }
+        var addonContinue = e.target.closest('[data-chat-addon-continue]');
+        if (addonContinue) {
+          e.preventDefault();
+          addonContinue.click();
+          return;
+        }
+      }
+    });
+
+    document.addEventListener('change', function (e) {
+      var dateInput = e.target.closest('[data-chat-date]');
+      if (dateInput) {
+        var confirmBtn = dateInput.parentElement.querySelector('[data-chat-date-confirm]');
+        if (confirmBtn) {
+          confirmBtn.disabled = !dateInput.value;
+        }
+      }
+    });
+
+    // Email input live validation
+    document.addEventListener('input', function (e) {
+      var emailInput = e.target.closest('[data-chat-email]');
+      if (emailInput) {
+        var confirmBtn = emailInput.parentElement.querySelector('[data-chat-email-confirm]');
+        if (confirmBtn) {
+          confirmBtn.disabled = !isValidEmail(emailInput.value.trim());
+        }
+      }
+
+      // Address input live validation
+      var addrInput = e.target.closest('[data-chat-address]');
+      if (addrInput) {
+        var addrConfirm = addrInput.parentElement.querySelector('[data-chat-address-confirm]');
+        if (addrConfirm) {
+          addrConfirm.disabled = !addrInput.value.trim();
+        }
+      }
+    });
   }
 
-  function handleOptionClick(btn, overrideValue) {
-    if (state.sending) return;
-    var value = overrideValue || btn.getAttribute('data-chat-option');
-    if (!value) return;
-
-    // Disable all sibling option buttons
-    var parent = btn.closest('.chat-products') || btn.closest('.woo-chat-msg');
-    if (parent) {
-      parent.querySelectorAll('[data-chat-option]').forEach(function(b) { b.disabled = true; b.setAttribute('disabled', 'true'); });
-      parent.querySelectorAll('[data-chat-date]').forEach(function(b) { b.disabled = true; });
-      parent.querySelectorAll('[data-chat-date-confirm]').forEach(function(b) { b.disabled = true; });
-      btn.classList.add('selected');
-    }
-
-    // Send as chat message
-    add('customer', value);
-    state.sending = true;
-    var sendBtn = document.getElementById('woo-chat-send-btn');
-    if (sendBtn) sendBtn.disabled = true;
-    typing(true);
-    var delay = 600 + Math.random() * 800;
-    setTimeout(function() {
-      typing(false);
-      add('agent', respond(value));
-      state.sending = false;
-      var b = document.getElementById('woo-chat-send-btn');
-      if (b) b.disabled = false;
-    }, delay);
-  }
-
-  function mkLangSelect() {
-    var s=el('select',{className:'woo-chat-lang-select','aria-label':'Kalba',onChange:function(){state.language=this.value;saveSession();render();}});
-    Object.keys(LANGUAGES).forEach(function(c){var o=el('option',{value:c},LANGUAGES[c].name);if(c===state.language)o.selected=true;s.appendChild(o);});
-    return s;
-  }
-
-  function toggle(){state.open=!state.open;render();}
-  function scr(){setTimeout(function(){var c=document.getElementById('woo-chat-messages');if(c)c.scrollTop=c.scrollHeight;},50);}
-  function typing(v){var e=document.getElementById('woo-chat-typing');if(e)e.className='woo-chat-typing'+(v?' visible':'');if(v)scr();}
-  function add(role,text){state.messages.push({role:role,text:text,time:Date.now()});saveSession();render();scr();}
-
-  function quickSend(text) {
-    add('customer', text);
-    state.sending = true;
-    typing(true);
-    var delay = 600 + Math.random() * 800;
-    setTimeout(function(){typing(false);add('agent',respond(text));state.sending=false;},delay);
-  }
-
-  function send() {
-    if(state.sending) return;
-    var inp=document.getElementById('woo-chat-input'); if(!inp)return;
-    var text=inp.value.trim(); if(!text)return;
-    if(text.length>MAX_MESSAGE_LENGTH) text=text.substring(0,MAX_MESSAGE_LENGTH);
-    add('customer',text);
-    state.sending=true;
-    var btn=document.getElementById('woo-chat-send-btn'); if(btn)btn.disabled=true;
-    typing(true);
-    var delay=800+Math.random()*1200;
-    setTimeout(function(){typing(false);add('agent',respond(text));state.sending=false;var b=document.getElementById('woo-chat-send-btn');if(b)b.disabled=false;},delay);
-  }
-
-  function esc() {
-    add('customer',t('escalate'));
-    typing(true);
-    setTimeout(function(){typing(false);add('agent','Suprantu, kad norėtumėte pasikalbėti su mūsų komanda. Galite susisiekti:\n\n- **Telefonas:** +370 648 803 88 (8:00-21:00)\n- **El. paštas:** info@batutynas.lt\n\nArba palikite savo kontaktus ir mes paskambinsime!');},1000);
-  }
+  // --- Public API ---
 
   window.BatutynasChat = {
-    init:function(){initSession();render();},
-    open:function(){state.open=true;render();},
-    close:function(){state.open=false;render();},
-    reset:function(){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(BOOKINGS_KEY);state.sessionId=genId();state.messages=[];bookingState={active:false,step:0,data:{},awaitingCustomInput:null};modifyState={active:false,bookingId:null,field:null,cancelling:false};render();}
+    init: function (options) {
+      if (!options || !options.webhookUrl) {
+        console.error('[BatutynasChat] webhookUrl is required. Call BatutynasChat.init({ webhookUrl: "..." })');
+        return;
+      }
+
+      Object.keys(options).forEach(function (key) {
+        if (Object.prototype.hasOwnProperty.call(config, key)) config[key] = options[key];
+      });
+
+      initSession();
+      attachDelegation();
+      render();
+
+      // Proactive greeting for new sessions (no existing messages)
+      if (state.messages.length === 0) {
+        setTimeout(function () {
+          if (state.open || state.messages.length > 0) return;
+          var greeting = state.language === 'en'
+            ? 'Hi! Planning an event? I can help with trampoline rental and prices.'
+            : 'Sveiki! Planuojate renginį? Galiu padėti su batutų nuoma ir kainomis.';
+          state.messages.push({ role: 'agent', text: greeting, time: Date.now() });
+          state._hasUnread = true;
+          saveSession();
+          render();
+        }, 6000);
+      }
+    },
+
+    open: function () {
+      state.open = true;
+      render();
+    },
+
+    close: function () {
+      state.open = false;
+      render();
+    },
+
+    reset: function () {
+      localStorage.removeItem(STORAGE_KEY);
+      state.sessionId = generateSessionId();
+      state.messages = [];
+      state.animatedOpen = false;
+      render();
+    },
+
+    setUser: function (email, name) {
+      config.userEmail = email;
+      config.userName = name;
+    }
   };
-  BatutynasChat.init();
 })();
+
+/* =====================================================================
+   DEMO MOCK BACKEND
+   Intercepts fetch() calls to the webhook URL and returns enriched
+   responses locally — no network required, works completely offline.
+   ===================================================================== */
+
+(function () {
+  var DEMO_WEBHOOK_URL = 'https://your-n8n-instance/webhook/batutynas-chat';
+
+  // ------------------------------------------------------------------ //
+  //  ENRICHER (copied verbatim from n8n-workflows/enrich-response-code.js)
+  //  Converts raw AI marker strings into enriched HTML.
+  // ------------------------------------------------------------------ //
+  function enrichResponse(response) {
+    if (!response || !response.trim()) {
+      return 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 648 803 88 arba info@batutynas.lt';
+    }
+
+    // Idempotency: skip if already enriched
+    if (response.startsWith('{{HTML}}')) {
+      return response;
+    }
+
+    // --- Equipment data (categorized by use-case groups) ---
+    var TRAMPOLINES = [
+      // --- big-park (for public events only) ---
+      { name: 'Džiumandži parkas', icon: '🌴', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', type: 'Nuotykių parkas · 14x16 m', capacity: 'Iki 40 vaikų', price: 'pagal užklausą', bg: '#fef9f0', min: 15, max: 200, cat: 'big-park', popular: true, detail: 'Amžius: 4–14 m. · Surinkimas: ~60 min · Reikia: lygios 16x14 m aikštelės · Įeina: batutas, generatorius, prižiūrėtojas' },
+      { name: 'Fantazijų parkas', icon: '🏰', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', type: 'Batutų parkas · 14x14 m', capacity: 'Iki 30 vaikų', price: 'pagal užklausą', bg: '#f5f0ff', min: 10, max: 150, cat: 'big-park', detail: 'Amžius: 4–14 m. · Surinkimas: ~50 min · Reikia: lygios 14x14 m aikštelės · Įeina: batutas, generatorius, prižiūrėtojas' },
+      { name: 'Giga ruožas', icon: '🏃', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', type: 'Kliūčių trasa 40 m · 45x8 m', capacity: '360 dalyvių/val.', price: 'pagal užklausą', bg: '#f0f9ff', min: 10, max: 1000, cat: 'big-park', popular: true, detail: 'Amžius: 6+ m. · Surinkimas: ~90 min · Reikia: 45x8 m aikštelės · Įeina: trasa, generatorius, 2 prižiūrėtojai' },
+
+      // --- mega-trampoline (for birthdays + public) ---
+      { name: 'Mega Waikiki', icon: '🌊', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg', type: 'Aukščiausias 8,5 m · 16x4 m', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', bg: '#e0f7fa', min: 5, max: 15, cat: 'mega-trampoline', popular: true, detail: 'Amžius: 4–14 m. · Aukštis: 8,5 m · Surinkimas: ~40 min · Čiuožykla + šokinėjimo zona · Įeina: generatorius' },
+      { name: 'Mega Rocket', icon: '🚀', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg', type: '2 dalių batutas · 14x5 m', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', bg: '#fff0f0', min: 5, max: 15, cat: 'mega-trampoline', detail: 'Amžius: 4–14 m. · 2 dalys: čiuožykla + arena · Surinkimas: ~40 min · Įeina: generatorius' },
+      { name: 'Mega Ufonautai', icon: '🛸', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg', type: '2 dalių batutas · 14x5 m', capacity: 'Iki 15 vaikų', price: 'pagal užklausą', bg: '#ede7f6', min: 5, max: 15, cat: 'mega-trampoline', detail: 'Amžius: 4–14 m. · 2 dalys: čiuožykla + šokinėjimo zona · Surinkimas: ~40 min · Įeina: generatorius' },
+      { name: 'Mega ruožas', icon: '🏃', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', type: 'Kliūčių trasa 21 m · 25x6 m', capacity: '240 dalyvių/val.', price: 'pagal užklausą', bg: '#e8f5e9', min: 8, max: 600, cat: 'mega-trampoline', detail: 'Amžius: 6+ m. · 21 m kliūčių trasa · Surinkimas: ~45 min · Įeina: generatorius, prižiūrėtojas' },
+
+      // --- standard-trampoline (for birthdays) ---
+      { name: 'Monstrai', icon: '👾', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png', type: 'Su Dart žaidimu · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#fce4ec', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3–12 m. · Su velcro Dart žaidimu · Surinkimas: ~25 min · Idealus gimtadieniams' },
+      { name: 'Candy Pop', icon: '🍭', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png', type: 'Spalvingas · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#fdf0ff', min: 4, max: 12, cat: 'standard-trampoline', popular: true, detail: 'Amžius: 3–12 m. · Spalvingas dizainas · Surinkimas: ~25 min · Šokinėjimo zona + čiuožykla' },
+      { name: 'Aštuonkojis', icon: '🐙', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png', type: 'Jūros tema · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#e0f2f1', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3–12 m. · Jūros tematika · Surinkimas: ~25 min · Šokinėjimo zona + čiuožykla' },
+      { name: 'Chameleonas', icon: '🦎', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png', type: 'Su čiuožykla · 8x5 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#f0fff4', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3–12 m. · Su didele čiuožykla · Surinkimas: ~25 min · Spalvų keitimo dizainas' },
+      { name: 'Vienaragiai', icon: '🦄', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', type: 'Su tuneliais · 9x4 m', capacity: 'Iki 12 vaikų', price: 'pagal užklausą', bg: '#f3e5f5', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3–10 m. · Su tuneliais ir čiuožykla · Surinkimas: ~25 min · Vienaragių tema' },
+      { name: 'Pilis mažiesiems', icon: '🏯', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', type: 'Iki 5 metų · 5x4 m', capacity: 'Iki 6 vaikų', price: 'pagal užklausą', bg: '#fff8e1', min: 2, max: 6, cat: 'standard-trampoline', detail: 'Amžius: 2–5 m. · Mažiausias batutas · Surinkimas: ~15 min · Saugus mažiausiems' },
+
+      // --- addon (extras for any event) ---
+      { name: 'Milžiniškas Dart', icon: '🎯', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga · 5x4,5 m', capacity: '60 dalyvių/val.', price: 'pagal užklausą', bg: '#fffff0', min: 1, max: 999, cat: 'addon', detail: 'Velcro kamuoliai + pripučiamas taikinys · Visos amžiaus grupės · Surinkimas: ~15 min' },
+      { name: 'Kamuolių medžioklė', icon: '⚽', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg', type: 'Komandinis žaidimas · 8 m arena', capacity: '4 žaidėjai/raundas', price: 'pagal užklausą', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Pripučiama arena · 4 žaidėjai vienu metu · Komandinis žaidimas · Surinkimas: ~20 min' },
+      { name: 'Rodeo bulius', icon: '🤠', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png', type: 'Mechaninis bulius · 5x5 m', capacity: 'Neribota', price: 'pagal užklausą', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: 'Mechaninis bulius su saugiu pripučiamu kilimėliu · Reguliuojamas greitis · Amžius: 6+' },
+      { name: 'Saldėsių aparatai', icon: '🍬', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', price: 'pagal užklausą', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu · Papildomi aparatai už papildomą mokestį' },
+
+      // --- party-equipment (party group only) ---
+      { name: 'Disco paviljonas', icon: '🪩', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas · 4x4 m', capacity: 'Iki 20 žmonių', price: 'pagal užklausą', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, detail: 'LED apšvietimas + garso sistema · 4x4 m palapinė · Tinka vakarėliams ir šokiams' },
+      { name: 'Putų šou', icon: '🫧', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', price: 'pagal užklausą', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', detail: 'Putų mašina + pripučiamas baseinas · Neriboti dalyviai · Vasaros pramoga' },
+      { name: 'Banketo stalai ir kėdės', icon: '🪑', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', price: 'pagal užklausą', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės · Iki 50 vietų · Pristatymas ir surinkimas įskaičiuota' }
+    ];
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function buildTrampolineCards(items, highlight, multiSelect, compact) {
+      var gridClass = compact ? 'chat-trampoline-grid t-grid-compact' : 'chat-trampoline-grid';
+      var html = '<div class="' + gridClass + '">';
+      for (var i = 0; i < items.length; i++) {
+        var t = items[i];
+        var thumb = t.img
+          ? '<img src="' + escapeHtml(t.img) + '" alt="' + escapeHtml(t.name) + '" data-chat-zoom>'
+          : escapeHtml(t.icon);
+        var bgClass = ' t-bg-' + t.cat;
+        var recClass = highlight ? ' t-recommended' : '';
+        var selectAttr = multiSelect
+          ? 'data-chat-addon="' + escapeHtml(t.name) + '"'
+          : 'data-chat-option="' + escapeHtml(t.name) + '"';
+        html += '<div class="chat-trampoline-select' + bgClass + recClass + '" role="button" tabindex="0" ' + selectAttr + '>';
+        if (t.popular) html += '<div class="chat-popular-badge">Populiariausias</div>';
+        html += '<div class="chat-trampoline-thumb">' + thumb + '</div>';
+        html += '<div class="chat-trampoline-info">';
+        html += '<div class="t-name">' + escapeHtml(t.name) + '</div>';
+        html += '<div class="t-meta">' + escapeHtml(t.type) + ' · ' + escapeHtml(t.capacity) + '</div>';
+        html += '<div class="t-price">' + escapeHtml(t.price) + '</div>';
+        html += '</div>';
+        if (t.detail) {
+          html += '<div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>';
+          html += '<div class="t-detail">' + escapeHtml(t.detail) + '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function buildGroupBirthdayEquipment(guestCount) {
+      var standard = TRAMPOLINES.filter(function(t) { return t.cat === 'standard-trampoline'; });
+      var mega = TRAMPOLINES.filter(function(t) { return t.cat === 'mega-trampoline'; });
+      var addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });
+      var all = standard.concat(mega);
+      var html = '';
+      if (guestCount) {
+        var recommended = all.filter(function(t) { return t.min <= guestCount && guestCount <= t.max; });
+        var others = all.filter(function(t) { return !(t.min <= guestCount && guestCount <= t.max); });
+        if (recommended.length > 0) {
+          html += '<div class="chat-section-title">Rekomenduojami jūsų šventei:</div>';
+          html += buildTrampolineCards(recommended, true, false, false);
+        }
+        if (others.length > 0) {
+          html += '<div class="chat-section-subtitle">Kiti batutai:</div>';
+          html += buildTrampolineCards(others, false, false, true);
+        }
+      } else {
+        html += buildTrampolineCards(all, false);
+      }
+      if (guestCount && guestCount > 15) {
+        html += '<div class="chat-birthday-cta">';
+        html += '<strong>💡 Dideliam būriui</strong> — turime dar didesnius nuotykių parkus ir kliūčių trasas!';
+        html += '<br><button class="chat-option-btn chat-cta-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Peržiūrėti didesnius batutus</button>';
+        html += '</div>';
+      }
+      if (addons.length > 0) {
+        html += '<div class="chat-section-subtitle">Papildomos pramogos:</div>';
+        html += buildTrampolineCards(addons, false, true, true);
+        html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
+      }
+      return html;
+    }
+
+    function buildGroupPublicEquipment(guestCount) {
+      var bigParks = TRAMPOLINES.filter(function(t) { return t.cat === 'big-park'; });
+      var mega = TRAMPOLINES.filter(function(t) { return t.cat === 'mega-trampoline'; });
+      var standard = TRAMPOLINES.filter(function(t) { return t.cat === 'standard-trampoline'; });
+      var addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });
+      var all = bigParks.concat(mega).concat(standard);
+      var html = '';
+      if (guestCount) {
+        var recommended = all.filter(function(t) { return t.min <= guestCount && guestCount <= t.max; });
+        var others = all.filter(function(t) { return !(t.min <= guestCount && guestCount <= t.max); });
+        if (recommended.length > 0) {
+          html += '<div class="chat-section-title">Rekomenduojami jūsų renginiui:</div>';
+          html += buildTrampolineCards(recommended, true, false, false);
+        }
+        if (others.length > 0) {
+          html += '<div class="chat-section-subtitle">Kiti batutai:</div>';
+          html += buildTrampolineCards(others, false, false, true);
+        }
+      } else {
+        html += buildTrampolineCards(all, false);
+      }
+      if (addons.length > 0) {
+        html += '<div class="chat-section-subtitle">Papildomos pramogos:</div>';
+        html += buildTrampolineCards(addons, false, true, true);
+        html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
+      }
+      return html;
+    }
+
+    function buildGroupPartyEquipment() {
+      var party = TRAMPOLINES.filter(function(t) { return t.cat === 'party-equipment'; });
+      var html = '<div class="chat-section-title">Vakarėlio įranga:</div>';
+      html += buildTrampolineCards(party, false, false, false);
+      return html;
+    }
+
+    function buildAddonUpsell() {
+      var addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });
+      var html = '<div class="chat-section-title">Papildykite savo šventę:</div>';
+      html += buildTrampolineCards(addons, false, true, false);
+      html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
+      return html;
+    }
+
+    function buildPurchaseSubmenu() {
+      var html = '<div class="chat-options">';
+      html += '<button class="chat-option-btn" data-chat-option="Noriu gauti batutų katalogą el. paštu">📧 Gauti katalogą el. paštu</button>';
+      html += '<button class="chat-option-btn" data-chat-option="Noriu individualios batuto gamybos">🎨 Individuali gamyba</button>';
+      html += '</div>';
+      return html;
+    }
+
+    function buildPurchaseEmailInput() {
+      var html = '<div class="chat-email-form">';
+      html += '<p class="chat-form-text">Įveskite savo el. pašto adresą ir atsiųsime batutų katalogą:</p>';
+      html += '<input type="email" class="chat-email-input" data-chat-email placeholder="jusu@pastas.lt">';
+      html += '<button class="chat-email-confirm" data-chat-email-confirm disabled>Siųsti katalogą</button>';
+      html += '</div>';
+      return html;
+    }
+
+    function buildPurchaseCustomForm() {
+      var html = '<div class="chat-custom-form">';
+      html += '<p class="chat-form-title">Individualaus batuto užklausa:</p>';
+      html += '<label class="chat-form-label">Pageidaujami matmenys (plotis x ilgis x aukštis):</label>';
+      html += '<input type="text" class="chat-custom-input" data-custom-field="dimensions" placeholder="pvz. 8x5x4 m">';
+      html += '<label class="chat-form-label">Spalvos:</label>';
+      html += '<input type="text" class="chat-custom-input" data-custom-field="colors" placeholder="pvz. mėlyna, raudona, geltona">';
+      html += '<label class="chat-form-label">Personažai / tema:</label>';
+      html += '<input type="text" class="chat-custom-input" data-custom-field="characters" placeholder="pvz. Spiderman, dinozaurai">';
+      html += '<label class="chat-form-label">Papildomi pageidavimai / eskizas:</label>';
+      html += '<textarea class="chat-custom-textarea" data-custom-field="notes" placeholder="Aprašykite savo viziją..." rows="3"></textarea>';
+      html += '<label class="chat-form-label">Kontaktinis el. paštas:</label>';
+      html += '<input type="email" class="chat-custom-input" data-custom-field="email" placeholder="jusu@pastas.lt">';
+      html += '<label class="chat-form-label">Telefono numeris:</label>';
+      html += '<input type="text" class="chat-custom-input" data-custom-field="phone" placeholder="+370 600 00000">';
+      html += '<button class="chat-custom-submit" data-chat-custom-submit>Pateikti užklausą</button>';
+      html += '</div>';
+      return html;
+    }
+
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+    function localIso(dt) { return dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate()); }
+
+    function buildDatePicker() {
+      var days = [];
+      var now = new Date();
+      var d = new Date(now);
+      d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+      for (var i = 0; i < 4; i++) {
+        var iso = localIso(d);
+        var label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });
+        days.push('<button class="chat-option-btn" data-chat-option="' + escapeHtml(iso) + '">' + escapeHtml(label) + '</button>');
+        d.setDate(d.getDate() + 7);
+      }
+      var nowIso = escapeHtml(localIso(now));
+      var html = '<div class="chat-options">' + days.join('') + '</div>';
+      html += '<input type="date" class="chat-date-input" data-chat-date min="' + nowIso + '" placeholder="Kita data...">';
+      html += '<button class="chat-date-confirm" data-chat-date-confirm disabled>Patvirtinti datą</button>';
+      return html;
+    }
+
+    function buildLocationOptions() {
+      var locs = ['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kelmė', 'Rietavas', 'Kitas miestas'];
+      var html = '<div class="chat-options">';
+      for (var i = 0; i < locs.length; i++) {
+        html += '<button class="chat-option-btn" data-chat-address-fill="' + escapeHtml(locs[i]) + '">' + escapeHtml(locs[i]) + '</button>';
+      }
+      html += '</div>';
+      html += '<div class="chat-address-form">';
+      html += '<input type="text" class="chat-address-input" data-chat-address placeholder="pvz. Tauragė, Žemaitės g. 15">';
+      html += '<div class="chat-address-hint">💡 Galite įvesti pilną adresą su gatve</div>';
+      html += '<button class="chat-address-confirm" data-chat-address-confirm disabled>Patvirtinti vietą</button>';
+      html += '</div>';
+      return html;
+    }
+
+    function buildGuestCountOptions() {
+      var ranges = [
+        { label: 'Iki 6 vaikų', value: 'Apie 6 vaikų' },
+        { label: '7–12 vaikų', value: 'Apie 10 vaikų' },
+        { label: '13–20 vaikų', value: 'Apie 15 vaikų' },
+        { label: 'Daugiau nei 20', value: 'Apie 30 vaikų' }
+      ];
+      var html = '<div class="chat-options" data-step="guest-count">';
+      for (var i = 0; i < ranges.length; i++) {
+        html += '<button class="chat-option-btn" data-chat-option="' + escapeHtml(ranges[i].value) + '">' + escapeHtml(ranges[i].label) + '</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function isOutOfHours() {
+      try {
+        var now = new Date();
+        var lt = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Vilnius' }));
+        var day = lt.getDay();
+        var hour = lt.getHours();
+        if (day === 0 || day === 6) return true;
+        if (hour < 8 || hour >= 18) return true;
+        return false;
+      } catch (e) { return false; }
+    }
+
+    function buildBookingConfirm(jsonStr) {
+      var data;
+      try { data = JSON.parse(jsonStr); } catch (e) { data = {}; }
+      var html = '<div class="booking-confirm">';
+      html += '<h4>✅ Užklausa pateikta!</h4>';
+      if (data.group_type) html += '<p><strong>Tipas:</strong> ' + escapeHtml(data.group_type) + '</p>';
+      if (data.date) html += '<p><strong>Data:</strong> ' + escapeHtml(data.date) + '</p>';
+      if (data.location) html += '<p><strong>Vieta:</strong> ' + escapeHtml(data.location) + '</p>';
+      if (data.address) html += '<p><strong>Adresas:</strong> ' + escapeHtml(data.address) + '</p>';
+      if (data.event_type) html += '<p><strong>Renginys:</strong> ' + escapeHtml(data.event_type) + '</p>';
+      if (data.guest_count) html += '<p><strong>Svečių:</strong> ' + escapeHtml(data.guest_count) + '</p>';
+      if (data.contact_name) html += '<p><strong>Kontaktas:</strong> ' + escapeHtml(data.contact_name) + '</p>';
+      if (data.contact_phone) html += '<p><strong>Telefonas:</strong> ' + escapeHtml(data.contact_phone) + '</p>';
+      if (data.trampoline) html += '<p><strong>Batutas:</strong> ' + escapeHtml(data.trampoline) + '</p>';
+      if (data.addons) html += '<p><strong>Papildomos pramogos:</strong> ' + escapeHtml(data.addons) + '</p>';
+      if (data.dimensions) html += '<p><strong>Matmenys:</strong> ' + escapeHtml(data.dimensions) + '</p>';
+      if (data.colors) html += '<p><strong>Spalvos:</strong> ' + escapeHtml(data.colors) + '</p>';
+      if (data.characters) html += '<p><strong>Personažai:</strong> ' + escapeHtml(data.characters) + '</p>';
+      if (data.email) html += '<p><strong>El. paštas:</strong> ' + escapeHtml(data.email) + '</p>';
+      if (isOutOfHours()) {
+        html += '<p class="booking-confirm-hours">⏰ Užklausa bus apdorota artimiausią darbo dieną (I–V, 8:00–18:00)</p>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function buildProgressBar(currentStep, totalSteps) {
+      var total = totalSteps || 3;
+      var html = '<div class="booking-progress">';
+      for (var i = 1; i <= total; i++) {
+        var cls = i < currentStep ? 'done' : (i === currentStep ? 'current' : '');
+        html += '<div class="bp-step' + (cls ? ' ' + cls : '') + '"></div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function buildMainMenu() {
+      var items = [
+        { label: '🎂 Vaikų gimtadienis ar krikštynos', value: 'Planuoju vaikų gimtadienį arba krikštynas' },
+        { label: '🎪 Viešas renginys ar įmonės sąskrydis', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
+        { label: '🎉 Triukšmingas vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
+        { label: '🛒 Noriu pirkti batutą', value: 'Noriu pirkti batutą' },
+        { label: 'ℹ️ Saugumas, DUK ir kontaktai', value: 'Saugumas, DUK ir kontaktai' }
+      ];
+      var html = '<div class="chat-main-menu"><div class="chat-options chat-menu-options">';
+      for (var i = 0; i < items.length; i++) {
+        html += '<button class="chat-option-btn chat-menu-btn" data-chat-option="' + escapeHtml(items[i].value) + '">' + escapeHtml(items[i].label) + '</button>';
+      }
+      html += '</div></div>';
+      return html;
+    }
+
+    function buildQuickReplies(buttons) {
+      if (!buttons || !buttons.length) return '';
+      var html = '<div class="chat-quick-replies">';
+      for (var i = 0; i < buttons.length; i++) {
+        var btn = buttons[i];
+        var label = typeof btn === 'string' ? btn : btn.label;
+        var value = typeof btn === 'string' ? btn : (btn.value || btn.label);
+        var isMenu = value === 'Pagrindinis meniu';
+        var btnClass = isMenu ? 'chat-option-btn chat-quick-reply-menu' : 'chat-option-btn';
+        html += '<button class="' + btnClass + '" data-chat-option="' + escapeHtml(value) + '">' + escapeHtml(label) + '</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    // --- Marker replacement ---
+    var markers = [
+      { pattern: /\[DATE_PICKER\]/g, fn: function() { return buildProgressBar(1) + buildDatePicker(); } },
+      { pattern: /\[GUEST_COUNT\]/g, fn: function() { return buildProgressBar(2) + buildGuestCountOptions(); } },
+      { pattern: /\[LOCATION_OPTIONS\]/g, fn: function() { return buildProgressBar(2) + buildLocationOptions(); } },
+      { pattern: /\[MAIN_MENU\]/g, fn: function() { return buildMainMenu(); } },
+      { pattern: /\[ADDON_UPSELL\]/g, fn: function() { return buildAddonUpsell(); } },
+      { pattern: /\[PURCHASE_SUBMENU\]/g, fn: function() { return buildPurchaseSubmenu(); } },
+      { pattern: /\[PURCHASE_EMAIL_INPUT\]/g, fn: function() { return buildPurchaseEmailInput(); } },
+      { pattern: /\[PURCHASE_CUSTOM_FORM\]/g, fn: function() { return buildPurchaseCustomForm(); } }
+    ];
+
+    var hasMarker = false;
+    var enriched = response;
+
+    for (var mi = 0; mi < markers.length; mi++) {
+      var before = enriched;
+      enriched = enriched.replace(markers[mi].pattern, markers[mi].fn);
+      if (enriched !== before) hasMarker = true;
+    }
+
+    // Handle MENU_GROUP_BIRTHDAY with optional guest count
+    var birthdayBefore = enriched;
+    enriched = enriched.replace(/\[MENU_GROUP_BIRTHDAY(?::(\d+))?\]/g, function(match, countStr) {
+      var count = countStr ? parseInt(countStr) : null;
+      return buildProgressBar(3, 3) + buildGroupBirthdayEquipment(count);
+    });
+    if (enriched !== birthdayBefore) hasMarker = true;
+
+    // Handle MENU_GROUP_PUBLIC with optional guest count
+    var publicBefore = enriched;
+    enriched = enriched.replace(/\[MENU_GROUP_PUBLIC(?::(\d+))?\]/g, function(match, countStr) {
+      var count = countStr ? parseInt(countStr) : null;
+      return buildProgressBar(3, 3) + buildGroupPublicEquipment(count);
+    });
+    if (enriched !== publicBefore) hasMarker = true;
+
+    // Handle MENU_GROUP_PARTY
+    var partyBefore = enriched;
+    enriched = enriched.replace(/\[MENU_GROUP_PARTY\]/g, function() {
+      return buildProgressBar(3, 3) + buildGroupPartyEquipment();
+    });
+    if (enriched !== partyBefore) hasMarker = true;
+
+    // Handle BOOKING_CONFIRM
+    var confirmBefore = enriched;
+    enriched = enriched.replace(/\[BOOKING_CONFIRM:(\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g, function(match, jsonStr) {
+      return buildBookingConfirm(jsonStr);
+    });
+    if (enriched !== confirmBefore) hasMarker = true;
+
+    // Fallback for malformed BOOKING_CONFIRM markers
+    var confirmResidual = enriched;
+    enriched = enriched.replace(/\[BOOKING_CONFIRM:[^\]]*\]/g, function() {
+      return buildBookingConfirm('{}');
+    });
+    if (enriched !== confirmResidual) hasMarker = true;
+
+    // Strip any remaining unrecognized markers
+    enriched = enriched.replace(/\[[A-Z][A-Z0-9_]*(?::[^\]]*?)?\]/g, '');
+
+    // --- Contextual quick replies ---
+    var hadDatePicker = enriched.includes('chat-date-input');
+    var hadLocationBtns = enriched.includes('chat-address-form');
+    var hadGuestCount = enriched.includes('data-step="guest-count"');
+    var hadBookingConfirm = enriched.includes('booking-confirm');
+    var hadMainMenu = enriched.includes('chat-main-menu');
+    var hadAddonUpsell = enriched.includes('chat-addon-continue');
+    var isBookingStep = hadDatePicker || hadLocationBtns || hadGuestCount || hadAddonUpsell;
+
+    var quickReplies = [];
+
+    if (hadBookingConfirm) {
+      quickReplies = [
+        { label: 'Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },
+        { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
+      ];
+    } else if (isBookingStep) {
+      quickReplies = [
+        { label: 'Atšaukti', value: 'Pagrindinis meniu' }
+      ];
+    } else if (!hadMainMenu) {
+      quickReplies = [
+        { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
+      ];
+    }
+
+    var quickHtml = buildQuickReplies(quickReplies);
+
+    // Fallback if nothing to show
+    if (!enriched.trim() && !quickHtml) {
+      return 'Atsiprašome, šiuo metu negaliu atsakyti. Susisiekite tiesiogiai: +370 648 803 88 arba info@batutynas.lt';
+    }
+
+    if (hasMarker || quickHtml) {
+      enriched = enriched.replace(/\\n/g, '\n');
+      enriched = enriched.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      enriched = enriched.replace(/\n/g, '<br>');
+      enriched = '{{HTML}}<div class="chat-products">' + enriched + quickHtml + '</div>';
+    }
+
+    return enriched;
+  }
+
+  // ------------------------------------------------------------------ //
+  //  MOCK AI — maps user input to raw AI response with marker strings
+  // ------------------------------------------------------------------ //
+  function mockAIResponse(message) {
+    var msg = message.toLowerCase();
+
+    // Welcome actions & main menu triggers
+    if (msg.includes('gimtadien') || msg.includes('krikštynas') || msg.includes('planuoju vaikų'))
+      return 'Puiku! Planuojate vaikų šventę! 🎂\n\nKada norėtumėte surengti šventę?\n\n[DATE_PICKER]';
+
+    if (msg.includes('viešą renginį') || msg.includes('įmonės sąskrydį') || msg.includes('planuoju viešą'))
+      return 'Puiku! Planuojate renginį! 🎪\n\nKada norėtumėte surengti renginį?\n\n[DATE_PICKER]';
+
+    if (msg.includes('triukšmingą vakarėlį') || msg.includes('vakarėlį'))
+      return 'Triukšmingas vakarėlis! 🎉\n\nŠtai mūsų vakarėlių įranga:\n\n[MENU_GROUP_PARTY]';
+
+    if (msg.includes('pirkti batutą') || msg.includes('noriu pirkti'))
+      return 'Norite įsigyti batutą? 🛒\n\nPasirinkite:\n\n[PURCHASE_SUBMENU]';
+
+    if (msg.includes('saugumas') || msg.includes('duk') || msg.includes('kontaktai') || msg.includes('info'))
+      return '**Kontaktai:**\nTel: +370 648 803 88\nEl. paštas: info@batutynas.lt\nAdresas: Tauragė\n\n**DUK:**\n• Batutai pristatomi ir surenkami nemokamai\n• Rezervacija užtvirtinama po apmokėjimo\n• Atšaukimas nemokamas prieš 48 val.\n\n[MAIN_MENU]';
+
+    if (msg.includes('pagrindinis meniu') || msg.includes('meniu'))
+      return 'Kuo galiu padėti? 😊\n\n[MAIN_MENU]';
+
+    // Date selection -> ask location
+    if (msg.match(/^\d{4}-\d{2}-\d{2}/) || msg.match(/^\w+\.,?\s+\w+\s+\d+/))
+      return 'Puiki data! 📅\n\nKur vyks šventė?\n\n[LOCATION_OPTIONS]';
+
+    // Location/address -> ask guest count
+    if (msg.includes('tauragė') || msg.includes('šilalė') || msg.includes('jurbarkas') ||
+        msg.includes('pagėgiai') || msg.includes('raseiniai') || msg.includes('kelmė') ||
+        msg.includes('rietavas') || msg.includes('kitas miestas') || msg.match(/\w+,\s+\w+\s+g\./))
+      return 'Ačiū! 📍\n\nKiek vaikų planuojate pakviesti?\n\n[GUEST_COUNT]';
+
+    // Guest count -> show equipment
+    if (msg.includes('vaikų'))
+      return 'Supratau! 👧👦\n\nŠtai jūsų šventei tinkantys batutai:\n\n[MENU_GROUP_BIRTHDAY:10]';
+
+    // Catalog request
+    if (msg.includes('katalogą') || msg.includes('gauti katalog'))
+      return 'Įveskite savo el. pašto adresą:\n\n[PURCHASE_EMAIL_INPUT]';
+
+    // Custom manufacturing
+    if (msg.includes('individualios') || msg.includes('individuali gamyba'))
+      return 'Užpildykite individualaus batuto užklausos formą:\n\n[PURCHASE_CUSTOM_FORM]';
+
+    // Email submission
+    if (msg.includes('el. paštas katalogui'))
+      return 'Ačiū! Katalogas bus išsiųstas per 24 val. 📧\n\n[MAIN_MENU]';
+
+    // Addon selection
+    if (msg.includes('papildomos pramogos') || msg.includes('be papildomų')) {
+      var addonsVal = msg.includes('be papildomų') ? 'Nėra' : message.replace('Papildomos pramogos: ', '');
+      return 'Puiku! 🎉\n\nUžklausa pateikta sėkmingai!\n\n[BOOKING_CONFIRM:{"group_type":"Gimtadienis","date":"2026-03-14","location":"Tauragė","guest_count":"10 vaikų","trampoline":"Candy Pop","addons":"' + addonsVal + '"}]';
+    }
+
+    // Trampoline selection
+    var trampolineNames = ['džiumandži', 'fantazijų', 'giga ruožas', 'mega waikiki', 'mega rocket', 'mega ufonautai', 'mega ruožas', 'monstrai', 'candy pop', 'aštuonkojis', 'chameleonas', 'vienaragiai', 'pilis mažiesiems'];
+    var trampolineDisplay = ['Džiumandži', 'Fantazijų', 'Giga ruožas', 'Mega Waikiki', 'Mega Rocket', 'Mega Ufonautai', 'Mega ruožas', 'Monstrai', 'Candy Pop', 'Aštuonkojis', 'Chameleonas', 'Vienaragiai', 'Pilis mažiesiems'];
+    for (var ti = 0; ti < trampolineNames.length; ti++) {
+      if (msg.includes(trampolineNames[ti])) {
+        return 'Pasirinkote: **' + trampolineDisplay[ti] + '** ✅\n\nPapildykite savo šventę papildomomis pramogomis:\n\n[ADDON_UPSELL]';
+      }
+    }
+
+    // Party equipment selection
+    var partyNames = ['disco paviljonas', 'putų šou', 'banketo stalai'];
+    var partyDisplay = ['Disco paviljonas', 'Putų šou', 'Banketo stalai ir kėdės'];
+    for (var pi = 0; pi < partyNames.length; pi++) {
+      if (msg.includes(partyNames[pi])) {
+        return 'Pasirinkote: **' + partyDisplay[pi] + '** ✅\n\nUžklausa pateikta sėkmingai!\n\n[BOOKING_CONFIRM:{"group_type":"Vakarėlis","trampoline":"' + partyDisplay[pi] + '"}]';
+      }
+    }
+
+    // Custom form submission
+    if (msg.includes('individualaus batuto užklausa'))
+      return 'Ačiū! Jūsų užklausa priimta. Susisieksime per 24 val. 📧\n\n[MAIN_MENU]';
+
+    // Repeat order
+    if (msg.includes('užsakyti dar'))
+      return 'Žinoma! Kuo galiu padėti? 😊\n\n[MAIN_MENU]';
+
+    // Default fallback
+    return 'Ačiū už žinutę! Galiu padėti su batutų nuoma, renginiais ir pirkimu.\n\n[MAIN_MENU]';
+  }
+
+  // ------------------------------------------------------------------ //
+  //  FETCH INTERCEPTOR — overrides window.fetch before init()
+  // ------------------------------------------------------------------ //
+  var _realFetch = window.fetch.bind(window);
+  window.fetch = function (url, options) {
+    // Only intercept calls to the demo webhook URL
+    if (typeof url === 'string' && url === DEMO_WEBHOOK_URL) {
+      return new Promise(function (resolve) {
+        // Parse the message from the request body
+        var message = '';
+        try {
+          var body = JSON.parse((options && options.body) || '{}');
+          message = body.message || '';
+        } catch (e) {
+          message = '';
+        }
+
+        // Simulate 800ms network latency
+        setTimeout(function () {
+          var rawResponse = mockAIResponse(message);
+          var enrichedResult = enrichResponse(rawResponse);
+          var responseBody = JSON.stringify({ response: enrichedResult });
+          resolve(new Response(responseBody, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        }, 800);
+      });
+    }
+
+    // Pass through any other fetch calls unchanged
+    return _realFetch(url, options);
+  };
+})();
+
+BatutynasChat.init({ webhookUrl: 'https://your-n8n-instance/webhook/batutynas-chat' });
 
 /* -- Demo Helpers -- */
 function demoType(text) {

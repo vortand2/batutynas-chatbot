@@ -26,14 +26,14 @@ const TRAMPOLINES = [
 
   // --- addon (extras for any event) ---
   { name: 'Milžiniškas Dart', icon: '🎯', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga · 5x4,5 m', capacity: '60 dalyvių/val.', price: 'pagal užklausą', bg: '#fffff0', min: 1, max: 999, cat: 'addon', detail: 'Velcro kamuoliai + pripučiamas taikinys · Visos amžiaus grupės · Surinkimas: ~15 min' },
-  { name: 'Kamuolių medžioklė', icon: '⚽', img: '', type: 'Komandinis žaidimas · 8 m arena', capacity: '4 žaidėjai/raundas', price: 'pagal užklausą', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Pripučiama arena · 4 žaidėjai vienu metu · Komandinis žaidimas · Surinkimas: ~20 min' },
-  { name: 'Rodeo bulius', icon: '🤠', img: '', type: 'Mechaninis bulius · 5x5 m', capacity: 'Neribota', price: 'pagal užklausą', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: 'Mechaninis bulius su saugiu pripučiamu kilimėliu · Reguliuojamas greitis · Amžius: 6+' },
-  { name: 'Saldėsių aparatai', icon: '🍬', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', price: 'pagal užklausą', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu · Papildomi aparatai už papildomą mokestį' },
+  { name: 'Kamuolių medžioklė', icon: '⚽', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg', type: 'Komandinis žaidimas · 8 m arena', capacity: '4 žaidėjai/raundas', price: 'pagal užklausą', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Pripučiama arena · 4 žaidėjai vienu metu · Komandinis žaidimas · Surinkimas: ~20 min' },
+  { name: 'Rodeo bulius', icon: '🤠', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png', type: 'Mechaninis bulius · 5x5 m', capacity: 'Neribota', price: 'pagal užklausą', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: 'Mechaninis bulius su saugiu pripučiamu kilimėliu · Reguliuojamas greitis · Amžius: 6+' },
+  { name: 'Saldėsių aparatai', icon: '🍬', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', price: 'pagal užklausą', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu · Papildomi aparatai už papildomą mokestį' },
 
   // --- party-equipment (party group only) ---
-  { name: 'Disco paviljonas', icon: '🪩', img: '', type: 'LED apšvietimas · 4x4 m', capacity: 'Iki 20 žmonių', price: 'pagal užklausą', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, detail: 'LED apšvietimas + garso sistema · 4x4 m palapinė · Tinka vakarėliams ir šokiams' },
+  { name: 'Disco paviljonas', icon: '🪩', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas · 4x4 m', capacity: 'Iki 20 žmonių', price: 'pagal užklausą', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, detail: 'LED apšvietimas + garso sistema · 4x4 m palapinė · Tinka vakarėliams ir šokiams' },
   { name: 'Putų šou', icon: '🫧', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', price: 'pagal užklausą', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', detail: 'Putų mašina + pripučiamas baseinas · Neriboti dalyviai · Vasaros pramoga' },
-  { name: 'Banketo stalai ir kėdės', icon: '🪑', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', price: 'pagal užklausą', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės · Iki 50 vietų · Pristatymas ir surinkimas įskaičiuota' }
+  { name: 'Banketo stalai ir kėdės', icon: '🪑', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', price: 'pagal užklausą', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės · Iki 50 vietų · Pristatymas ir surinkimas įskaičiuota' }
 ];
 
 // --- Render trampoline/equipment cards ---
@@ -103,7 +103,8 @@ function buildGroupBirthdayEquipment(guestCount) {
 
   if (addons.length > 0) {
     html += '<div class="chat-section-subtitle">Papildomos pramogos:</div>';
-    html += buildTrampolineCards(addons, false, false, true);
+    html += buildTrampolineCards(addons, false, true, true);
+    html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
   }
 
   return html;
@@ -137,7 +138,8 @@ function buildGroupPublicEquipment(guestCount) {
 
   if (addons.length > 0) {
     html += '<div class="chat-section-subtitle">Papildomos pramogos:</div>';
-    html += buildTrampolineCards(addons, false, false, true);
+    html += buildTrampolineCards(addons, false, true, true);
+    html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
   }
 
   return html;
@@ -230,6 +232,7 @@ function buildLocationOptions() {
   html += '</div>';
   html += '<div class="chat-address-form">';
   html += '<input type="text" class="chat-address-input" data-chat-address placeholder="pvz. Tauragė, Žemaitės g. 15">';
+  html += '<div class="chat-address-hint">💡 Galite įvesti pilną adresą su gatve</div>';
   html += '<button class="chat-address-confirm" data-chat-address-confirm disabled>Patvirtinti vietą</button>';
   html += '</div>';
   return html;
@@ -237,10 +240,10 @@ function buildLocationOptions() {
 
 function buildGuestCountOptions() {
   const ranges = [
-    { label: 'Iki 6 vaikų', value: 'Apie 6 svečių' },
-    { label: '7–12 vaikų', value: 'Apie 10 svečių' },
-    { label: '13–20 vaikų', value: 'Apie 15 svečių' },
-    { label: 'Daugiau nei 20', value: 'Apie 30 svečių' }
+    { label: 'Iki 6 vaikų', value: 'Apie 6 vaikų' },
+    { label: '7–12 vaikų', value: 'Apie 10 vaikų' },
+    { label: '13–20 vaikų', value: 'Apie 15 vaikų' },
+    { label: 'Daugiau nei 20', value: 'Apie 30 vaikų' }
   ];
   let html = '<div class="chat-options" data-step="guest-count">';
   for (const r of ranges) {
@@ -388,7 +391,7 @@ if (enriched !== partyBefore) hasMarker = true;
 
 // Handle BOOKING_CONFIRM separately (has capture group)
 const confirmBefore = enriched;
-enriched = enriched.replace(/\[BOOKING_CONFIRM:(\{[^\]]*\})\]/g, function(match, jsonStr) {
+enriched = enriched.replace(/\[BOOKING_CONFIRM:(\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g, function(match, jsonStr) {
   return buildBookingConfirm(jsonStr);
 });
 if (enriched !== confirmBefore) hasMarker = true;
@@ -404,15 +407,11 @@ if (enriched !== confirmResidual) hasMarker = true;
 enriched = enriched.replace(/\[[A-Z][A-Z0-9_]*(?::[^\]]*?)?\]/g, '');
 
 // --- Contextual quick replies (always appended) ---
-const hadCatalog = enriched.includes('chat-trampoline-grid');
 const hadDatePicker = enriched.includes('chat-date-input');
 const hadLocationBtns = enriched.includes('chat-address-form');
 const hadGuestCount = enriched.includes('data-step="guest-count"');
 const hadBookingConfirm = enriched.includes('booking-confirm');
 const hadMainMenu = enriched.includes('chat-main-menu');
-const hadPurchaseSubmenu = enriched.includes('Noriu gauti batutų katalogą');
-const hadEmailInput = enriched.includes('chat-email-form');
-const hadCustomForm = enriched.includes('chat-custom-form');
 const hadAddonUpsell = enriched.includes('chat-addon-continue');
 const isBookingStep = hadDatePicker || hadLocationBtns || hadGuestCount || hadAddonUpsell;
 
@@ -423,21 +422,13 @@ if (hadBookingConfirm) {
     { label: 'Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },
     { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
   ];
-} else if (hadCatalog) {
-  quickReplies = [
-    { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
-  ];
-} else if (hadEmailInput || hadCustomForm || hadPurchaseSubmenu) {
-  quickReplies = [
-    { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
-  ];
 } else if (isBookingStep) {
   quickReplies = [
     { label: 'Atšaukti', value: 'Pagrindinis meniu' }
   ];
-} else if (hadMainMenu) {
-  quickReplies = [];
-} else {
+} else if (!hadMainMenu) {
+  // hadCatalog, hadEmailInput, hadCustomForm, hadPurchaseSubmenu, and plain-text
+  // responses all get a home button; only the main menu suppresses it (it's self-contained)
   quickReplies = [
     { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
   ];

@@ -30,12 +30,12 @@ function enrichChatwootResponse(response, isMessenger) {
     { name: 'Vienaragiai', icon: '\u{1F984}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', type: 'Su tuneliais \u00b7 9x4 m', capacity: 'Iki 12 vaikų', bg: '#f3e5f5', min: 4, max: 12, cat: 'standard-trampoline', detail: 'Amžius: 3\u201310 m. \u00b7 Su tuneliais ir čiuožykla \u00b7 Surinkimas: ~25 min \u00b7 Vienaragių tema' },
     { name: 'Pilis mažiesiems', icon: '\u{1F3EF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', type: 'Iki 5 metų \u00b7 5x4 m', capacity: 'Iki 6 vaikų', bg: '#fff8e1', min: 2, max: 6, cat: 'standard-trampoline', detail: 'Amžius: 2\u20135 m. \u00b7 Mažiausias batutas \u00b7 Surinkimas: ~15 min \u00b7 Saugus mažiausiems' },
     { name: 'Milžiniškas Dart', icon: '\u{1F3AF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga \u00b7 5x4,5 m', capacity: '60 dalyvių/val.', bg: '#fffff0', min: 1, max: 999, cat: 'addon', detail: 'Velcro kamuoliai + pripučiamas taikinys \u00b7 Visos amžiaus grupės \u00b7 Surinkimas: ~15 min' },
-    { name: 'Kamuolių medžioklė', icon: '\u26BD', img: '', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Pripučiama arena \u00b7 4 žaidėjai vienu metu \u00b7 Komandinis žaidimas \u00b7 Surinkimas: ~20 min' },
-    { name: 'Rodeo bulius', icon: '\u{1F920}', img: '', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: 'Mechaninis bulius su saugiu pripučiamu kilimėliu \u00b7 Reguliuojamas greitis \u00b7 Amžius: 6+' },
-    { name: 'Saldėsių aparatai', icon: '\u{1F36C}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas \u00b7 1 aparatas NEMOKAMAI su batutu \u00b7 Papildomi aparatai už papildomą mokestį' },
-    { name: 'Disco paviljonas', icon: '\u{1FAA9}', img: '', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, detail: 'LED apšvietimas + garso sistema \u00b7 4x4 m palapinė \u00b7 Tinka vakarėliams ir šokiams' },
+    { name: 'Kamuolių medžioklė', icon: '\u26BD', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Pripučiama arena \u00b7 4 žaidėjai vienu metu \u00b7 Komandinis žaidimas \u00b7 Surinkimas: ~20 min' },
+    { name: 'Rodeo bulius', icon: '\u{1F920}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: 'Mechaninis bulius su saugiu pripučiamu kilimėliu \u00b7 Reguliuojamas greitis \u00b7 Amžius: 6+' },
+    { name: 'Saldėsių aparatai', icon: '\u{1F36C}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', detail: 'Cukraus vata + popcorn + šerbetas \u00b7 1 aparatas NEMOKAMAI su batutu \u00b7 Papildomi aparatai už papildomą mokestį' },
+    { name: 'Disco paviljonas', icon: '\u{1FAA9}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, detail: 'LED apšvietimas + garso sistema \u00b7 4x4 m palapinė \u00b7 Tinka vakarėliams ir šokiams' },
     { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', detail: 'Putų mašina + pripučiamas baseinas \u00b7 Neriboti dalyviai \u00b7 Vasaros pramoga' },
-    { name: 'Banketo stalai ir kėdės', messengerName: 'Stalai ir kėdės', icon: '\u{1FA91}', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės \u00b7 Iki 50 vietų \u00b7 Pristatymas ir surinkimas įskaičiuota' }
+    { name: 'Banketo stalai ir kėdės', messengerName: 'Stalai ir kėdės', icon: '\u{1FA91}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės \u00b7 Iki 50 vietų \u00b7 Pristatymas ir surinkimas įskaičiuota' }
   ];
 
   // --- Helper functions ---
@@ -240,10 +240,11 @@ function enrichChatwootResponse(response, isMessenger) {
       content_type: 'input_select',
       content_attributes: {
         items: [
-          { title: 'Iki 6 vaikų', value: 'Apie 6 svečių' },
-          { title: '7\u201312 vaikų', value: 'Apie 10 svečių' },
-          { title: '13\u201320 vaikų', value: 'Apie 15 svečių' },
-          { title: 'Daugiau nei 20', value: 'Apie 30 svečių' }
+          { title: 'Iki 6', value: 'Apie 6 vaikų' },
+          { title: '7\u201312', value: 'Apie 10 vaikų' },
+          { title: '13\u201320', value: 'Apie 15 vaikų' },
+          { title: '21\u201350', value: 'Apie 35 vaikų' },
+          { title: '50+', value: 'Daugiau nei 50 vaikų' }
         ]
       },
       message_type: 'outgoing'

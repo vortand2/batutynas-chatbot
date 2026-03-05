@@ -5,7 +5,7 @@
   --chat-gradient: linear-gradient(135deg, #6C3CE1, #8B5CF6);
   --chat-gradient-dark: linear-gradient(135deg, #4C1D95, #6C3CE1);
   --chat-bg: #ffffff;
-  --chat-messages-bg: #fafbfc;
+  --chat-messages-bg: #f8f6fd;
   --chat-msg-customer: #EDE5FF;
   --chat-msg-agent: #f4f5f7;
   --chat-text: #1a1a2e;
@@ -240,7 +240,7 @@
   white-space: pre-wrap;
   font-size: 13px;
   line-height: 1.55;
-  animation: woo-msgIn 0.25s ease;
+  animation: woo-msgIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes woo-msgIn {
@@ -252,7 +252,8 @@
   background: white;
   align-self: flex-start;
   border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.08);
+  border: 1px solid #e8e0f0;
 }
 
 .woo-chat-msg.customer {
@@ -331,7 +332,7 @@
 .woo-chat-typing span {
   width: 7px;
   height: 7px;
-  background: #b0b8c5;
+  background: #a78bfa;
   border-radius: 50%;
   animation: woo-chat-bounce 1.4s infinite;
 }
@@ -358,6 +359,13 @@
   align-items: flex-end;
   flex-shrink: 0;
   background: white;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+}
+
+.woo-chat-input-area input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  border-color: #a78bfa;
 }
 
 .woo-chat-input {
@@ -438,23 +446,101 @@
   color: #c2410c;
 }
 
-/* Welcome Message */
+/* --- Welcome Screen --- */
 .woo-chat-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  gap: 0;
+}
+.welcome-hero {
+  width: 100%;
+  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #c4b5fd 100%);
+  border-radius: 0 0 24px 24px;
+  padding: 32px 20px 24px;
   text-align: center;
-  padding: 24px 16px;
-  color: var(--chat-text-light);
-  font-size: 13px;
+  color: white;
 }
-
-.woo-chat-welcome h4 {
-  color: var(--chat-text);
-  margin: 0 0 4px 0;
-  font-size: 16px;
+.welcome-emoji-row {
+  font-size: 28px;
+  letter-spacing: 8px;
+  margin-bottom: 12px;
+}
+.welcome-title {
+  font-size: 20px;
   font-weight: 700;
+  margin-bottom: 6px;
+  color: white;
 }
-
-.woo-chat-welcome p {
-  margin-bottom: 16px;
+.welcome-subtitle {
+  font-size: 13px;
+  opacity: 0.9;
+  color: rgba(255,255,255,0.9);
+}
+.welcome-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 16px 0;
+}
+.welcome-pill {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f3f0ff;
+  color: #7c3aed;
+  font-weight: 600;
+  border: 1px solid #e9e0ff;
+}
+.welcome-divider {
+  font-size: 13px;
+  color: #8b95a5;
+  padding: 14px 0 8px;
+  text-align: center;
+  width: 100%;
+}
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 16px;
+  width: 100%;
+}
+.welcome-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: white;
+  text-align: left;
+}
+.welcome-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.welcome-action-btn.wa-birthday {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+}
+.welcome-action-btn.wa-event {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+}
+.welcome-action-btn.wa-buy {
+  background: linear-gradient(135deg, #34d399, #10b981);
+}
+.welcome-action-btn.wa-info {
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+}
+.welcome-action-emoji {
+  font-size: 22px;
+  flex-shrink: 0;
 }
 
 /* Quick Prompt Buttons */
@@ -511,6 +597,11 @@
   border-color: var(--chat-primary);
 }
 
+.chat-option-btn:hover:not([disabled]) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+
 .chat-option-btn.selected {
   background: var(--chat-primary);
   color: white;
@@ -546,29 +637,6 @@
 
 .chat-date-input:focus {
   border-color: var(--chat-primary);
-}
-
-.chat-date-confirm {
-  margin-top: 6px;
-  padding: 8px 18px;
-  background: var(--chat-primary);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.2s;
-}
-
-.chat-date-confirm:hover {
-  background: var(--chat-primary-hover);
-}
-
-.chat-date-confirm:disabled {
-  background: #d0d4db;
-  cursor: default;
 }
 
 /* Markdown-like formatting in messages */
@@ -686,15 +754,7 @@
   transform: scale(1.03);
 }
 
-/* Zoom hint overlay on images */
-.chat-trampoline-thumb img::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.1);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
+/* Note: img::after removed — pseudo-elements don't work on replaced elements (img) */
 
 /* === Card Info Section === */
 .chat-trampoline-info {
@@ -998,124 +1058,10 @@
   border-radius: 10px;
 }
 
-.chat-email-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #d8ccf5;
-  border-radius: 10px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--chat-text);
-  background: white;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.chat-email-input:focus {
-  border-color: var(--chat-primary);
-}
-
-.chat-email-confirm {
-  margin-top: 8px;
-  padding: 8px 18px;
-  background: var(--chat-primary);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.2s;
-}
-
-.chat-email-confirm:hover {
-  background: var(--chat-primary-hover);
-}
-
-.chat-email-confirm:disabled {
-  background: #d0d4db;
-  cursor: default;
-}
-
-/* Address Input Form (location step) */
-.chat-address-form {
-  margin-top: 10px;
-  padding: 12px;
-  background: #fafbfc;
-  border: 1px solid var(--chat-border);
-  border-radius: 10px;
-}
-
-.chat-address-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #d8ccf5;
-  border-radius: 10px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--chat-text);
-  background: white;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.chat-address-input:focus {
-  border-color: var(--chat-primary);
-}
-
-.chat-address-confirm {
-  margin-top: 8px;
-  padding: 8px 18px;
-  background: var(--chat-primary);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.2s;
-}
-
-.chat-address-confirm:hover {
-  background: var(--chat-primary-hover);
-}
-
-.chat-address-confirm:disabled {
-  background: #d0d4db;
-  cursor: default;
-}
-
-/* Custom Manufacturing Form (purchase flow) */
-.chat-custom-form {
-  margin-top: 10px;
-  padding: 12px;
-  background: #fafbfc;
-  border: 1px solid var(--chat-border);
-  border-radius: 10px;
-}
-
-.chat-custom-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #d8ccf5;
-  border-radius: 10px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--chat-text);
-  background: white;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.chat-custom-input:focus {
-  border-color: var(--chat-primary);
-}
-
+/* Shared input styles (email / address / custom) */
+.chat-email-input,
+.chat-address-input,
+.chat-custom-input,
 .chat-custom-textarea {
   box-sizing: border-box;
   width: 100%;
@@ -1127,13 +1073,81 @@
   color: var(--chat-text);
   background: white;
   outline: none;
-  resize: vertical;
-  min-height: 60px;
   transition: border-color 0.2s;
 }
 
+.chat-email-input:focus,
+.chat-address-input:focus,
+.chat-custom-input:focus,
 .chat-custom-textarea:focus {
   border-color: var(--chat-primary);
+}
+
+/* Textarea-specific overrides */
+.chat-custom-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Shared confirm button styles (date / email / address) */
+.chat-date-confirm,
+.chat-email-confirm,
+.chat-address-confirm {
+  margin-top: 6px;
+  padding: 8px 18px;
+  background: var(--chat-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.chat-date-confirm:hover,
+.chat-email-confirm:hover,
+.chat-address-confirm:hover {
+  background: var(--chat-primary-hover);
+}
+
+.chat-date-confirm:disabled,
+.chat-email-confirm:disabled,
+.chat-address-confirm:disabled {
+  background: #d0d4db;
+  cursor: default;
+}
+
+/* email-confirm / address-confirm individual margin override */
+.chat-email-confirm,
+.chat-address-confirm {
+  margin-top: 8px;
+}
+
+.chat-address-hint {
+  font-size: 11px;
+  color: #8b95a5;
+  margin-top: 4px;
+  padding-left: 2px;
+}
+
+/* Address Input Form (location step) */
+.chat-address-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+}
+
+/* Custom Manufacturing Form (purchase flow) */
+.chat-custom-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
 }
 
 .chat-custom-submit {

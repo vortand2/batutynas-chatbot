@@ -93,14 +93,14 @@ var TRAMPOLINES = [
 
   // --- addon (extras for any event) ---
   { name: 'Milžiniškas Dart', icon: '\u{1F3AF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', type: 'Interaktyvi pramoga \u00b7 5x4,5 m', capacity: '60 dalyvių/val.', bg: '#fffff0', min: 1, max: 999, cat: 'addon', shortDesc: '60 dalyvių/val. \u00b7 visos amžiaus grupės' },
-  { name: 'Kamuolių medžioklė', icon: '\u26BD', img: '', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', shortDesc: '4 žaidėjai/raundas \u00b7 komandinis' },
-  { name: 'Rodeo bulius', icon: '\u{1F920}', img: '', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', shortDesc: 'Neribota dalyvių \u00b7 nuo 6 m.' },
-  { name: 'Saldėsių aparatai', icon: '\u{1F36C}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', shortDesc: '1 NEMOKAMAI su batutu' },
+  { name: 'Kamuolių medžioklė', icon: '\u26BD', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', shortDesc: '4 žaidėjai/raundas \u00b7 komandinis' },
+  { name: 'Rodeo bulius', icon: '\u{1F920}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', shortDesc: 'Neribota dalyvių \u00b7 nuo 6 m.' },
+  { name: 'Saldėsių aparatai', icon: '\u{1F36C}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', shortDesc: '1 NEMOKAMAI su batutu' },
 
   // --- party-equipment (party group only) ---
-  { name: 'Disco paviljonas', icon: '\u{1FAA9}', img: '', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, shortDesc: 'Iki 20 žmonių \u00b7 LED + garsas' },
+  { name: 'Disco paviljonas', icon: '\u{1FAA9}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f5f0ff', min: 1, max: 999, cat: 'party-equipment', popular: true, shortDesc: 'Iki 20 žmonių \u00b7 LED + garsas' },
   { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Neribota dalyvių \u00b7 vasaros hit' },
-  { name: 'Banketo stalai ir kėdės', messengerName: 'Stalai ir kėdės', icon: '\u{1FA91}', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Iki 50 vietų \u00b7 pristatymas įskaičiuotas' }
+  { name: 'Banketo stalai ir kėdės', messengerName: 'Stalai ir kėdės', icon: '\u{1FA91}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Iki 50 vietų \u00b7 pristatymas įskaičiuotas' }
 ];
 
 // --- Helper: format item for text (Messenger fallback) ---
@@ -401,11 +401,11 @@ function buildGuestCountOptions() {
     content_type: 'input_select',
     content_attributes: {
       items: [
-        { title: 'Iki 6', value: 'Apie 6 svečių' },
-        { title: '7\u201312', value: 'Apie 10 svečių' },
-        { title: '13\u201320', value: 'Apie 15 svečių' },
-        { title: '21\u201350', value: 'Apie 35 svečių' },
-        { title: '50+', value: 'Daugiau nei 50 svečių' }
+        { title: 'Iki 6', value: 'Apie 6 vaikų' },
+        { title: '7\u201312', value: 'Apie 10 vaikų' },
+        { title: '13\u201320', value: 'Apie 15 vaikų' },
+        { title: '21\u201350', value: 'Apie 35 vaikų' },
+        { title: '50+', value: 'Daugiau nei 50 vaikų' }
       ]
     },
     message_type: 'outgoing'

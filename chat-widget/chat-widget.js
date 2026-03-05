@@ -167,23 +167,25 @@
     var messagesContainer = el('div', { className: 'woo-chat-messages', id: 'woo-chat-messages', role: 'log', 'aria-live': 'polite' });
 
     if (state.messages.length === 0) {
-      var welcomeDiv = el('div', { className: 'woo-chat-welcome' }, [
-        el('h4', null, t('welcomeTitle')),
-        el('p', null, t('welcome'))
-      ]);
-
-      // Quick prompt buttons
-      var prompts = config.quickPrompts || QUICK_PROMPTS[state.language] || QUICK_PROMPTS.lt;
-      if (prompts && prompts.length > 0) {
-        var btnsContainer = el('div', { className: 'woo-chat-quick-btns' });
-        prompts.forEach(function (prompt) {
-          btnsContainer.appendChild(el('button', {
-            className: 'woo-chat-quick-btn',
-            onClick: function () { quickSend(prompt); }
-          }, prompt));
-        });
-        welcomeDiv.appendChild(btnsContainer);
-      }
+      var welcomeDiv = el('div', { className: 'woo-chat-welcome' });
+      welcomeDiv.innerHTML = '<div class="welcome-hero">' +
+        '<div class="welcome-emoji-row">\uD83C\uDFAA \uD83C\uDFF0 \uD83C\uDF89 \uD83E\uDD84</div>' +
+        '<div class="welcome-title">Batutynas.lt</div>' +
+        '<div class="welcome-subtitle">Batut\u0173 nuoma \u0161vent\u0117ms ir renginiams</div>' +
+        '</div>' +
+        '<div class="welcome-pills">' +
+        '<span class="welcome-pill">Gimtadieniai</span>' +
+        '<span class="welcome-pill">Renginiai</span>' +
+        '<span class="welcome-pill">Vakar\u0117liai</span>' +
+        '<span class="welcome-pill">Pirkimas</span>' +
+        '</div>' +
+        '<div class="welcome-divider">K\u0105 norite veikti?</div>' +
+        '<div class="welcome-actions">' +
+        '<button class="welcome-action-btn wa-birthday" data-welcome-action="Planuoju vaik\u0173 gimtadien\u012F arba krik\u0161tynas"><span class="welcome-action-emoji">\uD83C\uDF82</span>Planuoti gimtadien\u012F</button>' +
+        '<button class="welcome-action-btn wa-event" data-welcome-action="Planuoju vie\u0161\u0105 rengin\u012F arba \u012Fmon\u0117s s\u0105skrydi"><span class="welcome-action-emoji">\uD83C\uDFAA</span>Vie\u0161as renginys</button>' +
+        '<button class="welcome-action-btn wa-buy" data-welcome-action="Noriu pirkti batut\u0105"><span class="welcome-action-emoji">\uD83D\uDED2</span>Pirkti batut\u0105</button>' +
+        '<button class="welcome-action-btn wa-info" data-welcome-action="Saugumas, DUK ir kontaktai"><span class="welcome-action-emoji">\u2139\uFE0F</span>Info ir kontaktai</button>' +
+        '</div>';
 
       messagesContainer.appendChild(welcomeDiv);
     }
@@ -576,6 +578,58 @@
     _delegationAttached = true;
 
     document.addEventListener('click', function (e) {
+      // Welcome screen action buttons
+      var welcomeBtn = e.target.closest('[data-welcome-action]');
+      if (welcomeBtn) {
+        var value = welcomeBtn.getAttribute('data-welcome-action');
+        quickSend(value);
+        // Safety fallback: remove welcome screen immediately in case render() is async/delayed
+        // and the welcome element would otherwise remain visible momentarily.
+        var welcomeEl = document.querySelector('.woo-chat-welcome');
+        if (welcomeEl) welcomeEl.remove();
+        return;
+      }
+
+      // Detail expand toggle (MUST be before data-chat-option to prevent parent card capture)
+      var detailBtn = e.target.closest('[data-chat-detail-toggle]');
+      if (detailBtn) {
+        e.stopPropagation();
+        var card = detailBtn.closest('.chat-trampoline-select');
+        if (card) {
+          var detail = card.querySelector('.t-detail');
+          if (detail) detail.classList.toggle('open');
+        }
+        return;
+      }
+
+      // Image zoom on click (MUST be before data-chat-option)
+      var zoomImg = e.target.closest('[data-chat-zoom]');
+      if (zoomImg && zoomImg.tagName === 'IMG') {
+        e.stopPropagation();
+        e.preventDefault();
+        var overlay = document.createElement('div');
+        overlay.className = 't-zoom-overlay';
+        var fullImg = document.createElement('img');
+        fullImg.src = zoomImg.src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=800');
+        fullImg.alt = zoomImg.alt || '';
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 't-zoom-close';
+        closeBtn.textContent = '\u00d7';
+        overlay.appendChild(fullImg);
+        overlay.appendChild(closeBtn);
+        if (zoomImg.alt) {
+          var caption = document.createElement('div');
+          caption.className = 't-zoom-caption';
+          caption.textContent = zoomImg.alt;
+          overlay.appendChild(caption);
+        }
+        function closeOverlay() { overlay.remove(); }
+        overlay.addEventListener('click', closeOverlay);
+        fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
+        document.body.appendChild(overlay);
+        return;
+      }
+
       // Option buttons (pill buttons and trampoline cards)
       var optBtn = e.target.closest('[data-chat-option]');
       if (optBtn) {
@@ -653,46 +707,6 @@
             emailInput.parentElement.appendChild(errEl);
           }
           errEl.textContent = 'Neteisingas el. pašto formatas';
-        }
-        return;
-      }
-
-      // Detail expand toggle
-      // Image zoom on click
-      var zoomImg = e.target.closest('[data-chat-zoom]');
-      if (zoomImg && zoomImg.tagName === 'IMG') {
-        e.stopPropagation();
-        e.preventDefault();
-        var overlay = document.createElement('div');
-        overlay.className = 't-zoom-overlay';
-        var fullImg = document.createElement('img');
-        fullImg.src = zoomImg.src.replace(/w=\d+/, 'w=1200').replace(/h=\d+/, 'h=800');
-        fullImg.alt = zoomImg.alt || '';
-        var closeBtn = document.createElement('button');
-        closeBtn.className = 't-zoom-close';
-        closeBtn.textContent = '\u00d7';
-        overlay.appendChild(fullImg);
-        overlay.appendChild(closeBtn);
-        if (zoomImg.alt) {
-          var caption = document.createElement('div');
-          caption.className = 't-zoom-caption';
-          caption.textContent = zoomImg.alt;
-          overlay.appendChild(caption);
-        }
-        function closeOverlay() { overlay.remove(); }
-        overlay.addEventListener('click', closeOverlay);
-        fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
-        document.body.appendChild(overlay);
-        return;
-      }
-
-      var detailBtn = e.target.closest('[data-chat-detail-toggle]');
-      if (detailBtn) {
-        e.stopPropagation();
-        var card = detailBtn.closest('.chat-trampoline-select');
-        if (card) {
-          var detail = card.querySelector('.t-detail');
-          if (detail) detail.classList.toggle('open');
         }
         return;
       }
@@ -788,7 +802,7 @@
         });
         // Validate email field — required
         if (!formData.email || !isValidEmail(formData.email)) {
-          var emailInput = form.querySelector('[name="email"]');
+          var emailInput = form.querySelector('[data-custom-field="email"]');
           if (emailInput) {
             emailInput.focus();
             emailInput.style.borderColor = '#e74c3c';
@@ -806,7 +820,7 @@
         // Validate phone field — require at least 8 digits
         var phoneVal = formData.phone || '';
         if (phoneVal.replace(/\D/g, '').length < 8) {
-          var phoneInput = form.querySelector('[name="phone"]');
+          var phoneInput = form.querySelector('[data-custom-field="phone"]');
           if (phoneInput) {
             phoneInput.focus();
             phoneInput.style.borderColor = '#e74c3c';

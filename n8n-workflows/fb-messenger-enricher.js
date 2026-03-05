@@ -32,14 +32,14 @@ const TRAMPOLINES = [
 
   // --- addon (extras for any event) ---
   { name: 'Milžiniškas Dart', type: 'Interaktyvi pramoga \u00b7 5x4,5 m', capacity: '60 dalyvių/val.', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', min: 1, max: 999, cat: 'addon' },
-  { name: 'Kamuolių medžioklė', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', img: '', min: 1, max: 999, cat: 'addon' },
-  { name: 'Rodeo bulius', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', img: '', min: 1, max: 999, cat: 'addon' },
-  { name: 'Saldėsių aparatai', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', min: 1, max: 999, cat: 'addon' },
+  { name: 'Kamuolių medžioklė', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg', min: 1, max: 999, cat: 'addon' },
+  { name: 'Rodeo bulius', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png', min: 1, max: 999, cat: 'addon' },
+  { name: 'Saldėsių aparatai', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', min: 1, max: 999, cat: 'addon' },
 
   // --- party-equipment (party group only) ---
-  { name: 'Disco paviljonas', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', img: '', min: 1, max: 999, cat: 'party-equipment' },
+  { name: 'Disco paviljonas', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', min: 1, max: 999, cat: 'party-equipment' },
   { name: 'Putų šou', type: 'Putų mašina + baseinas', capacity: 'Neribota', img: '', min: 1, max: 999, cat: 'party-equipment' },
-  { name: 'Banketo stalai ir kėdės', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', img: '', min: 1, max: 999, cat: 'party-equipment' }
+  { name: 'Banketo stalai ir kėdės', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', min: 1, max: 999, cat: 'party-equipment' }
 ];
 
 // Default placeholder for items without images
@@ -99,10 +99,10 @@ function buildDateQuickReplies() {
 // --- Build guest count quick replies ---
 function buildGuestCountQuickReplies() {
   return [
-    { content_type: 'text', title: 'Iki 6 vaikų', payload: 'Apie 6 svečių' },
-    { content_type: 'text', title: '7\u201312 vaikų', payload: 'Apie 10 svečių' },
-    { content_type: 'text', title: '13\u201320 vaikų', payload: 'Apie 15 svečių' },
-    { content_type: 'text', title: 'Daugiau nei 20', payload: 'Apie 30 svečių' }
+    { content_type: 'text', title: 'Iki 6 vaikų', payload: 'Apie 6 vaikų' },
+    { content_type: 'text', title: '7\u201312 vaikų', payload: 'Apie 10 vaikų' },
+    { content_type: 'text', title: '13\u201320 vaikų', payload: 'Apie 15 vaikų' },
+    { content_type: 'text', title: 'Daugiau nei 20', payload: 'Apie 30 vaikų' }
   ];
 }
 
