@@ -1,0 +1,683 @@
+{
+  "name": "Batutynas Telegram Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "batutynas-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const update = $input.first().json;\n\n// Callback query (inline keyboard press)\nif (update.callback_query) {\n  const cb = update.callback_query;\n  return [{ json: {\n    msgType: 'callback',\n    callbackData: cb.data || '',\n    callbackQueryId: cb.id,\n    chatId: String(cb.message?.chat?.id || ''),\n    messageId: cb.message?.message_id\n  }}];\n}\n\nconst message = update.message || {};\nconst chatId = String(message.chat?.id || '');\n\n// Voice message\nif (message.voice || message.audio) {\n  const voice = message.voice || message.audio;\n  return [{ json: {\n    msgType: 'voice',\n    chatId,\n    fileId: voice.file_id,\n    duration: voice.duration || 0\n  }}];\n}\n\n// Text message (commands + natural language)\nreturn [{ json: {\n  msgType: 'text',\n  chatId,\n  text: (message.text || '').trim(),\n  // Pass full message for Parse Intent compatibility\n  message: message\n}}];"
+      },
+      "id": "classify-message",
+      "name": "Classify Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "cond-callback",
+              "leftValue": "={{ $json.msgType }}",
+              "rightValue": "callback",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-callback",
+      "name": "Is Callback?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "cond-voice",
+              "leftValue": "={{ $json.msgType }}",
+              "rightValue": "voice",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-voice",
+      "name": "Is Voice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        840,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst text = (item.text || '').trim();\nconst chatId = item.chatId || '';\n\nif (!text || !chatId) {\n  return [{ json: { intent: 'ignore', args: {}, sql: 'SELECT 1 AS placeholder', chatId } }];\n}\n\nlet intent = 'unknown';\nlet args = {};\nlet sql = 'SELECT 1 AS placeholder';\n\nconst cleanText = text.replace(/@[A-Za-z_]+bot/i, '').trim();\nconst parts = cleanText.split(/\\s+/);\nconst cmd = parts[0]?.toLowerCase() || '';\nconst arg = parts[1] || '';\nconst lowerText = cleanText.toLowerCase();\n\n// === COMMAND PARSING ===\nif (cleanText.startsWith('/')) {\n  switch(cmd) {\n    case '/start': case '/help': case '/pagalba':\n      intent = 'help'; break;\n    case '/today': case '/siandien':\n      intent = 'today'; break;\n    case '/tomorrow': case '/rytoj':\n      intent = 'tomorrow'; break;\n    case '/week': case '/savaite':\n      intent = 'week'; break;\n    case '/available': case '/laisvi':\n      intent = 'available'; break;\n    case '/stats': case '/statistika':\n      intent = 'stats'; break;\n    case '/delivered': case '/pristatyta':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /delivered 5'; break;\n      }\n      intent = 'delivered'; args.id = parseInt(arg); break;\n    case '/returned': case '/grazinta':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /returned 5'; break;\n      }\n      intent = 'returned'; args.id = parseInt(arg); break;\n    case '/paid': case '/apmoketa':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /paid 5'; break;\n      }\n      intent = 'paid'; args.id = parseInt(arg); break;\n    case '/deposit': case '/avansas':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /deposit 5'; break;\n      }\n      intent = 'deposit'; args.id = parseInt(arg); break;\n    case '/cancel': case '/atsaukti':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /cancel 5'; break;\n      }\n      intent = 'cancel'; args.id = parseInt(arg); break;\n    case '/clean': case '/valyti':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite \\u012frangos ID, pvz: /clean 3'; break;\n      }\n      intent = 'clean'; args.id = parseInt(arg); break;\n    default:\n      intent = 'unknown';\n  }\n} else {\n  // === NATURAL LANGUAGE (Lithuanian) ===\n  if (/\\b(siandien|\\u0161iandien|\\u0161iandie|kas siandien|kas \\u0161iandien)\\b/i.test(lowerText)) {\n    intent = 'today';\n  } else if (/\\b(rytoj|ryt\\b)/i.test(lowerText)) {\n    intent = 'tomorrow';\n  } else if (/(savait|savaite|savait\\u0117|\\u0161i\\u0105 savait\\u0119|sia savaite)/i.test(lowerText)) {\n    intent = 'week';\n  } else if (/(laisv|turimos|kiek laisv)/i.test(lowerText)) {\n    intent = 'available';\n  } else if (/(statistik|apzvalga|ap\\u017evalga)/i.test(lowerText)) {\n    intent = 'stats';\n  } else if (/(pagalb|komand)/i.test(lowerText)) {\n    intent = 'help';\n  }\n}\n\n// === BUILD SQL ===\nconst BOOKING_FIELDS = `b.id, b.event_date, b.event_time, b.pickup_time,\n  b.delivery_address, b.city, b.status, b.price,\n  b.deposit_amount, b.deposit_paid, b.payment_status,\n  c.name AS customer_name, c.phone AS customer_phone,\n  COALESCE((SELECT json_agg(json_build_object('name', e.name, 'icon', e.icon))\n    FROM batutynas.booking_equipment be\n    JOIN batutynas.equipment e ON e.id = be.equipment_id\n    WHERE be.booking_id = b.id), '[]'::json) AS equipment`;\n\nconst BOOKING_JOIN = `FROM batutynas.bookings b\n  JOIN batutynas.contacts c ON c.id = b.contact_id`;\n\nswitch(intent) {\n  case 'today':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date = CURRENT_DATE AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n  case 'tomorrow':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date = CURRENT_DATE + INTERVAL '1 day' AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n  case 'week':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_date, bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'\n          AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n  case 'available':\n    sql = `SELECT json_build_object(\n      'available', COALESCE((\n        SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon, 'category', e.category) ORDER BY e.category, e.name)\n        FROM batutynas.equipment e\n        WHERE e.id NOT IN (\n          SELECT be.equipment_id FROM batutynas.booking_equipment be\n          JOIN batutynas.bookings b ON b.id = be.booking_id\n          WHERE b.event_date = CURRENT_DATE AND b.status IN ('Confirmed', 'Delivered')\n        )\n      ), '[]'::json),\n      'booked_today', COALESCE((\n        SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon))\n        FROM batutynas.equipment e\n        WHERE e.id IN (\n          SELECT be.equipment_id FROM batutynas.booking_equipment be\n          JOIN batutynas.bookings b ON b.id = be.booking_id\n          WHERE b.event_date = CURRENT_DATE AND b.status IN ('Confirmed', 'Delivered')\n        )\n      ), '[]'::json)\n    ) AS result`;\n    break;\n  case 'stats':\n    sql = `SELECT json_build_object(\n      'today_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date = CURRENT_DATE AND status NOT IN ('Cancelled')),\n      'week_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days' AND status NOT IN ('Cancelled')),\n      'month_revenue', (SELECT COALESCE(SUM(price), 0) FROM batutynas.bookings WHERE event_date >= date_trunc('month', CURRENT_DATE) AND status IN ('Completed', 'Delivered', 'Confirmed')),\n      'unpaid_deposits', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' AND deposit_paid = FALSE AND status = 'Confirmed'),\n      'total_equipment', (SELECT COUNT(*) FROM batutynas.equipment),\n      'available_equipment', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Available'),\n      'needs_cleaning', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Needs Cleaning')\n    ) AS result`;\n    break;\n  case 'delivered':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Delivered', updated_at = NOW() WHERE id = ${args.id} AND status = 'Confirmed' RETURNING id, status, event_date, delivery_address, city) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated), NULL) AS result`;\n    break;\n  case 'returned':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Completed', updated_at = NOW() WHERE id = ${args.id} AND status = 'Delivered' RETURNING id, status, event_date, delivery_address, city) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated), NULL) AS result`;\n    break;\n  case 'paid':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET payment_status = 'Paid', updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, payment_status, price) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'payment_status', payment_status, 'price', price) FROM updated), NULL) AS result`;\n    break;\n  case 'deposit':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET deposit_paid = TRUE, updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, deposit_paid, deposit_amount) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'deposit_paid', deposit_paid, 'deposit_amount', deposit_amount) FROM updated), NULL) AS result`;\n    break;\n  case 'cancel':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Cancelled', updated_at = NOW() WHERE id = ${args.id} AND status NOT IN ('Cancelled', 'Completed') RETURNING id, status, event_date) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text) FROM updated), NULL) AS result`;\n    break;\n  case 'clean':\n    sql = `WITH updated AS (UPDATE batutynas.equipment SET status = 'Available', last_cleaned = NOW(), updated_at = NOW() WHERE id = ${args.id} RETURNING id, name, icon, status) SELECT COALESCE((SELECT json_build_object('id', id, 'name', name, 'icon', icon, 'status', status) FROM updated), NULL) AS result`;\n    break;\n  default:\n    sql = 'SELECT 1 AS placeholder';\n    break;\n}\n\nreturn [{ json: { intent, args, sql, chatId } }];"
+      },
+      "id": "parse-intent",
+      "name": "Parse Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Parse Intent').first().json.sql }}",
+        "additionalFields": {}
+      },
+      "id": "execute-query",
+      "name": "Execute Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        550
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { intent, args } = $('Parse Intent').first().json;\nconst row = $input.first().json;\nlet result;\n\nif (['help', 'error', 'unknown', 'ignore'].includes(intent)) {\n  result = null;\n} else {\n  result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;\n}\n\nlet reply = '';\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Tre\\u010diadienis', 'Ketvirtadienis', 'Penktadienis', '\\u0160e\\u0161tadienis'];\n\nfunction formatDate(dateStr) {\n  const d = new Date(dateStr + 'T00:00:00');\n  return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} (${dayNames[d.getDay()]})`;\n}\n\nfunction formatBooking(b) {\n  const statusIcons = { 'Confirmed': '\\ud83d\\udfe1', 'Delivered': '\\ud83d\\ude9b', 'Completed': '\\u2705', 'Cancelled': '\\u274c' };\n  const payIcon = b.payment_status === 'Paid' ? '\\ud83d\\udcb0' : (b.deposit_paid ? '\\ud83d\\udd35' : '\\ud83d\\udd34');\n  const icon = statusIcons[b.status] || '\\u2b1c';\n  let line = `${icon} <b>#${b.id}</b> ${(b.event_time||'?').substring(0,5)} \\u2192 ${(b.pickup_time||'?').substring(0,5)}`;\n  line += `\\n   \\ud83d\\udccd ${b.delivery_address}, ${b.city}`;\n  line += `\\n   \\ud83d\\udc64 ${b.customer_name} | \\ud83d\\udcde ${b.customer_phone}`;\n  const equip = Array.isArray(b.equipment) ? b.equipment.map(e => e.icon || '\\ud83c\\udfaa').join('') : '';\n  line += `\\n   ${equip} | ${payIcon} \\u20ac${b.price || 0}`;\n  if (!b.deposit_paid && b.status === 'Confirmed') line += ` \\u26a0\\ufe0f Avansas nemok\\u0117tas!`;\n  return line;\n}\n\nswitch(intent) {\n  case 'help':\n    reply = `\\ud83e\\udd16 <b>Batutynas Bot</b>\\n\\n` +\n      `\\ud83d\\udccb <b>Per\\u017ei\\u016bra:</b>\\n/today - \\u0160iandienos u\\u017esakymai\\n/tomorrow - Rytojaus u\\u017esakymai\\n/week - Savait\\u0117s u\\u017esakymai\\n/available - Laisva \\u012franga\\n/stats - Statistika\\n\\n` +\n      `\\u270f\\ufe0f <b>Veiksmai:</b>\\n/delivered <i>ID</i> - Pristatyta\\n/returned <i>ID</i> - Gr\\u0105\\u017einta\\n/paid <i>ID</i> - Apmok\\u0117ta\\n/deposit <i>ID</i> - Avansas\\n/cancel <i>ID</i> - At\\u0161aukti\\n/clean <i>ID</i> - I\\u0161valyta\\n\\n` +\n      `\\ud83c\\udf99\\ufe0f <b>Balso u\\u017esakymas:</b>\\nAtsi\\u0173skite balso \\u017einut\\u0119 su u\\u017esakymo duomenimis!\\n\\n` +\n      `\\ud83d\\udcac <b>Arba ra\\u0161ykite lietuvi\\u0161kai:</b>\\n\"\\u0161iandien\", \"rytoj\", \"savait\\u0117\", \"laisvi\", \"statistika\"`;\n    break;\n  case 'today': case 'tomorrow': case 'week': {\n    const bookings = Array.isArray(result) ? result : [];\n    const label = intent === 'today' ? '\\ud83d\\udcc5 \\u0160iandien' : intent === 'tomorrow' ? '\\ud83d\\udcc5 Rytoj' : '\\ud83d\\udcc5 \\u0160i savait\\u0117';\n    if (bookings.length === 0) {\n      reply = `${label}: U\\u017esakym\\u0173 n\\u0117ra \\ud83c\\udf89`;\n    } else {\n      reply = `${label} (${bookings.length} u\\u017es.):\\n`;\n      if (intent === 'week') {\n        const byDate = {};\n        bookings.forEach(b => { const d = (b.event_date||'').substring(0,10); if (!byDate[d]) byDate[d] = []; byDate[d].push(b); });\n        for (const [date, bks] of Object.entries(byDate)) {\n          reply += `\\n\\ud83d\\udcc6 <b>${formatDate(date)}</b>\\n`;\n          bks.forEach(b => { reply += formatBooking(b) + '\\n'; });\n        }\n      } else {\n        bookings.forEach(b => { reply += '\\n' + formatBooking(b) + '\\n'; });\n      }\n    }\n    break;\n  }\n  case 'available': {\n    const avail = result?.available || [];\n    const booked = result?.booked_today || [];\n    reply = `\\ud83c\\udfaa <b>\\u012erangos statusas</b>\\n\\n\\u2705 <b>Laisva (${avail.length}):</b>\\n`;\n    if (avail.length === 0) reply += `  Visi u\\u017eimti!\\n`;\n    else avail.forEach(e => { reply += `  ${e.icon||'\\ud83c\\udfaa'} #${e.id} ${e.name}\\n`; });\n    if (booked.length > 0) {\n      reply += `\\n\\ud83d\\udd12 <b>U\\u017eimta \\u0161iandien (${booked.length}):</b>\\n`;\n      booked.forEach(e => { reply += `  ${e.icon||'\\ud83c\\udfaa'} ${e.name}\\n`; });\n    }\n    break;\n  }\n  case 'stats':\n    reply = `\\ud83d\\udcca <b>Statistika</b>\\n\\n\\ud83d\\udcc5 \\u0160iandien: ${result.today_bookings} u\\u017es.\\n\\ud83d\\udcc5 Savait\\u0117: ${result.week_bookings} u\\u017es.\\n\\ud83d\\udcb0 M\\u0117n. pajamos: \\u20ac${result.month_revenue}\\n\\u26a0\\ufe0f Nemok\\u0117ti avansai: ${result.unpaid_deposits}\\n\\ud83c\\udfaa \\u012eranga: ${result.available_equipment}/${result.total_equipment} laisva`;\n    if (Number(result.needs_cleaning) > 0) reply += `\\n\\ud83e\\uddf9 Reikia valyti: ${result.needs_cleaning}`;\n    break;\n  case 'delivered':\n    reply = !result ? `\\u26a0\\ufe0f #${args.id} nerastas (turi b\\u016bti \"Confirmed\")` : `\\ud83d\\ude9b <b>#${result.id}</b> \\u2014 <b>Pristatyta</b>\\n\\ud83d\\udccd ${result.delivery_address}, ${result.city}`;\n    break;\n  case 'returned':\n    reply = !result ? `\\u26a0\\ufe0f #${args.id} nerastas (turi b\\u016bti \"Delivered\")` : `\\u2705 <b>#${result.id}</b> \\u2014 <b>Gr\\u0105\\u017einta</b>\\n\\ud83d\\udccd ${result.delivery_address}, ${result.city}`;\n    break;\n  case 'paid':\n    reply = !result ? `\\u26a0\\ufe0f #${args.id} nerastas` : `\\ud83d\\udcb0 <b>#${result.id}</b> \\u2014 <b>Apmok\\u0117ta</b> (\\u20ac${result.price})`;\n    break;\n  case 'deposit':\n    reply = !result ? `\\u26a0\\ufe0f #${args.id} nerastas` : `\\ud83d\\udd35 <b>#${result.id}</b> \\u2014 avansas <b>sumok\\u0117tas</b> (\\u20ac${result.deposit_amount})`;\n    break;\n  case 'cancel':\n    reply = !result ? `\\u26a0\\ufe0f #${args.id} nerastas arba jau at\\u0161auktas` : `\\u274c <b>#${result.id}</b> <b>at\\u0161auktas</b>`;\n    break;\n  case 'clean':\n    reply = !result ? `\\u26a0\\ufe0f \\u012eranga #${args.id} nerasta` : `\\ud83e\\uddf9 ${result.icon||'\\ud83c\\udfaa'} <b>${result.name}</b> \\u2014 <b>I\\u0161valyta</b> \\u2705`;\n    break;\n  case 'error':\n    reply = args.msg || '\\u26a0\\ufe0f Klaida';\n    break;\n  case 'ignore':\n    reply = '';\n    break;\n  default:\n    reply = `\\ud83e\\udd14 Nesupratau. Naudokite /help arba ra\\u0161ykite lietuvi\\u0161kai`;\n    break;\n}\n\nreturn [{ json: { reply } }];"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parse Intent').first().json.chatId }}",
+        "text": "={{ $('Format Response').first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "send-reply",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1720,
+        550
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.telegram.org/botTELEGRAM_BOT_TOKEN_PLACEHOLDER/getFile?file_id={{ $json.fileId }}",
+        "options": {}
+      },
+      "id": "get-file-path",
+      "name": "Get File Path",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.telegram.org/file/botTELEGRAM_BOT_TOKEN_PLACEHOLDER/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-audio",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nfor (const item of items) {\n  if (item.binary && item.binary.data) {\n    const fn = item.binary.data.fileName || 'audio.oga';\n    item.binary.data.fileName = fn.replace(/\\.oga$/, '.ogg');\n    item.binary.data.mimeType = 'audio/ogg';\n  }\n}\nreturn items;"
+      },
+      "id": "rename-audio",
+      "name": "Rename Audio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1390,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "parameterType": "formData",
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "parameterType": "formData",
+              "name": "language",
+              "value": "lt"
+            },
+            {
+              "parameterType": "formData",
+              "name": "prompt",
+              "value": "Batutynas užsakymas. Batutai: Batutas Monstrai, Mega Batutas, Didelis Batutas, Mažas Batutas, Vaikiškas Batutas, Batuto nuoma. Miestai: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. Gatvės: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Šilutės, Stoties. Vardai: Petraitis, Jonaitis, Kazlauskas, Stankevičius, Janulevičienė. Naujas užsakymas, pristatymo adresas, surinkimo laikas, sumokėta, avansas, priedai."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "transcribe-audio",
+      "name": "Transcribe Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yf0G3FBiIj8uxM4N",
+          "name": "Groq Whisper API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const transcribedText = $json.text;\nconst today = new Date().toISOString().split(\"T\")[0];\n\nconst prompt = `You are a booking data extractor for Batutynas, a Lithuanian inflatable trampoline rental business. Today's date is ${today}. Extract the following fields from the transcribed Lithuanian voice message into a JSON object:\n- customer_name: Full name (string). Fix obvious transcription errors in Lithuanian surnames.\n- customer_phone: Phone number in +370XXXXXXXX format (string)\n- event_date: Date in YYYY-MM-DD format. 'rytoj' = tomorrow, 'poryt' = day after tomorrow, 'šiandien' = today. Use current year if not specified. (string)\n- event_time: Delivery/start time in HH:MM format (string)\n- pickup_time: Pickup/end time in HH:MM format (string)\n- delivery_address: Full delivery address. Fix garbled street names — common streets: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Stoties. (string)\n- city: City name. Nearby cities: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. (string)\n- equipment: Equipment name. Known items: Batutas Monstrai, Mega Batutas, Didelis Batutas, Mažas Batutas, Vaikiškas Batutas. (string)\n- price: Price if mentioned, number only in EUR (number or null)\n- notes: Any additional notes like 'sumokėta' (paid), 'avansas' (deposit) (string or null)\n\nLithuanian month names: sausio=01, vasario=02, kovo=03, balandžio=04, gegužės=05, birželio=06, liepos=07, rugpjūčio=08, rugsėjo=09, spalio=10, lapkričio=11, gruodžio=12.\nLithuanian phone: +370 6X XXX XXXX or 86X XXX XXXX (convert to +370 format).\nIf a field is unclear or not mentioned, set it to null.\nRespond ONLY with valid JSON, no markdown.`;\n\nreturn [{\n  json: {\n    requestBody: JSON.stringify({\n      model: \"grok-3-mini\",\n      messages: [\n        { role: \"system\", content: prompt },\n        { role: \"user\", content: transcribedText }\n      ],\n      temperature: 0\n    }),\n    text: transcribedText\n  }\n}];"
+      },
+      "id": "prepare-xai",
+      "name": "Prepare xAI Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "id": "extract-booking",
+      "name": "Extract Booking Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1830,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3o4JPVqz73RdiO0Q",
+          "name": "xAI Grok API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const transcript = $('Transcribe Audio').first().json.text || '';\nconst extractResp = $input.first().json;\nconst chatId = $('Classify Message').first().json.chatId;\n\n// Parse the OpenAI extraction response\nlet content = '';\nif (extractResp.choices && extractResp.choices[0]) {\n  content = extractResp.choices[0].message?.content || '{}';\n}\n\nlet booking;\ntry {\n  booking = JSON.parse(content);\n} catch(e) {\n  return [{ json: {\n    chatId,\n    reply: `\\u26a0\\ufe0f Nepavyko i\\u0161skirti u\\u017esakymo duomen\\u0173.\\n\\n\\ud83d\\udcdd Transkripcija:\\n<i>${transcript}</i>\\n\\nPabandykite dar kart\\u0105 arba naudokite /help`,\n    hasKeyboard: false\n  }}];\n}\n\n// Generate a short unique ID for pending booking\nconst pendingId = 'vb_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);\n\n// Build confirmation message\nlet msg = `\\ud83c\\udf99\\ufe0f <b>Balso u\\u017esakymas</b>\\n`;\nmsg += `\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n`;\nif (booking.customer_name) msg += `\\ud83d\\udc64 ${booking.customer_name}\\n`;\nif (booking.customer_phone) msg += `\\ud83d\\udcde ${booking.customer_phone}\\n`;\nif (booking.event_date) msg += `\\ud83d\\udcc5 ${booking.event_date}\\n`;\nif (booking.event_time) msg += `\\u23f0 ${booking.event_time}`;\nif (booking.pickup_time) msg += ` \\u2192 ${booking.pickup_time}`;\nmsg += '\\n';\nif (booking.delivery_address) msg += `\\ud83d\\udccd ${booking.delivery_address}`;\nif (booking.city) msg += `, ${booking.city}`;\nmsg += '\\n';\nif (booking.equipment) msg += `\\ud83c\\udfaa ${booking.equipment}\\n`;\nif (booking.price) msg += `\\ud83d\\udcb0 \\u20ac${booking.price}\\n`;\nif (booking.notes) msg += `\\ud83d\\udcdd ${booking.notes}\\n`;\nmsg += `\\n\\ud83d\\udcac <i>Transkripcija: \"${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}\"</i>`;\n\n// Build SQL to save pending booking\nconst bookingJson = JSON.stringify(booking).replace(/'/g, \"''\");\nconst saveSql = `INSERT INTO batutynas.pending_voice_bookings (id, booking_data, chat_id)\n  VALUES ('${pendingId}', '${bookingJson}'::jsonb, '${chatId}')\n  ON CONFLICT (id) DO UPDATE SET booking_data = EXCLUDED.booking_data\n  RETURNING id`;\n\nreturn [{ json: {\n  chatId,\n  reply: msg,\n  hasKeyboard: true,\n  pendingId,\n  saveSql,\n  confirmCb: `vb_ok:${pendingId}`,\n  cancelCb: `vb_no:${pendingId}`\n}}];"
+      },
+      "id": "build-confirmation",
+      "name": "Build Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.saveSql }}",
+        "additionalFields": {}
+      },
+      "id": "save-pending",
+      "name": "Save Pending",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2160,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botTELEGRAM_BOT_TOKEN_PLACEHOLDER/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($(\"Build Confirmation\").first().json.chatId) }},\n  \"text\": {{ JSON.stringify($(\"Build Confirmation\").first().json.reply) }},\n  \"parse_mode\": \"HTML\",\n  \"reply_markup\": {\n    \"inline_keyboard\": [[\n      {\"text\": \"\\u2705 Patvirtinti\", \"callback_data\": {{ JSON.stringify($(\"Build Confirmation\").first().json.confirmCb) }} },\n      {\"text\": \"\\u274c At\\u0161aukti\", \"callback_data\": {{ JSON.stringify($(\"Build Confirmation\").first().json.cancelCb) }} }\n    ]]\n  }\n}",
+        "options": {}
+      },
+      "id": "send-keyboard",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2380,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst data = item.callbackData || '';\nconst chatId = item.chatId;\nconst callbackQueryId = item.callbackQueryId;\nconst messageId = item.messageId;\n\nif (data.startsWith('vb_ok:')) {\n  const pid = data.substring(6);\n  const sql = `\n    WITH pending AS (\n      DELETE FROM batutynas.pending_voice_bookings\n      WHERE id = '${pid}'\n      RETURNING booking_data, chat_id\n    ),\n    contact_upsert AS (\n      INSERT INTO batutynas.contacts (name, phone, source)\n      SELECT\n        COALESCE(p.booking_data->>'customer_name', 'Nenurodyta'),\n        COALESCE(p.booking_data->>'customer_phone', 'Nenurodyta'),\n        'Telegram'\n      FROM pending p\n      ON CONFLICT (phone) DO UPDATE SET\n        name = EXCLUDED.name\n      RETURNING id, name, phone\n    ),\n    new_booking AS (\n      INSERT INTO batutynas.bookings (\n        contact_id, event_date, event_time, pickup_time,\n        delivery_address, city, status, price, entry_source\n      )\n      SELECT\n        cu.id,\n        COALESCE((p.booking_data->>'event_date')::date, CURRENT_DATE),\n        (p.booking_data->>'event_time')::time,\n        (p.booking_data->>'pickup_time')::time,\n        COALESCE(p.booking_data->>'delivery_address', ''),\n        COALESCE(p.booking_data->>'city', ''),\n        'Confirmed',\n        COALESCE((p.booking_data->>'price')::numeric, 0),\n        'Telegram'\n      FROM pending p, contact_upsert cu\n      RETURNING id, event_date::text, city\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object(\n        'action', 'confirmed',\n        'booking_id', nb.id,\n        'event_date', nb.event_date,\n        'city', nb.city,\n        'customer_name', cu.name\n      ) FROM new_booking nb, contact_upsert cu),\n      json_build_object('action', 'not_found')\n    ) AS result`;\n\n  return [{ json: { chatId, callbackQueryId, messageId, sql, action: 'confirm' } }];\n}\n\nif (data.startsWith('vb_no:')) {\n  const pid = data.substring(6);\n  const sql = `\n    DELETE FROM batutynas.pending_voice_bookings WHERE id = '${pid}'\n    RETURNING json_build_object('action', 'cancelled', 'id', id) AS result`;\n\n  return [{ json: { chatId, callbackQueryId, messageId, sql, action: 'cancel' } }];\n}\n\n// Unknown callback - just acknowledge\nreturn [{ json: {\n  chatId, callbackQueryId, messageId,\n  sql: \"SELECT json_build_object('action', 'unknown') AS result\",\n  action: 'unknown'\n}}];"
+      },
+      "id": "process-callback",
+      "name": "Process Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Process Callback').first().json.sql }}",
+        "additionalFields": {}
+      },
+      "id": "execute-booking",
+      "name": "Execute Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1060,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { action } = $('Process Callback').first().json;\nconst chatId = $('Process Callback').first().json.chatId;\nconst callbackQueryId = $('Process Callback').first().json.callbackQueryId;\nconst row = $input.first().json;\n\nlet reply = '';\nlet callbackAnswer = '';\n\n// Check if Execute Booking returned an error (continueOnFail)\nif (row.error || row.$error) {\n  const errMsg = row.error?.message || row.$error?.message || 'Nežinoma klaida';\n  reply = `\\u26a0\\ufe0f <b>Klaida išsaugant užsakymą</b>\\n\\n${errMsg}\\n\\nPabandykite dar kartą arba įveskite rankiniu būdu.`;\n  callbackAnswer = '\\u26a0\\ufe0f Klaida';\n  return [{ json: { reply, callbackAnswer, chatId, callbackQueryId } }];\n}\n\nlet result;\ntry {\n  result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;\n} catch(e) {\n  reply = '\\u26a0\\ufe0f Klaida apdorojant atsakymą.';\n  callbackAnswer = '\\u26a0\\ufe0f Klaida';\n  return [{ json: { reply, callbackAnswer, chatId, callbackQueryId } }];\n}\n\nif (action === 'confirm') {\n  if (result?.action === 'confirmed') {\n    reply = `\\u2705 <b>Užsakymas sukurtas!</b>\\n\\n` +\n      `\\ud83d\\udcdd #${result.booking_id}\\n` +\n      `\\ud83d\\udc64 ${result.customer_name}\\n` +\n      `\\ud83d\\udcc5 ${result.event_date}\\n` +\n      `\\ud83d\\udccd ${result.city}\\n\\n` +\n      `Statusas: <b>Confirmed</b>`;\n    callbackAnswer = '\\u2705 Patvirtinta!';\n  } else {\n    reply = '\\u26a0\\ufe0f Užsakymas nerastas arba jau apdorotas.';\n    callbackAnswer = '\\u26a0\\ufe0f Nerastas';\n  }\n} else if (action === 'cancel') {\n  reply = '\\u274c Balso užsakymas <b>atšauktas</b>.';\n  callbackAnswer = '\\u274c Atšaukta';\n} else {\n  reply = '\\u26a0\\ufe0f Nežinomas veiksmas.';\n  callbackAnswer = '\\u26a0\\ufe0f Klaida';\n}\n\nreturn [{ json: { reply, callbackAnswer, chatId, callbackQueryId } }];"
+      },
+      "id": "format-callback",
+      "name": "Format Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botTELEGRAM_BOT_TOKEN_PLACEHOLDER/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"callback_query_id\": {{ JSON.stringify($json.callbackQueryId) }},\n  \"text\": {{ JSON.stringify($json.callbackAnswer) }}\n}",
+        "options": {}
+      },
+      "id": "answer-callback",
+      "name": "Answer Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Format Callback').first().json.chatId }}",
+        "text": "={{ $('Format Callback').first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "send-callback-reply",
+      "name": "Send Booking Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1720,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Classify Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Message": {
+      "main": [
+        [
+          {
+            "node": "Is Callback?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Callback?": {
+      "main": [
+        [
+          {
+            "node": "Process Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Voice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Voice?": {
+      "main": [
+        [
+          {
+            "node": "Get File Path",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent": {
+      "main": [
+        [
+          {
+            "node": "Execute Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Query": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Path": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Rename Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Prepare xAI Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare xAI Request": {
+      "main": [
+        [
+          {
+            "node": "Extract Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Build Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Save Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Pending": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Callback": {
+      "main": [
+        [
+          {
+            "node": "Execute Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Booking": {
+      "main": [
+        [
+          {
+            "node": "Format Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Callback": {
+      "main": [
+        [
+          {
+            "node": "Answer Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Callback": {
+      "main": [
+        [
+          {
+            "node": "Send Booking Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

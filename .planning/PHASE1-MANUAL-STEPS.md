@@ -7,7 +7,7 @@ Code changes have already been applied — these are the configuration steps.
 
 ## 1. Revoke & Rotate Chatwoot API Token (CRITICAL)
 
-The token `ToKRQv6t87KTCHNd2Dz5Cx1k` was exposed in git history.
+The token `<REDACTED-ROTATE-IN-CHATWOOT>` was exposed in git history.
 
 **Steps:**
 1. Log into Chatwoot Super Admin panel
@@ -19,7 +19,7 @@ The token `ToKRQv6t87KTCHNd2Dz5Cx1k` was exposed in git history.
 7. Create variable: `CHATWOOT_API_TOKEN` = `<new-token>`
 8. Test: send a message through the widget and verify Chatwoot receives it
 
-**Verification:** Old token `ToKRQv6t87KTCHNd2Dz5Cx1k` should return 401 when used.
+**Verification:** Old token `<REDACTED-ROTATE-IN-CHATWOOT>` should return 401 when used.
 
 ---
 
@@ -41,7 +41,7 @@ The code falls back to the hardcoded URL if the variable isn't set, but setting 
 1. Create a backup: `git clone --mirror <repo-url> backup-repo.git`
 2. Create a file `tokens.txt` with the exposed token:
    ```
-   ToKRQv6t87KTCHNd2Dz5Cx1k
+   <REDACTED-ROTATE-IN-CHATWOOT>
    ```
 3. Run BFG:
    ```bash
@@ -60,7 +60,7 @@ The code falls back to the hardcoded URL if the variable isn't set, but setting 
 6. **Notify all collaborators** to re-clone the repository
 7. Delete `tokens.txt`
 
-**Verification:** `git log -p --all -S 'ToKRQv6t87KTCHNd2Dz5Cx1k'` returns no results.
+**Verification:** `git log -p --all -S '<REDACTED-ROTATE-IN-CHATWOOT>'` returns no results.
 
 ---
 

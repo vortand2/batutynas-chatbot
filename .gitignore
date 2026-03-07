@@ -1,9 +1,26 @@
+# ============================================================
+# CREDENTIALS — never commit real secrets
+# Store actual values in a local .env file or a password manager.
+# Files with hardcoded secrets must use *_PLACEHOLDER values only.
+# ============================================================
 .DS_Store
 .env
+*.env
 *.env.local
+*.env.*
 node_modules/
 .idea/
 .vscode/
+
+# Credential / secret files
+credentials/
+secrets/
+*.credentials.json
+*.secrets.json
+*.secret
+
+# BFG / git history cleanup artifacts
+secrets-to-purge.txt
 
 # Unrelated projects
 land-search-agent/
