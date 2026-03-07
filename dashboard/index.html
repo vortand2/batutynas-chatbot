@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batutynas — Valdymo skydelis</title>
+<style>
+  :root {
+    --purple: #6C3CE1;
+    --purple-light: #8B5CF6;
+    --purple-dim: #3D1E8F;
+    --purple-glow: rgba(108, 60, 225, 0.25);
+    --bg: #0D0B14;
+    --bg2: #13101F;
+    --bg3: #1A1530;
+    --bg4: #221E38;
+    --border: #2A2545;
+    --border-light: #3A3460;
+    --text: #E8E4F4;
+    --text-dim: #9B94C0;
+    --text-faint: #5A5480;
+    --green: #22C55E;
+    --green-dim: rgba(34,197,94,0.15);
+    --blue: #3B82F6;
+    --blue-dim: rgba(59,130,246,0.15);
+    --gray: #6B7280;
+    --gray-dim: rgba(107,114,128,0.15);
+    --yellow: #F59E0B;
+    --yellow-dim: rgba(245,158,11,0.15);
+    --red: #EF4444;
+    --red-dim: rgba(239,68,68,0.15);
+    --orange: #F97316;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  .app-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.3px;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--purple), var(--purple-light));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+  }
+  .header-meta { font-size: 12px; color: var(--text-dim); }
+  .refresh-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover { border-color: var(--purple); color: var(--text); }
+  .refresh-btn.loading .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-sub { font-size: 11px; color: var(--text-dim); }
+  .stat-today   .stat-value { color: var(--purple-light); }
+  .stat-revenue .stat-value { color: var(--green); }
+  .stat-unpaid  .stat-value { color: var(--yellow); }
+  .stat-equip   .stat-value { color: var(--blue); }
+
+  /* MAIN LAYOUT */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 390px;
+    height: calc(100vh - 130px);
+  }
+  .calendar-pane {
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+  .side-panel {
+    overflow-y: auto;
+    background: var(--bg2);
+  }
+
+  /* CALENDAR NAV */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cal-month-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .cal-nav-btns { display: flex; gap: 8px; align-items: center; }
+  .cal-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .cal-btn:hover { background: var(--bg4); border-color: var(--purple); }
+  .cal-btn.today-btn { color: var(--purple-light); border-color: var(--purple-dim); }
+  .cal-btn.today-btn:hover { background: var(--purple-glow); }
+  .cal-btn.arrow { font-size: 16px; padding: 6px 10px; }
+
+  /* CALENDAR GRID */
+  .cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .cal-weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    padding: 4px 0;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-day {
+    min-height: 82px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .cal-day:hover { border-color: var(--border-light); background: var(--bg4); }
+  .cal-day.other-month { opacity: 0.3; cursor: default; }
+  .cal-day.other-month:hover { background: var(--bg3); border-color: var(--border); }
+  .cal-day.is-today {
+    border-color: var(--purple);
+    background: rgba(108,60,225,0.08);
+  }
+  .cal-day.selected {
+    border-color: var(--purple-light);
+    background: rgba(139,92,246,0.12);
+    box-shadow: 0 0 0 2px var(--purple-glow);
+  }
+  .day-num {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    line-height: 1;
+  }
+  .cal-day.is-today .day-num { color: var(--purple-light); font-weight: 700; }
+  .day-booking-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .day-dots { display: flex; flex-wrap: wrap; gap: 3px; }
+  .day-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* SIDE PANEL */
+  .side-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-faint);
+    gap: 12px;
+    padding: 40px;
+    text-align: center;
+  }
+  .side-empty-icon { font-size: 48px; opacity: 0.5; }
+  .side-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg2);
+    z-index: 10;
+  }
+  .side-date { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .side-summary { font-size: 12px; color: var(--text-dim); }
+  .bookings-list {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* BOOKING CARD */
+  .booking-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    transition: border-color 0.15s;
+  }
+  .booking-card:hover { border-color: var(--border-light); }
+  .booking-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  .booking-name { font-weight: 700; font-size: 14px; line-height: 1.2; }
+  .booking-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-confirmed { background: var(--green-dim);                  color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
+  .status-delivered { background: var(--blue-dim);                   color: var(--blue);   border: 1px solid rgba(59,130,246,0.3); }
+  .status-completed { background: var(--gray-dim);                   color: var(--gray);   border: 1px solid rgba(107,114,128,0.3); }
+  .status-inquiry   { background: var(--yellow-dim);                 color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+  .status-cancelled { background: var(--red-dim);                    color: var(--red);    border: 1px solid rgba(239,68,68,0.3); }
+  .booking-detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+  .booking-detail-row .icon { width: 16px; flex-shrink: 0; text-align: center; font-size: 13px; }
+  .equipment-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .equip-pill {
+    background: var(--bg4);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .booking-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .booking-price { font-weight: 700; font-size: 16px; color: var(--text); }
+  .payment-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .pay-paid    { background: var(--green-dim);  color: var(--green); }
+  .pay-deposit { background: var(--yellow-dim); color: var(--yellow); }
+  .pay-unpaid  { background: var(--red-dim);    color: var(--red); }
+
+  /* EQUIPMENT SECTION */
+  .equip-section { padding: 20px; border-top: 1px solid var(--border); margin-top: 8px; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .equip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .equip-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .equip-name { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .equip-row  { display: flex; align-items: center; }
+  .equip-status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  .equip-status-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  .es-available { background: var(--green); }
+  .es-reserved  { background: var(--orange); }
+  .es-rented    { background: var(--red); }
+  .es-cleaning  { background: var(--gray); }
+  .esl-available { color: var(--green); }
+  .esl-reserved  { color: var(--orange); }
+  .esl-rented    { color: var(--red); }
+  .esl-cleaning  { color: var(--gray); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--bg4);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 10px 20px;
+    font-size: 13px;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .toast.show  { transform: translateX(-50%) translateY(0); }
+  .toast.error   { border-color: var(--red);   color: var(--red); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+
+  /* LOADING */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13,11,20,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .loading-overlay.active { opacity: 1; pointer-events: all; }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--bg4);
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .stats-bar { grid-template-columns: repeat(2,1fr); gap: 8px; padding: 12px; }
+    .main-layout { grid-template-columns: 1fr; height: auto; }
+    .side-panel { border-top: 1px solid var(--border); }
+    .calendar-pane { padding: 12px; }
+    .cal-day { min-height: 62px; padding: 6px; }
+  }
+  @media (max-width: 480px) {
+    .stats-bar { padding: 10px; gap: 6px; }
+    .stat-value { font-size: 22px; }
+    .equip-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); }
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-icon">🎪</div>
+    <div>Batutynas</div>
+  </div>
+  <div class="header-meta" id="lastUpdated">Kraunama...</div>
+  <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+    <span class="spin">↻</span> Atnaujinti
+  </button>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-card stat-today">
+    <div class="stat-label">Šiandien</div>
+    <div class="stat-value" id="statToday">—</div>
+    <div class="stat-sub">rezervacijų</div>
+  </div>
+  <div class="stat-card stat-revenue">
+    <div class="stat-label">Savaitės pajamos</div>
+    <div class="stat-value" id="statRevenue">—</div>
+    <div class="stat-sub">EUR šią savaitę</div>
+  </div>
+  <div class="stat-card stat-unpaid">
+    <div class="stat-label">Neapmokėti</div>
+    <div class="stat-value" id="statUnpaid">—</div>
+    <div class="stat-sub">laukia avanso</div>
+  </div>
+  <div class="stat-card stat-equip">
+    <div class="stat-label">Įranga</div>
+    <div class="stat-value" id="statEquip">—</div>
+    <div class="stat-sub">laisva šiandien</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-layout">
+  <div class="calendar-pane">
+    <div class="cal-nav">
+      <div class="cal-nav-btns">
+        <button class="cal-btn arrow" onclick="changeMonth(-1)">&#8249;</button>
+        <button class="cal-btn today-btn" onclick="goToday()">Šiandien</button>
+        <button class="cal-btn arrow" onclick="changeMonth(1)">&#8250;</button>
+      </div>
+      <div class="cal-month-title" id="calMonthTitle"></div>
+    </div>
+    <div class="cal-weekdays">
+      <div class="cal-weekday">Pr</div>
+      <div class="cal-weekday">An</div>
+      <div class="cal-weekday">Tr</div>
+      <div class="cal-weekday">Kt</div>
+      <div class="cal-weekday">Pn</div>
+      <div class="cal-weekday">Št</div>
+      <div class="cal-weekday">Sk</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="equip-section">
+      <div class="section-title">Įrangos statusas</div>
+      <div class="equip-grid" id="equipGrid"></div>
+    </div>
+  </div>
+  <div class="side-panel" id="sidePanel">
+    <div class="side-empty">
+      <div class="side-empty-icon">📅</div>
+      <p>Pasirinkite dieną kalendoriuje,<br>kad matytumėte rezervacijas</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+var API_BASE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard';
+
+// ── CONSTANTS ──
+var LT_MONTHS = ['Sausis','Vasaris','Kovas','Balandis','Gegužė','Birželis',
+  'Liepa','Rugpjūtis','Rugsėjis','Spalis','Lapkritis','Gruodis'];
+
+var LT_MONTHS_GEN = ['sausio','vasario','kovo','balandžio','gegužės','birželio',
+  'liepos','rugpjūčio','rugsėjo','spalio','lapkričio','gruodžio'];
+
+var STATUS_LT = {
+  confirmed:'Patvirtinta', delivered:'Pristatyta',
+  completed:'Baigta',      inquiry:'Užklausa', cancelled:'Atšaukta'
+};
+var STATUS_COLOR = {
+  confirmed:'#22C55E', delivered:'#3B82F6',
+  completed:'#6B7280', inquiry:'#F59E0B', cancelled:'#EF4444'
+};
+var PAYMENT_LT = { paid:'Apmokėta', deposit:'Avansas', unpaid:'Neapmokėta' };
+var PAYMENT_CLASS = { paid:'pay-paid', deposit:'pay-deposit', unpaid:'pay-unpaid' };
+var EQUIP_EMOJI = {
+  'Candy Pop':'🍭','Mega Waikiki':'🌊','Monstrai':'👾','Vienaragiai':'🦄',
+  'Milžiniškas Dart':'🎯','Dino Park':'🦕','Space Jump':'🚀','Rainbow Burst':'🌈',
+  'Ocean Wave':'🌊','Jungle Safari':'🐒','Galaxy Bounce':'✨','Mini Waikiki':'🏄',
+  'Piratų Laivas':'🏴‍☠️','Fėjų Pilis':'🧚','Robotas':'🤖','Superherojus':'🦸',
+  'Sporto Arena':'⚽','Krokodilai':'🐊','Flamingo':'🦩','Ledų Fabrikas':'🍦'
+};
+var EQUIP_STATUS_LABELS = {
+  available:'Laisva', reserved:'Rezervuota', rented:'Išnuomota', cleaning:'Valoma'
+};
+
+// ── DEMO DATA ──
+function getDemoData() {
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth();
+  var td = now.getDate();
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function d(day, hr, mn) {
+    return y+'-'+pad(m+1)+'-'+pad(day)+'T'+pad(hr||10)+':'+pad(mn||0)+':00';
+  }
+  return {
+    stats: { today_count:2, week_revenue:480, unpaid_deposits:3, available_equipment:14 },
+    equipment: [
+      {name:'Candy Pop',status:'reserved'},{name:'Mega Waikiki',status:'reserved'},
+      {name:'Monstrai',status:'available'},{name:'Vienaragiai',status:'reserved'},
+      {name:'Milžiniškas Dart',status:'available'},{name:'Dino Park',status:'available'},
+      {name:'Space Jump',status:'rented'},{name:'Rainbow Burst',status:'available'},
+      {name:'Ocean Wave',status:'cleaning'},{name:'Jungle Safari',status:'available'},
+      {name:'Galaxy Bounce',status:'available'},{name:'Mini Waikiki',status:'available'},
+      {name:'Piratų Laivas',status:'rented'},{name:'Fėjų Pilis',status:'available'},
+      {name:'Robotas',status:'available'},{name:'Superherojus',status:'available'},
+      {name:'Sporto Arena',status:'cleaning'},{name:'Krokodilai',status:'available'},
+      {name:'Flamingo',status:'available'},{name:'Ledų Fabrikas',status:'reserved'}
+    ],
+    bookings: [
+      {id:'B001',customer_name:'Rasa Petrauskienė',date:d(td,10,0),duration:'3 val.',
+       address:'Laisvės g. 12',city:'Tauragė',status:'confirmed',payment:'deposit',
+       price:120,phone:'+37061234567',equipment:['Candy Pop','Vienaragiai'],
+       notes:'Vaikų gimtadienis, 15 vaikų'},
+      {id:'B002',customer_name:'Tomas Butkus',date:d(td,14,30),duration:'4 val.',
+       address:'Mindaugo pr. 5',city:'Šilutė',status:'confirmed',payment:'paid',
+       price:160,phone:'+37069876543',equipment:['Mega Waikiki'],notes:''},
+      {id:'B003',customer_name:'Jolanta Kazlauskienė',date:d(td+1,11,0),duration:'3 val.',
+       address:'Žemaitės g. 3',city:'Kelmė',status:'confirmed',payment:'deposit',
+       price:130,phone:'+37062345678',equipment:['Monstrai','Milžiniškas Dart'],
+       notes:'Prašo atvykti 30 min anksčiau'},
+      {id:'B004',customer_name:'Andrius Jankauskas',date:d(td+2,10,0),duration:'5 val.',
+       address:'Krantinės g. 8',city:'Raseiniai',status:'inquiry',payment:'unpaid',
+       price:200,phone:'+37068765432',equipment:['Space Jump','Dino Park'],
+       notes:'Laukia patvirtinimo'},
+      {id:'B005',customer_name:'Eglė Stankūnaitė',date:d(td+3,12,0),duration:'4 val.',
+       address:'Tilžės g. 20',city:'Tauragė',status:'confirmed',payment:'paid',
+       price:175,phone:'+37063456789',equipment:['Fėjų Pilis','Flamingo'],
+       notes:'Mergaičių vakarėlis'},
+      {id:'B006',customer_name:'Viktorija Laurinaitienė',date:d(td-2,10,0),duration:'3 val.',
+       address:'Ąžuolų al. 1',city:'Šilutė',status:'delivered',payment:'paid',
+       price:140,phone:'+37064567890',equipment:['Rainbow Burst'],notes:''},
+      {id:'B007',customer_name:'Mantas Urbonas',date:d(td-4,13,0),duration:'6 val.',
+       address:'Sodų g. 15',city:'Raseiniai',status:'completed',payment:'paid',
+       price:240,phone:'+37065678901',equipment:['Piratų Laivas','Ocean Wave'],
+       notes:'Vasaros šventė'},
+      {id:'B008',customer_name:'Simona Mikelionienė',date:d(td-6,11,30),duration:'3 val.',
+       address:'Parko g. 7',city:'Kelmė',status:'cancelled',payment:'unpaid',
+       price:110,phone:'+37066789012',equipment:['Mini Waikiki'],notes:'Atšaukė dėl ligos'},
+      {id:'B009',customer_name:'Darius Klimaitis',date:d(td+5,10,0),duration:'4 val.',
+       address:'Vilniaus g. 33',city:'Tauragė',status:'inquiry',payment:'unpaid',
+       price:160,phone:'+37067890123',equipment:['Robotas','Superherojus'],
+       notes:'Berniukų gimtadienis'},
+      {id:'B010',customer_name:'Kristina Sinkevičienė',date:d(td+7,15,0),duration:'3 val.',
+       address:'Kauno g. 44',city:'Raseiniai',status:'confirmed',payment:'deposit',
+       price:130,phone:'+37068901234',equipment:['Galaxy Bounce','Ledų Fabrikas'],notes:''}
+    ]
+  };
+}
+
+// ── STATE ──
+var state = {
+  viewYear: new Date().getFullYear(),
+  viewMonth: new Date().getMonth(),
+  bookings: [],
+  equipment: [],
+  selectedDate: null
+};
+
+// ── LOAD DATA ──
+function loadData() {
+  var btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  showLoading(true);
+
+  var controller = new AbortController();
+  var tid = setTimeout(function() { controller.abort(); }, 6000);
+
+  fetch(API_BASE + '?t=' + Date.now(), { signal: controller.signal })
+    .then(function(r) {
+      clearTimeout(tid);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      applyData(data, false);
+    })
+    .catch(function(err) {
+      clearTimeout(tid);
+      console.warn('API nepasiekiamas:', err.message);
+      applyData(getDemoData(), true);
+    });
+}
+
+function applyData(data, usedDemo) {
+  state.bookings  = data.bookings  || [];
+  state.equipment = data.equipment || getDemoData().equipment;
+
+  var s = data.stats || {};
+  setText('statToday',   s.today_count != null ? String(s.today_count) : '—');
+  setText('statRevenue', s.week_revenue != null ? s.week_revenue + ' €' : '—');
+  setText('statUnpaid',  s.unpaid_deposits != null ? String(s.unpaid_deposits) : '—');
+  setText('statEquip',   s.available_equipment != null ? String(s.available_equipment) : '—');
+
+  renderCalendar();
+  renderEquipment();
+  if (state.selectedDate) { showDayPanel(state.selectedDate); }
+
+  var now = new Date();
+  var hh = now.getHours();
+  var mm = String(now.getMinutes()).padStart(2,'0');
+  setText('lastUpdated', (usedDemo ? '⚠ Demo duomenys · ' : '') + 'Atnaujinta: ' + hh + ':' + mm);
+
+  document.getElementById('refreshBtn').classList.remove('loading');
+  showLoading(false);
+  showToast(usedDemo ? 'Naudojami demo duomenys (API nepasiekiamas)' : 'Duomenys atnaujinti',
+            usedDemo ? 'error' : 'success');
+}
+
+// ── CALENDAR ──
+function renderCalendar() {
+  var y = state.viewYear;
+  var m = state.viewMonth;
+  setText('calMonthTitle', LT_MONTHS[m] + ' ' + y);
+
+  var today = new Date();
+  var firstDay = new Date(y, m, 1);
+  var startOffset = firstDay.getDay() - 1;
+  if (startOffset < 0) startOffset = 6;
+  var daysInMonth = new Date(y, m+1, 0).getDate();
+  var daysInPrev  = new Date(y, m, 0).getDate();
+
+  var byDay = {};
+  state.bookings.forEach(function(b) {
+    var dk = b.date.slice(0,10);
+    if (!byDay[dk]) byDay[dk] = [];
+    byDay[dk].push(b);
+  });
+
+  var grid = document.getElementById('calGrid');
+  grid.textContent = '';
+
+  var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+  for (var i = 0; i < totalCells; i++) {
+    var cellDate, isCurrent;
+    if (i < startOffset) {
+      cellDate = new Date(y, m-1, daysInPrev - startOffset + i + 1);
+      isCurrent = false;
+    } else if (i >= startOffset + daysInMonth) {
+      cellDate = new Date(y, m+1, i - startOffset - daysInMonth + 1);
+      isCurrent = false;
+    } else {
+      cellDate = new Date(y, m, i - startOffset + 1);
+      isCurrent = true;
+    }
+
+    var dk = fmtKey(cellDate);
+    var dayBkgs = byDay[dk] || [];
+    var isToday    = cellDate.toDateString() === today.toDateString();
+    var isSelected = state.selectedDate === dk;
+
+    var cell = document.createElement('div');
+    cell.className = 'cal-day' +
+      (!isCurrent ? ' other-month' : '') +
+      (isToday    ? ' is-today'    : '') +
+      (isSelected ? ' selected'    : '');
+
+    var numEl = document.createElement('div');
+    numEl.className = 'day-num';
+    numEl.textContent = cellDate.getDate();
+    cell.appendChild(numEl);
+
+    if (dayBkgs.length > 0) {
+      var countEl = document.createElement('div');
+      countEl.className = 'day-booking-count';
+      countEl.textContent = dayBkgs.length === 1 ? '1 rezervacija' : dayBkgs.length + ' rezervacijos';
+      cell.appendChild(countEl);
+
+      var dotsEl = document.createElement('div');
+      dotsEl.className = 'day-dots';
+      dayBkgs.slice(0, 6).forEach(function(b) {
+        var dot = document.createElement('div');
+        dot.className = 'day-dot';
+        dot.style.background = STATUS_COLOR[b.status] || '#6B7280';
+        dotsEl.appendChild(dot);
+      });
+      cell.appendChild(dotsEl);
+    }
+
+    if (isCurrent) {
+      (function(dateKey) {
+        cell.addEventListener('click', function() {
+          state.selectedDate = dateKey;
+          renderCalendar();
+          showDayPanel(dateKey);
+        });
+      })(dk);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function fmtKey(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+// ── DAY PANEL ──
+function showDayPanel(dk) {
+  var panel = document.getElementById('sidePanel');
+  var parts  = dk.split('-').map(Number);
+  var y = parts[0], m = parts[1], day = parts[2];
+
+  var dayBkgs = state.bookings.filter(function(b) {
+    return b.date.slice(0,10) === dk;
+  }).sort(function(a,b) { return new Date(a.date) - new Date(b.date); });
+
+  var totalRev = dayBkgs
+    .filter(function(b) { return b.status !== 'cancelled'; })
+    .reduce(function(s,b) { return s + (b.price || 0); }, 0);
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.className = 'side-header';
+  var dateEl = document.createElement('div');
+  dateEl.className = 'side-date';
+  dateEl.textContent = day + ' ' + LT_MONTHS_GEN[m-1] + ' ' + y;
+  hdr.appendChild(dateEl);
+  var sumEl = document.createElement('div');
+  sumEl.className = 'side-summary';
+  if (dayBkgs.length === 0) {
+    sumEl.textContent = 'Nėra rezervacijų';
+  } else {
+    var cnt = dayBkgs.length;
+    sumEl.textContent = cnt + ' rezervacij' + (cnt===1?'a':'os') + ' · ' + totalRev + ' €';
+  }
+  hdr.appendChild(sumEl);
+
+  // List
+  var list = document.createElement('div');
+  list.className = 'bookings-list';
+
+  if (dayBkgs.length === 0) {
+    var empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:40px 20px;color:var(--text-faint);';
+    var emIco = document.createElement('div');
+    emIco.style.cssText = 'font-size:36px;margin-bottom:12px;';
+    emIco.textContent = '📭';
+    var emTxt = document.createElement('div');
+    emTxt.textContent = 'Šią dieną rezervacijų nėra';
+    empty.appendChild(emIco);
+    empty.appendChild(emTxt);
+    list.appendChild(empty);
+  } else {
+    dayBkgs.forEach(function(b) {
+      list.appendChild(buildBookingCard(b));
+    });
+  }
+
+  panel.textContent = '';
+  panel.appendChild(hdr);
+  panel.appendChild(list);
+}
+
+function buildBookingCard(b) {
+  var card = document.createElement('div');
+  card.className = 'booking-card';
+
+  // Header row
+  var hdr = document.createElement('div');
+  hdr.className = 'booking-card-header';
+
+  var nameWrap = document.createElement('div');
+  var nameEl = document.createElement('div');
+  nameEl.className = 'booking-name';
+  nameEl.textContent = b.customer_name || '';
+  nameWrap.appendChild(nameEl);
+
+  var timeEl = document.createElement('div');
+  timeEl.className = 'booking-time';
+  var dt = new Date(b.date);
+  var hh = String(dt.getHours()).padStart(2,'0');
+  var mm = String(dt.getMinutes()).padStart(2,'0');
+  timeEl.textContent = '⏰ ' + hh + ':' + mm + (b.duration ? ' · ' + b.duration : '');
+  nameWrap.appendChild(timeEl);
+
+  var badge = document.createElement('span');
+  badge.className = 'status-badge status-' + (b.status || 'inquiry');
+  badge.textContent = STATUS_LT[b.status] || b.status || '';
+
+  hdr.appendChild(nameWrap);
+  hdr.appendChild(badge);
+  card.appendChild(hdr);
+
+  // Address
+  if (b.address || b.city) {
+    var addrRow = buildDetailRow('📍', (b.address || '') + (b.city ? ', ' + b.city : ''));
+    card.appendChild(addrRow);
+  }
+
+  // Phone
+  if (b.phone) {
+    var phoneRow = document.createElement('div');
+    phoneRow.className = 'booking-detail-row';
+    var ico = document.createElement('span');
+    ico.className = 'icon';
+    ico.textContent = '📞';
+    var link = document.createElement('a');
+    link.href = 'tel:' + b.phone;
+    link.style.cssText = 'color:var(--purple-light);text-decoration:none;';
+    link.textContent = b.phone;
+    phoneRow.appendChild(ico);
+    phoneRow.appendChild(link);
+    card.appendChild(phoneRow);
+  }
+
+  // Notes
+  if (b.notes) {
+    var noteRow = buildDetailRow('💬', b.notes);
+    var spans = noteRow.querySelectorAll('span:not(.icon)');
+    if (spans.length) { spans[0].style.cssText = 'font-style:italic;color:var(--text-faint);'; }
+    card.appendChild(noteRow);
+  }
+
+  // Equipment pills
+  if (b.equipment && b.equipment.length > 0) {
+    var pillsWrap = document.createElement('div');
+    pillsWrap.className = 'equipment-pills';
+    b.equipment.forEach(function(eq) {
+      var pill = document.createElement('span');
+      pill.className = 'equip-pill';
+      pill.textContent = (EQUIP_EMOJI[eq] || '🎪') + ' ' + eq;
+      pillsWrap.appendChild(pill);
+    });
+    card.appendChild(pillsWrap);
+  }
+
+  // Footer: price + payment
+  var footer = document.createElement('div');
+  footer.className = 'booking-footer';
+  var priceEl = document.createElement('span');
+  priceEl.className = 'booking-price';
+  priceEl.textContent = b.price ? b.price + ' €' : '—';
+  var payEl = document.createElement('span');
+  payEl.className = 'payment-badge ' + (PAYMENT_CLASS[b.payment] || 'pay-unpaid');
+  payEl.textContent = PAYMENT_LT[b.payment] || b.payment || '';
+  footer.appendChild(priceEl);
+  footer.appendChild(payEl);
+  card.appendChild(footer);
+
+  return card;
+}
+
+function buildDetailRow(icon, text) {
+  var row = document.createElement('div');
+  row.className = 'booking-detail-row';
+  var ico = document.createElement('span');
+  ico.className = 'icon';
+  ico.textContent = icon;
+  var txt = document.createElement('span');
+  txt.textContent = text;
+  row.appendChild(ico);
+  row.appendChild(txt);
+  return row;
+}
+
+// ── EQUIPMENT ──
+function renderEquipment() {
+  var grid = document.getElementById('equipGrid');
+  grid.textContent = '';
+  state.equipment.forEach(function(eq) {
+    var item = document.createElement('div');
+    item.className = 'equip-item';
+
+    var nm = document.createElement('div');
+    nm.className = 'equip-name';
+    nm.textContent = (EQUIP_EMOJI[eq.name] || '🎪') + ' ' + eq.name;
+    item.appendChild(nm);
+
+    var row = document.createElement('div');
+    row.className = 'equip-row';
+    var dot = document.createElement('div');
+    dot.className = 'equip-status-dot es-' + eq.status;
+    var lbl = document.createElement('span');
+    lbl.className = 'equip-status-label esl-' + eq.status;
+    lbl.textContent = EQUIP_STATUS_LABELS[eq.status] || eq.status;
+    row.appendChild(dot);
+    row.appendChild(lbl);
+    item.appendChild(row);
+
+    grid.appendChild(item);
+  });
+}
+
+// ── NAV ──
+function changeMonth(dir) {
+  state.viewMonth += dir;
+  if (state.viewMonth > 11) { state.viewMonth = 0;  state.viewYear++; }
+  if (state.viewMonth < 0)  { state.viewMonth = 11; state.viewYear--; }
+  renderCalendar();
+}
+
+function goToday() {
+  var n = new Date();
+  state.viewYear  = n.getFullYear();
+  state.viewMonth = n.getMonth();
+  renderCalendar();
+}
+
+// ── UTILS ──
+function setText(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function showLoading(on) {
+  document.getElementById('loadingOverlay').classList.toggle('active', on);
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '');
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+// ── INIT ──
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
