@@ -1,0 +1,318 @@
+{
+  "name": "Batutynas SMS Notifications",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sms-confirm-trigger",
+      "name": "Booking Confirmation Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Unwrap .query wrapper if called from an AI tool workflow\nconst raw = $input.first().json;\nconst d = raw.query || raw;\n\n// Normalise phone to E.164 (+370XXXXXXXX) for SMS8.io\nfunction toE164(phone) {\n  const digits = (phone || '').replace(/\\D/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) return '+' + digits;\n  if (digits.startsWith('8')   && digits.length >= 9)  return '+370' + digits.slice(1);\n  if (digits.startsWith('6')   && digits.length >= 8)  return '+370' + digits;\n  return phone || '';\n}\n\n// Format date: '2026-07-15' => '2026-07-15 (Trečiadienis)'\nfunction formatDate(dateStr) {\n  if (!dateStr) return 'nenurodyta';\n  const days = ['Sekmadienis','Pirmadienis','Antradienis','Tre\\u010diadienis',\n                 'Ketvirtadienis','Penktadienis','\\u0160e\\u0161tadienis'];\n  const dt = new Date(dateStr);\n  return `${dateStr} (${days[dt.getDay()]})`;\n}\n\n// Format time: '14:00:00' => '14:00'\nfunction fmtTime(t) {\n  return t ? String(t).substring(0, 5) : '';\n}\n\nconst phone   = toE164(d.customer_phone);\nconst name    = (d.customer_name   || '').split(' ')[0];\nconst date    = formatDate(d.event_date);\nconst time    = fmtTime(d.event_time);\nconst address = d.delivery_address || d.city || 'nenurodyta';\nconst equip   = d.equipment_list   || 'batutas';\nconst id      = d.booking_id       || '';\n\n// Target: <=160 chars\nconst msg = `Sveiki, ${name}! U\\u017esakymas #${id} patvirtintas. ` +\n  `Data: ${date}${time ? ' ' + time : ''}. ` +\n  `Adresas: ${address}. ` +\n  `\\u012eranga: ${equip}. ` +\n  `Klausim\\u0173: +37060000000`;\n\nreturn [{ json: { phone, message: msg, booking_id: id, flow: 'confirmation' } }];"
+      },
+      "id": "sms-confirm-format",
+      "name": "Format Confirmation SMS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.SMS8_API_URL }}/api/send",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, message: $json.message }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "sms-confirm-send",
+      "name": "Send Confirmation SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE batutynas.bookings\n   SET confirmation_sent = TRUE, updated_at = NOW()\n WHERE id = {{ $('Format Confirmation SMS').item.json.booking_id }}::integer;",
+        "additionalFields": {}
+      },
+      "id": "sms-confirm-mark",
+      "name": "Mark Confirmation Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [940, 200],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { result: 'SMS patvirtinimas i\\u0161si\\u0173stas klientui.' } }];"
+      },
+      "id": "sms-confirm-response",
+      "name": "Return Confirmation Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "sms-reminder-cron",
+      "name": "Daily Reminder Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 480]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  b.id,\n  c.phone              AS customer_phone,\n  c.name               AS customer_name,\n  b.event_date::text   AS event_date,\n  b.event_time::text   AS event_time,\n  b.delivery_address,\n  b.city,\n  b.deposit_paid,\n  b.deposit_amount,\n  COALESCE(\n    (\n      SELECT STRING_AGG(e.name, ', ' ORDER BY e.name)\n      FROM batutynas.booking_equipment be\n      JOIN batutynas.equipment e ON e.id = be.equipment_id\n      WHERE be.booking_id = b.id\n    ),\n    'batutas'\n  ) AS equipment_list\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nWHERE b.event_date = CURRENT_DATE + INTERVAL '1 day'\n  AND b.status NOT IN ('Cancelled')\n  AND b.reminder_sent = FALSE\nORDER BY b.event_time;",
+        "additionalFields": {}
+      },
+      "id": "sms-reminder-fetch",
+      "name": "Fetch Tomorrow Bookings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 480],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function toE164(phone) {\n  const digits = (phone || '').replace(/\\D/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) return '+' + digits;\n  if (digits.startsWith('8')   && digits.length >= 9)  return '+370' + digits.slice(1);\n  if (digits.startsWith('6')   && digits.length >= 8)  return '+370' + digits;\n  return phone || '';\n}\n\nfunction fmtTime(t) {\n  return t ? String(t).substring(0, 5) : '';\n}\n\nconst items = $input.all();\n\nif (!items || items.length === 0) {\n  return [{ json: { skip: true, message: 'Rytoj n\\u0117ra u\\u017esakym\\u0173 \\u2014 SMS nera\\u0161omi.' } }];\n}\n\nreturn items.map(item => {\n  const b = item.json;\n  const phone   = toE164(b.customer_phone);\n  const name    = (b.customer_name || '').split(' ')[0];\n  const time    = fmtTime(b.event_time);\n  const address = b.delivery_address || b.city || 'nenurodyta';\n  const equip   = b.equipment_list   || 'batutas';\n  const id      = b.id;\n\n  const depositNote = (!b.deposit_paid && b.deposit_amount)\n    ? ` Avansas: \\u20ac${b.deposit_amount} - laukiame apmok\\u0117jimo.`\n    : '';\n\n  const msg = `Sveiki, ${name}! Priminimas: rytoj u\\u017es. #${id}` +\n    `${time ? ', ' + time : ''}, ` +\n    `${address}. \\u012eranga: ${equip}.${depositNote} Klausim\\u0173: +37060000000`;\n\n  return { json: { phone, message: msg, booking_id: id, flow: 'reminder' } };\n});"
+      },
+      "id": "sms-reminder-format",
+      "name": "Format Reminder SMS per Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "skip-check",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "sms-reminder-skip-check",
+      "name": "Skip If No Bookings",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [940, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.SMS8_API_URL }}/api/send",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, message: $json.message }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "sms-reminder-send",
+      "name": "Send Reminder SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 420]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE batutynas.bookings\n   SET reminder_sent = TRUE, updated_at = NOW()\n WHERE id = {{ $('Format Reminder SMS per Booking').item.json.booking_id }}::integer;",
+        "additionalFields": {}
+      },
+      "id": "sms-reminder-mark",
+      "name": "Mark Reminder Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1420, 420],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "8258463322",
+        "text": "=\ud83d\udcf1 SMS priminimai i\u0161si\u0173sti: rytoj {{ $('Fetch Tomorrow Bookings').all().length }} u\u017esakym\u0173.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "sms-reminder-telegram-log",
+      "name": "Telegram: Log Reminder Run",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1180, 560],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "sms-delivery-trigger",
+      "name": "Delivery Notification Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [220, 760]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst d = raw.query || raw;\n\nfunction toE164(phone) {\n  const digits = (phone || '').replace(/\\D/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) return '+' + digits;\n  if (digits.startsWith('8')   && digits.length >= 9)  return '+370' + digits.slice(1);\n  if (digits.startsWith('6')   && digits.length >= 8)  return '+370' + digits;\n  return phone || '';\n}\n\nfunction fmtTime(t) {\n  return t ? String(t).substring(0, 5) : '';\n}\n\nconst phone   = toE164(d.customer_phone);\nconst name    = (d.customer_name || '').split(' ')[0];\nconst address = d.delivery_address || d.city || 'nenurodyta';\nconst equip   = d.equipment_list   || 'batutas';\nconst pickup  = fmtTime(d.pickup_time);\nconst id      = d.booking_id || '';\n\nconst pickupNote = pickup ? ` Gr\\u0105\\u017einimas iki ${pickup}.` : '';\n\nconst msg = `Sveiki, ${name}! \\u012eranga pristatyta (u\\u017es. #${id}): ${equip}, ${address}.` +\n  `${pickupNote} Klausim\\u0173: +37060000000`;\n\nreturn [{ json: { phone, message: msg, booking_id: id, flow: 'delivery' } }];"
+      },
+      "id": "sms-delivery-format",
+      "name": "Format Delivery SMS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 760]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.SMS8_API_URL }}/api/send",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, message: $json.message }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "sms-delivery-send",
+      "name": "Send Delivery SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 760]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { result: 'SMS apie pristatym\\u0105 i\\u0161si\\u0173stas klientui.' } }];"
+      },
+      "id": "sms-delivery-response",
+      "name": "Return Delivery Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 760]
+    }
+  ],
+  "connections": {
+    "Booking Confirmation Trigger": {
+      "main": [
+        [{ "node": "Format Confirmation SMS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Confirmation SMS": {
+      "main": [
+        [{ "node": "Send Confirmation SMS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Confirmation SMS": {
+      "main": [
+        [{ "node": "Mark Confirmation Sent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mark Confirmation Sent": {
+      "main": [
+        [{ "node": "Return Confirmation Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Daily Reminder Schedule": {
+      "main": [
+        [{ "node": "Fetch Tomorrow Bookings", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Tomorrow Bookings": {
+      "main": [
+        [{ "node": "Format Reminder SMS per Booking", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Reminder SMS per Booking": {
+      "main": [
+        [{ "node": "Skip If No Bookings", "type": "main", "index": 0 }]
+      ]
+    },
+    "Skip If No Bookings": {
+      "main": [
+        [{ "node": "Send Reminder SMS", "type": "main", "index": 0 }],
+        [{ "node": "Telegram: Log Reminder Run", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Reminder SMS": {
+      "main": [
+        [{ "node": "Mark Reminder Sent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Delivery Notification Trigger": {
+      "main": [
+        [{ "node": "Format Delivery SMS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Delivery SMS": {
+      "main": [
+        [{ "node": "Send Delivery SMS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Delivery SMS": {
+      "main": [
+        [{ "node": "Return Delivery Result", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Batutynas SMS",
+      "id": "batutynas-sms"
+    }
+  ],
+  "triggerCount": 2,
+  "versionId": "1"
+}
