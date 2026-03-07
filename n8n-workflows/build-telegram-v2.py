@@ -953,7 +953,7 @@ return [{
             "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
             "sendBody": True,
             "specifyBody": "json",
-            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [[\n      {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n    ]]\n  }\n}',
+            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "keyboard": [[\n      {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n    ]],\n    "resize_keyboard": true,\n    "one_time_keyboard": true\n  }\n}',
             "options": {}
         },
         "id": "send-keyboard",
@@ -1000,24 +1000,21 @@ return [{
         "position": [1720, 500]
     })
 
-    # 21. Send WebApp Result (Telegram)
+    # 21. Send WebApp Result (Telegram via HTTP — includes remove_keyboard)
     nodes.append({
         "parameters": {
-            "resource": "message",
-            "operation": "sendMessage",
-            "chatId": "={{ $('Format WebApp Result').first().json.chatId }}",
-            "text": "={{ $('Format WebApp Result').first().json.reply }}",
-            "additionalFields": {
-                "appendAttribution": False,
-                "parse_mode": "HTML"
-            }
+            "method": "POST",
+            "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            "sendBody": True,
+            "specifyBody": "json",
+            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Format WebApp Result").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Format WebApp Result").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {"remove_keyboard": true}\n}',
+            "options": {}
         },
         "id": "send-webapp-result",
         "name": "Send WebApp Result",
-        "type": "n8n-nodes-base.telegram",
-        "typeVersion": 1.2,
-        "position": [1940, 500],
-        "credentials": {"telegramApi": TELEGRAM_CRED}
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1940, 500]
     })
 
     # ============ CALLBACK PATH (TRUE from callback check) ============
