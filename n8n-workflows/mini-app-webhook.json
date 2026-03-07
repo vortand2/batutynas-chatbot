@@ -1,0 +1,93 @@
+{
+  "name": "Mini App Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mini-app-booking",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://vortand2.github.io"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "mini-app-booking"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst chatId = body.chatId;\n\nfunction esc(v) {\n  if (!v) return null;\n  return \"'\" + String(v).replace(/'/g, \"''\") + \"'\";\n}\n\nconst name = esc(body.customer_name) || \"'Nenurodyta'\";\nconst phone = esc(body.customer_phone) || \"'Nenurodyta'\";\nconst date = body.event_date ? esc(body.event_date) : 'CURRENT_DATE';\nconst time = body.event_time ? esc(body.event_time) + '::time' : 'NULL';\nconst pickup = body.pickup_time ? esc(body.pickup_time) + '::time' : 'NULL';\nconst addr = esc(body.delivery_address) || \"''\";\nconst city = esc(body.city) || \"''\";\nconst price = body.price ? Number(body.price) || 0 : 0;\nconst notes = esc(body.notes) || \"''\";\nconst equip = esc(body.equipment) || \"''\";\n\nconst sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES (${name}, ${phone}, 'Telegram')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, event_time, pickup_time,\n    delivery_address, city, status, price, notes, entry_source\n  )\n  SELECT\n    cu.id,\n    ${date},\n    ${time},\n    ${pickup},\n    ${addr},\n    ${city},\n    'Confirmed',\n    ${price},\n    ${notes},\n    'Telegram'\n  FROM contact_upsert cu\n  RETURNING id\n)\nSELECT id FROM new_booking;\n`;\n\nconst equipArr = body.equipment ? [{ name: body.equipment, icon: '🎪', category: 'Batutai' }] : [];\n\nreturn [{ json: { chatId, sql, customerName: body.customer_name || 'Klientas', equipment: equipArr } }];"
+      },
+      "id": "build-sql",
+      "name": "Build SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "id": "save-booking",
+      "name": "Save Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [690, 300],
+      "credentials": {
+        "postgres": {
+          "id": "uwOjwMrlfXOiGBsd",
+          "name": "Postgres \u2014 batutynas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($json.chatId || $('Build SQL').first().json.chatId) }},\n  \"text\": \"\u2705 U\u017esakymas patvirtintas ir i\u0161saugotas!\",\n  \"parse_mode\": \"HTML\"\n}",
+        "options": {}
+      },
+      "id": "send-confirmation-msg",
+      "name": "Send Success Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\": true, \"message\": \"Booking saved\"}",
+        "options": {}
+      },
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1130, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Build SQL", "type": "main", "index": 0}]]
+    },
+    "Build SQL": {
+      "main": [[{"node": "Save Booking", "type": "main", "index": 0}]]
+    },
+    "Save Booking": {
+      "main": [[{"node": "Send Success Message", "type": "main", "index": 0}]]
+    },
+    "Send Success Message": {
+      "main": [[{"node": "Respond OK", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

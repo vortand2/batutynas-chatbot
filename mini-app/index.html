@@ -482,7 +482,10 @@
       };
     }
 
-    // ---------- Submit handler (shared by MainButton + in-form button) ----------
+    // ---------- Webhook URL for direct POST ----------
+    const WEBHOOK_URL = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/mini-app-booking';
+
+    // ---------- Submit handler ----------
     function setSubmitLoading(loading) {
       const submitBtn = document.getElementById('submitBtn');
       if (loading) {
@@ -494,9 +497,33 @@
       }
     }
 
+    function showSuccess() {
+      document.getElementById('bookingForm').style.display = 'none';
+      document.getElementById('transcriptSection').style.display = 'none';
+      const msg = document.createElement('div');
+      msg.style.cssText = 'text-align:center;padding:40px 20px;';
+      const check = document.createElement('div');
+      check.textContent = '\u2705';
+      check.style.fontSize = '3rem';
+      msg.appendChild(check);
+      const txt = document.createElement('p');
+      txt.textContent = 'U\u017esakymas patvirtintas ir i\u0161saugotas!';
+      txt.style.cssText = 'font-size:1.1rem;margin-top:12px;font-weight:600;';
+      msg.appendChild(txt);
+      const sub = document.createElement('p');
+      sub.textContent = 'Galite u\u017edaryti \u0161\u012f lang\u0105.';
+      sub.style.cssText = 'font-size:0.9rem;margin-top:8px;color:var(--tg-theme-hint-color,#888);';
+      msg.appendChild(sub);
+      document.body.appendChild(msg);
+
+      // Auto-close after 2 seconds
+      if (tg && tg.close) {
+        setTimeout(function() { tg.close(); }, 2000);
+      }
+    }
+
     function handleSubmit() {
       if (!validate()) {
-        // Haptic feedback for validation error
         if (tg && tg.HapticFeedback) {
           tg.HapticFeedback.notificationOccurred('error');
         }
@@ -504,44 +531,45 @@
       }
 
       const data = gatherData();
+      // Add chatId from URL params so webhook knows which chat to notify
+      data.chatId = getParam('chatId');
 
-      // Disable both buttons
       setSubmitLoading(true);
       if (tg && tg.MainButton) {
         tg.MainButton.showProgress(true);
         tg.MainButton.disable();
       }
 
-      // Haptic feedback for submit
-      if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.notificationOccurred('success');
-      }
-
-      if (tg && tg.sendData) {
-        try {
-          tg.sendData(JSON.stringify(data));
-          // sendData closes the Mini App, so this code may not run
-        } catch (e) {
-          // If sendData fails, re-enable buttons
-          setSubmitLoading(false);
-          if (tg && tg.MainButton) {
-            tg.MainButton.hideProgress();
-            tg.MainButton.enable();
-          }
-          alert('Klaida siun\u010Diant duomenis. Bandykite dar kart\u0105.');
+      // POST directly to n8n webhook
+      fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(function(resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.text();
+      })
+      .then(function() {
+        if (tg && tg.HapticFeedback) {
+          tg.HapticFeedback.notificationOccurred('success');
         }
-      } else {
-        // No Telegram context — preview mode
-        console.log('Form data:', JSON.stringify(data, null, 2));
-        alert('Duomenys (preview):\n' + JSON.stringify(data, null, 2));
+        showSuccess();
+      })
+      .catch(function(err) {
         setSubmitLoading(false);
-      }
+        if (tg && tg.MainButton) {
+          tg.MainButton.hideProgress();
+          tg.MainButton.enable();
+        }
+        alert('Klaida siun\u010Diant duomenis: ' + err.message + '. Bandykite dar kart\u0105.');
+      });
     }
 
     // ---------- In-form submit button ----------
     document.getElementById('submitBtn').addEventListener('click', handleSubmit);
 
-    // ---------- Telegram MainButton (also wires up the native bottom button) ----------
+    // ---------- Telegram MainButton (native bottom button, if available) ----------
     if (tg && tg.MainButton) {
       tg.MainButton.setText('PATVIRTINTI U\u017DSAKYM\u0104');
       tg.MainButton.color = tg.themeParams.button_color || '#2481cc';
