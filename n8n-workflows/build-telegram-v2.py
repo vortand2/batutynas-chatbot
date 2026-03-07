@@ -42,6 +42,15 @@ if (message.voice || message.audio) {
   }}];
 }
 
+// Web App data (Mini App form submission via tg.sendData())
+if (message.web_app_data) {
+  return [{ json: {
+    msgType: 'webapp',
+    chatId,
+    webAppData: message.web_app_data.data
+  }}];
+}
+
 // Text message (commands + natural language)
 return [{ json: {
   msgType: 'text',
@@ -335,7 +344,7 @@ switch(intent) {
 return [{ json: { reply } }];
 """.strip()
 
-# Extract booking data from OpenAI response and build confirmation message
+# Extract booking data from OpenAI response and build Mini App URL
 EXTRACT_AND_CONFIRM_CODE = r"""
 const transcript = $('Transcribe Audio').first().json.text || '';
 const extractResp = $input.first().json;
@@ -351,15 +360,8 @@ let booking;
 try {
   booking = JSON.parse(content);
 } catch(e) {
-  return [{ json: {
-    chatId,
-    reply: `\u26a0\ufe0f Nepavyko i\u0161skirti u\u017esakymo duomen\u0173.\n\n\ud83d\udcdd Transkripcija:\n<i>${transcript}</i>\n\nPabandykite dar kart\u0105 arba naudokite /help`,
-    hasKeyboard: false
-  }}];
+  booking = {};
 }
-
-// Generate a short unique ID for pending booking
-const pendingId = 'vb_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
 
 // Build confirmation message
 let msg = `\ud83c\udf99\ufe0f <b>Balso u\u017esakymas</b>\n`;
@@ -377,23 +379,27 @@ if (booking.equipment) msg += `\ud83c\udfaa ${booking.equipment}\n`;
 if (booking.price) msg += `\ud83d\udcb0 \u20ac${booking.price}\n`;
 if (booking.notes) msg += `\ud83d\udcdd ${booking.notes}\n`;
 msg += `\n\ud83d\udcac <i>Transkripcija: "${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}"</i>`;
+msg += `\n\n\u270f\ufe0f <b>Per\u017ei\u016br\u0117kite ir patvirtinkite u\u017esakym\u0105:</b>`;
 
-// Build SQL to save pending booking
-const bookingJson = JSON.stringify(booking).replace(/'/g, "''");
-const saveSql = `INSERT INTO batutynas.pending_voice_bookings (id, booking_data, chat_id)
-  VALUES ('${pendingId}', '${bookingJson}'::jsonb, '${chatId}')
-  ON CONFLICT (id) DO UPDATE SET booking_data = EXCLUDED.booking_data
-  RETURNING id`;
+// Build Mini App URL with query params
+const enc = (v) => encodeURIComponent(v != null ? String(v) : '');
+const baseUrl = 'https://vortand2.github.io/batutynas-chatbot/mini-app/index.html';
+const params = [
+  `name=${enc(booking.customer_name)}`,
+  `phone=${enc(booking.customer_phone)}`,
+  `date=${enc(booking.event_date)}`,
+  `time=${enc(booking.event_time)}`,
+  `pickup=${enc(booking.pickup_time)}`,
+  `address=${enc(booking.delivery_address)}`,
+  `city=${enc(booking.city)}`,
+  `equipment=${enc(booking.equipment)}`,
+  `price=${enc(booking.price)}`,
+  `notes=${enc(booking.notes)}`,
+  `transcript=${enc(transcript.substring(0, 200))}`
+].join('&');
+const miniAppUrl = `${baseUrl}?${params}`;
 
-return [{ json: {
-  chatId,
-  reply: msg,
-  hasKeyboard: true,
-  pendingId,
-  saveSql,
-  confirmCb: `vb_ok:${pendingId}`,
-  cancelCb: `vb_no:${pendingId}`
-}}];
+return [{ json: { chatId, reply: msg, miniAppUrl }}];
 """.strip()
 
 # Process callback query
@@ -523,6 +529,104 @@ if (action === 'confirm') {
 return [{ json: { reply, callbackAnswer, chatId, callbackQueryId } }];
 """.strip()
 
+# Process WebApp submission (Mini App form data via tg.sendData())
+PROCESS_WEBAPP_CODE = r"""
+const item = $input.first().json;
+const chatId = item.chatId;
+const rawData = item.webAppData || '{}';
+
+let form;
+try {
+  form = JSON.parse(rawData);
+} catch (e) {
+  return [{ json: { chatId, sql: "SELECT json_build_object('action', 'parse_error') AS result" }}];
+}
+
+function esc(val) {
+  if (val === null || val === undefined) return null;
+  return String(val).replace(/'/g, "''");
+}
+
+const name = esc(form.customer_name) || 'Nenurodyta';
+const phone = esc(form.customer_phone) || 'Nenurodyta';
+const eventDate = esc(form.event_date);
+const eventTime = esc(form.event_time);
+const pickupTime = esc(form.pickup_time);
+const address = esc(form.delivery_address) || '';
+const city = esc(form.city) || '';
+const equipment = esc(form.equipment) || '';
+const price = parseFloat(form.price) || 0;
+const notes = esc(form.notes) || '';
+
+const sql = `
+WITH contact_upsert AS (
+  INSERT INTO batutynas.contacts (name, phone, source)
+  VALUES ('${name}', '${phone}', 'Telegram')
+  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name
+  RETURNING id, name, phone
+),
+new_booking AS (
+  INSERT INTO batutynas.bookings (
+    contact_id, event_date, event_time, pickup_time,
+    delivery_address, city, status, price, notes, entry_source
+  )
+  SELECT
+    cu.id,
+    ${eventDate ? "'" + eventDate + "'::date" : 'CURRENT_DATE'},
+    ${eventTime ? "'" + eventTime + "'::time" : 'NULL'},
+    ${pickupTime ? "'" + pickupTime + "'::time" : 'NULL'},
+    '${address}',
+    '${city}',
+    'Confirmed',
+    ${price},
+    '${notes}',
+    'Telegram'
+  FROM contact_upsert cu
+  RETURNING id, event_date::text, city
+)
+SELECT json_build_object(
+  'action', 'confirmed',
+  'booking_id', nb.id,
+  'event_date', nb.event_date,
+  'city', nb.city,
+  'customer_name', cu.name,
+  'equipment', '${equipment}'
+) AS result
+FROM new_booking nb, contact_upsert cu`;
+
+return [{ json: { chatId, sql } }];
+""".strip()
+
+# Format WebApp booking result
+FORMAT_WEBAPP_CODE = r"""
+const chatId = $('Process WebApp').first().json.chatId;
+const row = $input.first().json;
+
+let result;
+try {
+  result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;
+} catch(e) {
+  return [{ json: { reply: '\u26a0\ufe0f Klaida apdorojant u\u017esakym\u0105.', chatId } }];
+}
+
+let reply = '';
+if (result?.action === 'confirmed') {
+  reply = `\u2705 <b>U\u017esakymas sukurtas!</b>\n\n` +
+    `\ud83d\udcdd #${result.booking_id}\n` +
+    `\ud83d\udc64 ${result.customer_name}\n` +
+    `\ud83d\udcc5 ${result.event_date}\n` +
+    `\ud83d\udccd ${result.city}\n`;
+  if (result.equipment) reply += `\ud83c\udfaa ${result.equipment}\n`;
+  reply += `\nStatusas: <b>Confirmed</b>`;
+} else if (result?.action === 'parse_error') {
+  reply = '\u26a0\ufe0f Nepavyko nuskaityti formos duomen\u0173. Bandykite dar kart\u0105.';
+} else {
+  reply = '\u26a0\ufe0f Nepavyko i\u0161saugoti u\u017esakymo. Bandykite dar kart\u0105.';
+}
+
+return [{ json: { reply, chatId } }];
+""".strip()
+
 # ============================================================
 # BUILD WORKFLOW
 # ============================================================
@@ -597,18 +701,39 @@ def build_workflow():
         "position": [840, 400]
     })
 
-    # ============ TEXT PATH (FALSE from voice check) ============
-    # 5. Parse Intent
+    # 5. IF: Is WebApp? (FALSE path of voice check)
+    nodes.append({
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": ""},
+                "conditions": [{
+                    "id": "cond-webapp",
+                    "leftValue": "={{ $json.msgType }}",
+                    "rightValue": "webapp",
+                    "operator": {"type": "string", "operation": "equals"}
+                }],
+                "combinator": "and"
+            }
+        },
+        "id": "if-webapp",
+        "name": "Is WebApp?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [1060, 500]
+    })
+
+    # ============ TEXT PATH (FALSE from webapp check) ============
+    # 6. Parse Intent
     nodes.append({
         "parameters": {"jsCode": PARSE_INTENT_CODE},
         "id": "parse-intent",
         "name": "Parse Intent",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [1060, 550]
+        "position": [1280, 650]
     })
 
-    # 6. Execute Query
+    # 7. Execute Query
     nodes.append({
         "parameters": {
             "operation": "executeQuery",
@@ -619,21 +744,21 @@ def build_workflow():
         "name": "Execute Query",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
-        "position": [1280, 550],
+        "position": [1500, 650],
         "credentials": {"postgres": POSTGRES_CRED}
     })
 
-    # 7. Format Response
+    # 8. Format Response
     nodes.append({
         "parameters": {"jsCode": FORMAT_RESPONSE_CODE},
         "id": "format-response",
         "name": "Format Response",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [1500, 550]
+        "position": [1720, 650]
     })
 
-    # 8. Send Reply
+    # 9. Send Reply
     nodes.append({
         "parameters": {
             "resource": "message",
@@ -649,12 +774,12 @@ def build_workflow():
         "name": "Send Reply",
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
-        "position": [1720, 550],
+        "position": [1940, 650],
         "credentials": {"telegramApi": TELEGRAM_CRED}
     })
 
     # ============ VOICE PATH (TRUE from voice check) ============
-    # 9. Get File Path from Telegram
+    # 10. Get File Path from Telegram
     nodes.append({
         "parameters": {
             "method": "GET",
@@ -668,7 +793,7 @@ def build_workflow():
         "position": [1060, 200]
     })
 
-    # 10. Download Audio from Telegram
+    # 11. Download Audio from Telegram
     nodes.append({
         "parameters": {
             "method": "GET",
@@ -684,7 +809,7 @@ def build_workflow():
         "position": [1280, 200]
     })
 
-    # 10b. Rename .oga → .ogg (Telegram sends .oga, Groq requires .ogg extension)
+    # 12. Rename .oga -> .ogg (Telegram sends .oga, Groq requires .ogg extension)
     nodes.append({
         "parameters": {
             "jsCode": (
@@ -706,13 +831,16 @@ def build_workflow():
         "position": [1390, 200]
     })
 
-    # 11. Transcribe Audio (Groq Whisper large-v3 — full 1.55B model, best accuracy for Lithuanian)
-    # The 'prompt' parameter provides vocabulary hints to improve Lithuanian name/address accuracy
+    # 13. Transcribe Audio (Groq Whisper large-v3)
     whisper_prompt = (
-        "Batutynas užsakymas. Batutai: Batutas Monstrai, Mega Batutas, Didelis Batutas, "
-        "Mažas Batutas, Vaikiškas Batutas, Batuto nuoma. "
-        "Miestai: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. "
-        "Gatvės: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Šilutės, Stoties. "
+        "Batutynas užsakymas. "
+        "Batutai: Džiumandži parkas, Fantazijų parkas, Giga ruožas, "
+        "Mega Rocket, Mega ruožas, Mega Ufonautai, Mega Waikiki, "
+        "Chameleonas, Candy Pop, Vienaragiai, Pilis mažiesiems, Monstrai, Aštuonkojis. "
+        "Priedai: Milžiniškas Dart, Kamuolių medžioklė, Rodeo bulius, Saldėsių aparatai, "
+        "Banketo stalai ir kėdės, Disco paviljonas, Putų šou. "
+        "Miestai: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai, Kelmė. "
+        "Gatvės: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Šilutės, Stoties, Žemaičių, Tilžės. "
         "Vardai: Petraitis, Jonaitis, Kazlauskas, Stankevičius, Janulevičienė. "
         "Naujas užsakymas, pristatymo adresas, surinkimo laikas, sumokėta, avansas, priedai."
     )
@@ -742,8 +870,7 @@ def build_workflow():
         "credentials": {"httpHeaderAuth": GROQ_CRED}
     })
 
-    # 12a. Prepare xAI Request (Code node — builds JSON body with dynamic date)
-    # Using a Code node avoids n8n expression escaping issues with complex prompts
+    # 14. Prepare xAI Request (Code node — builds JSON body with dynamic date)
     PREPARE_XAI_CODE = r"""
 const transcribedText = $json.text;
 const today = new Date().toISOString().split("T")[0];
@@ -756,7 +883,7 @@ const prompt = `You are a booking data extractor for Batutynas, a Lithuanian inf
 - pickup_time: Pickup/end time in HH:MM format (string)
 - delivery_address: Full delivery address. Fix garbled street names — common streets: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Stoties. (string)
 - city: City name. Nearby cities: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. (string)
-- equipment: Equipment name. Known items: Batutas Monstrai, Mega Batutas, Didelis Batutas, Mažas Batutas, Vaikiškas Batutas. (string)
+- equipment: Equipment name EXACTLY as spoken. Known items — Big parks: Džiumandži parkas, Fantazijų parkas, Giga ruožas. Mega trampolines: Mega Rocket, Mega ruožas, Mega Ufonautai, Mega Waikiki. Standard: Chameleonas, Candy Pop, Vienaragiai, Pilis mažiesiems, Monstrai, Aštuonkojis. Addons: Milžiniškas Dart, Kamuolių medžioklė, Rodeo bulius, Saldėsių aparatai, Banketo stalai ir kėdės, Disco paviljonas, Putų šou. Use the EXACT name from this list that matches what was said. (string)
 - price: Price if mentioned, number only in EUR (number or null)
 - notes: Any additional notes like 'sumokėta' (paid), 'avansas' (deposit) (string or null)
 
@@ -789,7 +916,7 @@ return [{
         "position": [1620, 200]
     })
 
-    # 12b. Extract Booking Data (xAI Grok HTTP call — sends pre-built JSON body)
+    # 15. Extract Booking Data (xAI Grok HTTP call)
     nodes.append({
         "parameters": {
             "method": "POST",
@@ -809,7 +936,7 @@ return [{
         "credentials": {"httpHeaderAuth": XAI_CRED}
     })
 
-    # 13. Build Confirmation (Code)
+    # 16. Build Confirmation (Code — outputs miniAppUrl)
     nodes.append({
         "parameters": {"jsCode": EXTRACT_AND_CONFIRM_CODE},
         "id": "build-confirmation",
@@ -819,40 +946,82 @@ return [{
         "position": [2050, 200]
     })
 
-    # 14. Save Pending Booking (Postgres)
-    nodes.append({
-        "parameters": {
-            "operation": "executeQuery",
-            "query": "={{ $json.saveSql }}",
-            "additionalFields": {}
-        },
-        "id": "save-pending",
-        "name": "Save Pending",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [2160, 200],
-        "credentials": {"postgres": POSTGRES_CRED}
-    })
-
-    # 15. Send Confirmation Keyboard (Telegram via HTTP for inline keyboard)
+    # 17. Send Confirmation with Mini App button (Telegram via HTTP)
     nodes.append({
         "parameters": {
             "method": "POST",
             "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
             "sendBody": True,
             "specifyBody": "json",
-            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [[\n      {"text": "\\u2705 Patvirtinti", "callback_data": {{ JSON.stringify($("Build Confirmation").first().json.confirmCb) }} },\n      {"text": "\\u274c At\\u0161aukti", "callback_data": {{ JSON.stringify($("Build Confirmation").first().json.cancelCb) }} }\n    ]]\n  }\n}',
+            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [[\n      {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n    ]]\n  }\n}',
             "options": {}
         },
         "id": "send-keyboard",
         "name": "Send Confirmation",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [2380, 200]
+        "position": [2270, 200]
+    })
+
+    # ============ WEBAPP PATH (TRUE from webapp check) ============
+    # 18. Process WebApp (Code — parses form JSON, builds save SQL)
+    nodes.append({
+        "parameters": {"jsCode": PROCESS_WEBAPP_CODE},
+        "id": "process-webapp",
+        "name": "Process WebApp",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1280, 500]
+    })
+
+    # 19. Save WebApp Booking (Postgres)
+    nodes.append({
+        "parameters": {
+            "operation": "executeQuery",
+            "query": "={{ $('Process WebApp').first().json.sql }}",
+            "additionalFields": {}
+        },
+        "id": "save-webapp-booking",
+        "name": "Save WebApp Booking",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [1500, 500],
+        "credentials": {"postgres": POSTGRES_CRED},
+        "onError": "continueRegularOutput"
+    })
+
+    # 20. Format WebApp Result (Code)
+    nodes.append({
+        "parameters": {"jsCode": FORMAT_WEBAPP_CODE},
+        "id": "format-webapp-result",
+        "name": "Format WebApp Result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1720, 500]
+    })
+
+    # 21. Send WebApp Result (Telegram)
+    nodes.append({
+        "parameters": {
+            "resource": "message",
+            "operation": "sendMessage",
+            "chatId": "={{ $('Format WebApp Result').first().json.chatId }}",
+            "text": "={{ $('Format WebApp Result').first().json.reply }}",
+            "additionalFields": {
+                "appendAttribution": False,
+                "parse_mode": "HTML"
+            }
+        },
+        "id": "send-webapp-result",
+        "name": "Send WebApp Result",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [1940, 500],
+        "credentials": {"telegramApi": TELEGRAM_CRED}
     })
 
     # ============ CALLBACK PATH (TRUE from callback check) ============
-    # 16. Process Callback
+    # 22. Process Callback
     nodes.append({
         "parameters": {"jsCode": PROCESS_CALLBACK_CODE},
         "id": "process-callback",
@@ -862,7 +1031,7 @@ return [{
         "position": [840, 100]
     })
 
-    # 17. Execute Booking SQL (continueOnFail so errors are handled gracefully)
+    # 23. Execute Booking SQL (continueOnFail so errors are handled gracefully)
     nodes.append({
         "parameters": {
             "operation": "executeQuery",
@@ -878,7 +1047,7 @@ return [{
         "onError": "continueRegularOutput"
     })
 
-    # 18. Format Callback Result
+    # 24. Format Callback Result
     nodes.append({
         "parameters": {"jsCode": FORMAT_CALLBACK_CODE},
         "id": "format-callback",
@@ -888,7 +1057,7 @@ return [{
         "position": [1280, 100]
     })
 
-    # 19. Answer Callback Query (HTTP Request to Telegram)
+    # 25. Answer Callback Query (HTTP Request to Telegram)
     nodes.append({
         "parameters": {
             "method": "POST",
@@ -905,7 +1074,7 @@ return [{
         "position": [1500, 100]
     })
 
-    # 20. Send Callback Result (Telegram)
+    # 26. Send Callback Result (Telegram)
     nodes.append({
         "parameters": {
             "resource": "message",
@@ -938,6 +1107,12 @@ return [{
         "Is Voice?": {
             "main": [
                 [{"node": "Get File Path", "type": "main", "index": 0}],     # TRUE (voice)
+                [{"node": "Is WebApp?", "type": "main", "index": 0}]         # FALSE (check webapp)
+            ]
+        },
+        "Is WebApp?": {
+            "main": [
+                [{"node": "Process WebApp", "type": "main", "index": 0}],    # TRUE (webapp)
                 [{"node": "Parse Intent", "type": "main", "index": 0}]       # FALSE (text)
             ]
         },
@@ -945,15 +1120,18 @@ return [{
         "Parse Intent": {"main": [[{"node": "Execute Query", "type": "main", "index": 0}]]},
         "Execute Query": {"main": [[{"node": "Format Response", "type": "main", "index": 0}]]},
         "Format Response": {"main": [[{"node": "Send Reply", "type": "main", "index": 0}]]},
-        # Voice path
+        # Voice path (Build Confirmation → Send Confirmation directly, no Save Pending)
         "Get File Path": {"main": [[{"node": "Download Audio", "type": "main", "index": 0}]]},
         "Download Audio": {"main": [[{"node": "Rename Audio", "type": "main", "index": 0}]]},
         "Rename Audio": {"main": [[{"node": "Transcribe Audio", "type": "main", "index": 0}]]},
         "Transcribe Audio": {"main": [[{"node": "Prepare xAI Request", "type": "main", "index": 0}]]},
         "Prepare xAI Request": {"main": [[{"node": "Extract Booking Data", "type": "main", "index": 0}]]},
         "Extract Booking Data": {"main": [[{"node": "Build Confirmation", "type": "main", "index": 0}]]},
-        "Build Confirmation": {"main": [[{"node": "Save Pending", "type": "main", "index": 0}]]},
-        "Save Pending": {"main": [[{"node": "Send Confirmation", "type": "main", "index": 0}]]},
+        "Build Confirmation": {"main": [[{"node": "Send Confirmation", "type": "main", "index": 0}]]},
+        # WebApp path
+        "Process WebApp": {"main": [[{"node": "Save WebApp Booking", "type": "main", "index": 0}]]},
+        "Save WebApp Booking": {"main": [[{"node": "Format WebApp Result", "type": "main", "index": 0}]]},
+        "Format WebApp Result": {"main": [[{"node": "Send WebApp Result", "type": "main", "index": 0}]]},
         # Callback path
         "Process Callback": {"main": [[{"node": "Execute Booking", "type": "main", "index": 0}]]},
         "Execute Booking": {"main": [[{"node": "Format Callback", "type": "main", "index": 0}]]},
@@ -979,12 +1157,3 @@ if __name__ == '__main__':
     print(f"Written to {output_path}")
     print(f"Nodes: {len(wf['nodes'])}")
     print(f"Connections: {len(wf['connections'])}")
-
-    # Also create the table creation SQL
-    table_sql = """CREATE TABLE IF NOT EXISTS batutynas.pending_voice_bookings (
-  id TEXT PRIMARY KEY,
-  booking_data JSONB NOT NULL,
-  chat_id TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);"""
-    print(f"\nTable SQL:\n{table_sql}")

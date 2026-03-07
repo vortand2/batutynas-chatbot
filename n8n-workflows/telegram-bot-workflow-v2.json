@@ -26,7 +26,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const update = $input.first().json;\n\n// Callback query (inline keyboard press)\nif (update.callback_query) {\n  const cb = update.callback_query;\n  return [{ json: {\n    msgType: 'callback',\n    callbackData: cb.data || '',\n    callbackQueryId: cb.id,\n    chatId: String(cb.message?.chat?.id || ''),\n    messageId: cb.message?.message_id\n  }}];\n}\n\nconst message = update.message || {};\nconst chatId = String(message.chat?.id || '');\n\n// Voice message\nif (message.voice || message.audio) {\n  const voice = message.voice || message.audio;\n  return [{ json: {\n    msgType: 'voice',\n    chatId,\n    fileId: voice.file_id,\n    duration: voice.duration || 0\n  }}];\n}\n\n// Text message (commands + natural language)\nreturn [{ json: {\n  msgType: 'text',\n  chatId,\n  text: (message.text || '').trim(),\n  // Pass full message for Parse Intent compatibility\n  message: message\n}}];"
+        "jsCode": "const update = $input.first().json;\n\n// Callback query (inline keyboard press)\nif (update.callback_query) {\n  const cb = update.callback_query;\n  return [{ json: {\n    msgType: 'callback',\n    callbackData: cb.data || '',\n    callbackQueryId: cb.id,\n    chatId: String(cb.message?.chat?.id || ''),\n    messageId: cb.message?.message_id\n  }}];\n}\n\nconst message = update.message || {};\nconst chatId = String(message.chat?.id || '');\n\n// Voice message\nif (message.voice || message.audio) {\n  const voice = message.voice || message.audio;\n  return [{ json: {\n    msgType: 'voice',\n    chatId,\n    fileId: voice.file_id,\n    duration: voice.duration || 0\n  }}];\n}\n\n// Web App data (Mini App form submission via tg.sendData())\nif (message.web_app_data) {\n  return [{ json: {\n    msgType: 'webapp',\n    chatId,\n    webAppData: message.web_app_data.data\n  }}];\n}\n\n// Text message (commands + natural language)\nreturn [{ json: {\n  msgType: 'text',\n  chatId,\n  text: (message.text || '').trim(),\n  // Pass full message for Parse Intent compatibility\n  message: message\n}}];"
       },
       "id": "classify-message",
       "name": "Classify Message",
@@ -99,6 +99,36 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "cond-webapp",
+              "leftValue": "={{ $json.msgType }}",
+              "rightValue": "webapp",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-webapp",
+      "name": "Is WebApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        500
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "const item = $input.first().json;\nconst text = (item.text || '').trim();\nconst chatId = item.chatId || '';\n\nif (!text || !chatId) {\n  return [{ json: { intent: 'ignore', args: {}, sql: 'SELECT 1 AS placeholder', chatId } }];\n}\n\nlet intent = 'unknown';\nlet args = {};\nlet sql = 'SELECT 1 AS placeholder';\n\nconst cleanText = text.replace(/@[A-Za-z_]+bot/i, '').trim();\nconst parts = cleanText.split(/\\s+/);\nconst cmd = parts[0]?.toLowerCase() || '';\nconst arg = parts[1] || '';\nconst lowerText = cleanText.toLowerCase();\n\n// === COMMAND PARSING ===\nif (cleanText.startsWith('/')) {\n  switch(cmd) {\n    case '/start': case '/help': case '/pagalba':\n      intent = 'help'; break;\n    case '/today': case '/siandien':\n      intent = 'today'; break;\n    case '/tomorrow': case '/rytoj':\n      intent = 'tomorrow'; break;\n    case '/week': case '/savaite':\n      intent = 'week'; break;\n    case '/available': case '/laisvi':\n      intent = 'available'; break;\n    case '/stats': case '/statistika':\n      intent = 'stats'; break;\n    case '/delivered': case '/pristatyta':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /delivered 5'; break;\n      }\n      intent = 'delivered'; args.id = parseInt(arg); break;\n    case '/returned': case '/grazinta':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /returned 5'; break;\n      }\n      intent = 'returned'; args.id = parseInt(arg); break;\n    case '/paid': case '/apmoketa':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /paid 5'; break;\n      }\n      intent = 'paid'; args.id = parseInt(arg); break;\n    case '/deposit': case '/avansas':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /deposit 5'; break;\n      }\n      intent = 'deposit'; args.id = parseInt(arg); break;\n    case '/cancel': case '/atsaukti':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /cancel 5'; break;\n      }\n      intent = 'cancel'; args.id = parseInt(arg); break;\n    case '/clean': case '/valyti':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite \\u012frangos ID, pvz: /clean 3'; break;\n      }\n      intent = 'clean'; args.id = parseInt(arg); break;\n    default:\n      intent = 'unknown';\n  }\n} else {\n  // === NATURAL LANGUAGE (Lithuanian) ===\n  if (/\\b(siandien|\\u0161iandien|\\u0161iandie|kas siandien|kas \\u0161iandien)\\b/i.test(lowerText)) {\n    intent = 'today';\n  } else if (/\\b(rytoj|ryt\\b)/i.test(lowerText)) {\n    intent = 'tomorrow';\n  } else if (/(savait|savaite|savait\\u0117|\\u0161i\\u0105 savait\\u0119|sia savaite)/i.test(lowerText)) {\n    intent = 'week';\n  } else if (/(laisv|turimos|kiek laisv)/i.test(lowerText)) {\n    intent = 'available';\n  } else if (/(statistik|apzvalga|ap\\u017evalga)/i.test(lowerText)) {\n    intent = 'stats';\n  } else if (/(pagalb|komand)/i.test(lowerText)) {\n    intent = 'help';\n  }\n}\n\n// === BUILD SQL ===\nconst BOOKING_FIELDS = `b.id, b.event_date, b.event_time, b.pickup_time,\n  b.delivery_address, b.city, b.status, b.price,\n  b.deposit_amount, b.deposit_paid, b.payment_status,\n  c.name AS customer_name, c.phone AS customer_phone,\n  COALESCE((SELECT json_agg(json_build_object('name', e.name, 'icon', e.icon))\n    FROM batutynas.booking_equipment be\n    JOIN batutynas.equipment e ON e.id = be.equipment_id\n    WHERE be.booking_id = b.id), '[]'::json) AS equipment`;\n\nconst BOOKING_JOIN = `FROM batutynas.bookings b\n  JOIN batutynas.contacts c ON c.id = b.contact_id`;\n\nswitch(intent) {\n  case 'today':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date = CURRENT_DATE AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n  case 'tomorrow':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date = CURRENT_DATE + INTERVAL '1 day' AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n  case 'week':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_date, bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'\n          AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n  case 'available':\n    sql = `SELECT json_build_object(\n      'available', COALESCE((\n        SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon, 'category', e.category) ORDER BY e.category, e.name)\n        FROM batutynas.equipment e\n        WHERE e.id NOT IN (\n          SELECT be.equipment_id FROM batutynas.booking_equipment be\n          JOIN batutynas.bookings b ON b.id = be.booking_id\n          WHERE b.event_date = CURRENT_DATE AND b.status IN ('Confirmed', 'Delivered')\n        )\n      ), '[]'::json),\n      'booked_today', COALESCE((\n        SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon))\n        FROM batutynas.equipment e\n        WHERE e.id IN (\n          SELECT be.equipment_id FROM batutynas.booking_equipment be\n          JOIN batutynas.bookings b ON b.id = be.booking_id\n          WHERE b.event_date = CURRENT_DATE AND b.status IN ('Confirmed', 'Delivered')\n        )\n      ), '[]'::json)\n    ) AS result`;\n    break;\n  case 'stats':\n    sql = `SELECT json_build_object(\n      'today_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date = CURRENT_DATE AND status NOT IN ('Cancelled')),\n      'week_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days' AND status NOT IN ('Cancelled')),\n      'month_revenue', (SELECT COALESCE(SUM(price), 0) FROM batutynas.bookings WHERE event_date >= date_trunc('month', CURRENT_DATE) AND status IN ('Completed', 'Delivered', 'Confirmed')),\n      'unpaid_deposits', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' AND deposit_paid = FALSE AND status = 'Confirmed'),\n      'total_equipment', (SELECT COUNT(*) FROM batutynas.equipment),\n      'available_equipment', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Available'),\n      'needs_cleaning', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Needs Cleaning')\n    ) AS result`;\n    break;\n  case 'delivered':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Delivered', updated_at = NOW() WHERE id = ${args.id} AND status = 'Confirmed' RETURNING id, status, event_date, delivery_address, city) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated), NULL) AS result`;\n    break;\n  case 'returned':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Completed', updated_at = NOW() WHERE id = ${args.id} AND status = 'Delivered' RETURNING id, status, event_date, delivery_address, city) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated), NULL) AS result`;\n    break;\n  case 'paid':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET payment_status = 'Paid', updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, payment_status, price) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'payment_status', payment_status, 'price', price) FROM updated), NULL) AS result`;\n    break;\n  case 'deposit':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET deposit_paid = TRUE, updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, deposit_paid, deposit_amount) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'deposit_paid', deposit_paid, 'deposit_amount', deposit_amount) FROM updated), NULL) AS result`;\n    break;\n  case 'cancel':\n    sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Cancelled', updated_at = NOW() WHERE id = ${args.id} AND status NOT IN ('Cancelled', 'Completed') RETURNING id, status, event_date) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text) FROM updated), NULL) AS result`;\n    break;\n  case 'clean':\n    sql = `WITH updated AS (UPDATE batutynas.equipment SET status = 'Available', last_cleaned = NOW(), updated_at = NOW() WHERE id = ${args.id} RETURNING id, name, icon, status) SELECT COALESCE((SELECT json_build_object('id', id, 'name', name, 'icon', icon, 'status', status) FROM updated), NULL) AS result`;\n    break;\n  default:\n    sql = 'SELECT 1 AS placeholder';\n    break;\n}\n\nreturn [{ json: { intent, args, sql, chatId } }];"
       },
       "id": "parse-intent",
@@ -106,8 +136,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1060,
-        550
+        1280,
+        650
       ]
     },
     {
@@ -121,8 +151,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1280,
-        550
+        1500,
+        650
       ],
       "credentials": {
         "postgres": {
@@ -140,8 +170,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1500,
-        550
+        1720,
+        650
       ]
     },
     {
@@ -160,8 +190,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1720,
-        550
+        1940,
+        650
       ],
       "credentials": {
         "telegramApi": {
@@ -247,7 +277,7 @@
             {
               "parameterType": "formData",
               "name": "prompt",
-              "value": "Batutynas užsakymas. Batutai: Batutas Monstrai, Mega Batutas, Didelis Batutas, Mažas Batutas, Vaikiškas Batutas, Batuto nuoma. Miestai: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. Gatvės: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Šilutės, Stoties. Vardai: Petraitis, Jonaitis, Kazlauskas, Stankevičius, Janulevičienė. Naujas užsakymas, pristatymo adresas, surinkimo laikas, sumokėta, avansas, priedai."
+              "value": "Batutynas užsakymas. Batutai: Džiumandži parkas, Fantazijų parkas, Giga ruožas, Mega Rocket, Mega ruožas, Mega Ufonautai, Mega Waikiki, Chameleonas, Candy Pop, Vienaragiai, Pilis mažiesiems, Monstrai, Aštuonkojis. Priedai: Milžiniškas Dart, Kamuolių medžioklė, Rodeo bulius, Saldėsių aparatai, Banketo stalai ir kėdės, Disco paviljonas, Putų šou. Miestai: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai, Kelmė. Gatvės: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Šilutės, Stoties, Žemaičių, Tilžės. Vardai: Petraitis, Jonaitis, Kazlauskas, Stankevičius, Janulevičienė. Naujas užsakymas, pristatymo adresas, surinkimo laikas, sumokėta, avansas, priedai."
             }
           ]
         },
@@ -270,7 +300,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const transcribedText = $json.text;\nconst today = new Date().toISOString().split(\"T\")[0];\n\nconst prompt = `You are a booking data extractor for Batutynas, a Lithuanian inflatable trampoline rental business. Today's date is ${today}. Extract the following fields from the transcribed Lithuanian voice message into a JSON object:\n- customer_name: Full name (string). Fix obvious transcription errors in Lithuanian surnames.\n- customer_phone: Phone number in +370XXXXXXXX format (string)\n- event_date: Date in YYYY-MM-DD format. 'rytoj' = tomorrow, 'poryt' = day after tomorrow, 'šiandien' = today. Use current year if not specified. (string)\n- event_time: Delivery/start time in HH:MM format (string)\n- pickup_time: Pickup/end time in HH:MM format (string)\n- delivery_address: Full delivery address. Fix garbled street names — common streets: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Stoties. (string)\n- city: City name. Nearby cities: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. (string)\n- equipment: Equipment name. Known items: Batutas Monstrai, Mega Batutas, Didelis Batutas, Mažas Batutas, Vaikiškas Batutas. (string)\n- price: Price if mentioned, number only in EUR (number or null)\n- notes: Any additional notes like 'sumokėta' (paid), 'avansas' (deposit) (string or null)\n\nLithuanian month names: sausio=01, vasario=02, kovo=03, balandžio=04, gegužės=05, birželio=06, liepos=07, rugpjūčio=08, rugsėjo=09, spalio=10, lapkričio=11, gruodžio=12.\nLithuanian phone: +370 6X XXX XXXX or 86X XXX XXXX (convert to +370 format).\nIf a field is unclear or not mentioned, set it to null.\nRespond ONLY with valid JSON, no markdown.`;\n\nreturn [{\n  json: {\n    requestBody: JSON.stringify({\n      model: \"grok-3-mini\",\n      messages: [\n        { role: \"system\", content: prompt },\n        { role: \"user\", content: transcribedText }\n      ],\n      temperature: 0\n    }),\n    text: transcribedText\n  }\n}];"
+        "jsCode": "const transcribedText = $json.text;\nconst today = new Date().toISOString().split(\"T\")[0];\n\nconst prompt = `You are a booking data extractor for Batutynas, a Lithuanian inflatable trampoline rental business. Today's date is ${today}. Extract the following fields from the transcribed Lithuanian voice message into a JSON object:\n- customer_name: Full name (string). Fix obvious transcription errors in Lithuanian surnames.\n- customer_phone: Phone number in +370XXXXXXXX format (string)\n- event_date: Date in YYYY-MM-DD format. 'rytoj' = tomorrow, 'poryt' = day after tomorrow, 'šiandien' = today. Use current year if not specified. (string)\n- event_time: Delivery/start time in HH:MM format (string)\n- pickup_time: Pickup/end time in HH:MM format (string)\n- delivery_address: Full delivery address. Fix garbled street names — common streets: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Stoties. (string)\n- city: City name. Nearby cities: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. (string)\n- equipment: Equipment name EXACTLY as spoken. Known items — Big parks: Džiumandži parkas, Fantazijų parkas, Giga ruožas. Mega trampolines: Mega Rocket, Mega ruožas, Mega Ufonautai, Mega Waikiki. Standard: Chameleonas, Candy Pop, Vienaragiai, Pilis mažiesiems, Monstrai, Aštuonkojis. Addons: Milžiniškas Dart, Kamuolių medžioklė, Rodeo bulius, Saldėsių aparatai, Banketo stalai ir kėdės, Disco paviljonas, Putų šou. Use the EXACT name from this list that matches what was said. (string)\n- price: Price if mentioned, number only in EUR (number or null)\n- notes: Any additional notes like 'sumokėta' (paid), 'avansas' (deposit) (string or null)\n\nLithuanian month names: sausio=01, vasario=02, kovo=03, balandžio=04, gegužės=05, birželio=06, liepos=07, rugpjūčio=08, rugsėjo=09, spalio=10, lapkričio=11, gruodžio=12.\nLithuanian phone: +370 6X XXX XXXX or 86X XXX XXXX (convert to +370 format).\nIf a field is unclear or not mentioned, set it to null.\nRespond ONLY with valid JSON, no markdown.`;\n\nreturn [{\n  json: {\n    requestBody: JSON.stringify({\n      model: \"grok-3-mini\",\n      messages: [\n        { role: \"system\", content: prompt },\n        { role: \"user\", content: transcribedText }\n      ],\n      temperature: 0\n    }),\n    text: transcribedText\n  }\n}];"
       },
       "id": "prepare-xai",
       "name": "Prepare xAI Request",
@@ -309,7 +339,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const transcript = $('Transcribe Audio').first().json.text || '';\nconst extractResp = $input.first().json;\nconst chatId = $('Classify Message').first().json.chatId;\n\n// Parse the OpenAI extraction response\nlet content = '';\nif (extractResp.choices && extractResp.choices[0]) {\n  content = extractResp.choices[0].message?.content || '{}';\n}\n\nlet booking;\ntry {\n  booking = JSON.parse(content);\n} catch(e) {\n  return [{ json: {\n    chatId,\n    reply: `\\u26a0\\ufe0f Nepavyko i\\u0161skirti u\\u017esakymo duomen\\u0173.\\n\\n\\ud83d\\udcdd Transkripcija:\\n<i>${transcript}</i>\\n\\nPabandykite dar kart\\u0105 arba naudokite /help`,\n    hasKeyboard: false\n  }}];\n}\n\n// Generate a short unique ID for pending booking\nconst pendingId = 'vb_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);\n\n// Build confirmation message\nlet msg = `\\ud83c\\udf99\\ufe0f <b>Balso u\\u017esakymas</b>\\n`;\nmsg += `\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n`;\nif (booking.customer_name) msg += `\\ud83d\\udc64 ${booking.customer_name}\\n`;\nif (booking.customer_phone) msg += `\\ud83d\\udcde ${booking.customer_phone}\\n`;\nif (booking.event_date) msg += `\\ud83d\\udcc5 ${booking.event_date}\\n`;\nif (booking.event_time) msg += `\\u23f0 ${booking.event_time}`;\nif (booking.pickup_time) msg += ` \\u2192 ${booking.pickup_time}`;\nmsg += '\\n';\nif (booking.delivery_address) msg += `\\ud83d\\udccd ${booking.delivery_address}`;\nif (booking.city) msg += `, ${booking.city}`;\nmsg += '\\n';\nif (booking.equipment) msg += `\\ud83c\\udfaa ${booking.equipment}\\n`;\nif (booking.price) msg += `\\ud83d\\udcb0 \\u20ac${booking.price}\\n`;\nif (booking.notes) msg += `\\ud83d\\udcdd ${booking.notes}\\n`;\nmsg += `\\n\\ud83d\\udcac <i>Transkripcija: \"${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}\"</i>`;\n\n// Build SQL to save pending booking\nconst bookingJson = JSON.stringify(booking).replace(/'/g, \"''\");\nconst saveSql = `INSERT INTO batutynas.pending_voice_bookings (id, booking_data, chat_id)\n  VALUES ('${pendingId}', '${bookingJson}'::jsonb, '${chatId}')\n  ON CONFLICT (id) DO UPDATE SET booking_data = EXCLUDED.booking_data\n  RETURNING id`;\n\nreturn [{ json: {\n  chatId,\n  reply: msg,\n  hasKeyboard: true,\n  pendingId,\n  saveSql,\n  confirmCb: `vb_ok:${pendingId}`,\n  cancelCb: `vb_no:${pendingId}`\n}}];"
+        "jsCode": "const transcript = $('Transcribe Audio').first().json.text || '';\nconst extractResp = $input.first().json;\nconst chatId = $('Classify Message').first().json.chatId;\n\n// Parse the OpenAI extraction response\nlet content = '';\nif (extractResp.choices && extractResp.choices[0]) {\n  content = extractResp.choices[0].message?.content || '{}';\n}\n\nlet booking;\ntry {\n  booking = JSON.parse(content);\n} catch(e) {\n  booking = {};\n}\n\n// Build confirmation message\nlet msg = `\\ud83c\\udf99\\ufe0f <b>Balso u\\u017esakymas</b>\\n`;\nmsg += `\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n`;\nif (booking.customer_name) msg += `\\ud83d\\udc64 ${booking.customer_name}\\n`;\nif (booking.customer_phone) msg += `\\ud83d\\udcde ${booking.customer_phone}\\n`;\nif (booking.event_date) msg += `\\ud83d\\udcc5 ${booking.event_date}\\n`;\nif (booking.event_time) msg += `\\u23f0 ${booking.event_time}`;\nif (booking.pickup_time) msg += ` \\u2192 ${booking.pickup_time}`;\nmsg += '\\n';\nif (booking.delivery_address) msg += `\\ud83d\\udccd ${booking.delivery_address}`;\nif (booking.city) msg += `, ${booking.city}`;\nmsg += '\\n';\nif (booking.equipment) msg += `\\ud83c\\udfaa ${booking.equipment}\\n`;\nif (booking.price) msg += `\\ud83d\\udcb0 \\u20ac${booking.price}\\n`;\nif (booking.notes) msg += `\\ud83d\\udcdd ${booking.notes}\\n`;\nmsg += `\\n\\ud83d\\udcac <i>Transkripcija: \"${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}\"</i>`;\nmsg += `\\n\\n\\u270f\\ufe0f <b>Per\\u017ei\\u016br\\u0117kite ir patvirtinkite u\\u017esakym\\u0105:</b>`;\n\n// Build Mini App URL with query params\nconst enc = (v) => encodeURIComponent(v != null ? String(v) : '');\nconst baseUrl = 'https://vortand2.github.io/batutynas-chatbot/mini-app/index.html';\nconst params = [\n  `name=${enc(booking.customer_name)}`,\n  `phone=${enc(booking.customer_phone)}`,\n  `date=${enc(booking.event_date)}`,\n  `time=${enc(booking.event_time)}`,\n  `pickup=${enc(booking.pickup_time)}`,\n  `address=${enc(booking.delivery_address)}`,\n  `city=${enc(booking.city)}`,\n  `equipment=${enc(booking.equipment)}`,\n  `price=${enc(booking.price)}`,\n  `notes=${enc(booking.notes)}`,\n  `transcript=${enc(transcript.substring(0, 200))}`\n].join('&');\nconst miniAppUrl = `${baseUrl}?${params}`;\n\nreturn [{ json: { chatId, reply: msg, miniAppUrl }}];"
       },
       "id": "build-confirmation",
       "name": "Build Confirmation",
@@ -322,32 +352,11 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "={{ $json.saveSql }}",
-        "additionalFields": {}
-      },
-      "id": "save-pending",
-      "name": "Save Pending",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        2160,
-        200
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "Xc90UM12HHMH6z3A",
-          "name": "Batutynas PostgreSQL"
-        }
-      }
-    },
-    {
-      "parameters": {
         "method": "POST",
         "url": "https://api.telegram.org/botTELEGRAM_BOT_TOKEN_PLACEHOLDER/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($(\"Build Confirmation\").first().json.chatId) }},\n  \"text\": {{ JSON.stringify($(\"Build Confirmation\").first().json.reply) }},\n  \"parse_mode\": \"HTML\",\n  \"reply_markup\": {\n    \"inline_keyboard\": [[\n      {\"text\": \"\\u2705 Patvirtinti\", \"callback_data\": {{ JSON.stringify($(\"Build Confirmation\").first().json.confirmCb) }} },\n      {\"text\": \"\\u274c At\\u0161aukti\", \"callback_data\": {{ JSON.stringify($(\"Build Confirmation\").first().json.cancelCb) }} }\n    ]]\n  }\n}",
+        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($(\"Build Confirmation\").first().json.chatId) }},\n  \"text\": {{ JSON.stringify($(\"Build Confirmation\").first().json.reply) }},\n  \"parse_mode\": \"HTML\",\n  \"reply_markup\": {\n    \"inline_keyboard\": [[\n      {\"text\": \"\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti\", \"web_app\": {\"url\": {{ JSON.stringify($(\"Build Confirmation\").first().json.miniAppUrl) }} }}\n    ]]\n  }\n}",
         "options": {}
       },
       "id": "send-keyboard",
@@ -355,9 +364,83 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2380,
+        2270,
         200
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst chatId = item.chatId;\nconst rawData = item.webAppData || '{}';\n\nlet form;\ntry {\n  form = JSON.parse(rawData);\n} catch (e) {\n  return [{ json: { chatId, sql: \"SELECT json_build_object('action', 'parse_error') AS result\" }}];\n}\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nconst name = esc(form.customer_name) || 'Nenurodyta';\nconst phone = esc(form.customer_phone) || 'Nenurodyta';\nconst eventDate = esc(form.event_date);\nconst eventTime = esc(form.event_time);\nconst pickupTime = esc(form.pickup_time);\nconst address = esc(form.delivery_address) || '';\nconst city = esc(form.city) || '';\nconst equipment = esc(form.equipment) || '';\nconst price = parseFloat(form.price) || 0;\nconst notes = esc(form.notes) || '';\n\nconst sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES ('${name}', '${phone}', 'Telegram')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id, name, phone\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, event_time, pickup_time,\n    delivery_address, city, status, price, notes, entry_source\n  )\n  SELECT\n    cu.id,\n    ${eventDate ? \"'\" + eventDate + \"'::date\" : 'CURRENT_DATE'},\n    ${eventTime ? \"'\" + eventTime + \"'::time\" : 'NULL'},\n    ${pickupTime ? \"'\" + pickupTime + \"'::time\" : 'NULL'},\n    '${address}',\n    '${city}',\n    'Confirmed',\n    ${price},\n    '${notes}',\n    'Telegram'\n  FROM contact_upsert cu\n  RETURNING id, event_date::text, city\n)\nSELECT json_build_object(\n  'action', 'confirmed',\n  'booking_id', nb.id,\n  'event_date', nb.event_date,\n  'city', nb.city,\n  'customer_name', cu.name,\n  'equipment', '${equipment}'\n) AS result\nFROM new_booking nb, contact_upsert cu`;\n\nreturn [{ json: { chatId, sql } }];"
+      },
+      "id": "process-webapp",
+      "name": "Process WebApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Process WebApp').first().json.sql }}",
+        "additionalFields": {}
+      },
+      "id": "save-webapp-booking",
+      "name": "Save WebApp Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1500,
+        500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $('Process WebApp').first().json.chatId;\nconst row = $input.first().json;\n\nlet result;\ntry {\n  result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;\n} catch(e) {\n  return [{ json: { reply: '\\u26a0\\ufe0f Klaida apdorojant u\\u017esakym\\u0105.', chatId } }];\n}\n\nlet reply = '';\nif (result?.action === 'confirmed') {\n  reply = `\\u2705 <b>U\\u017esakymas sukurtas!</b>\\n\\n` +\n    `\\ud83d\\udcdd #${result.booking_id}\\n` +\n    `\\ud83d\\udc64 ${result.customer_name}\\n` +\n    `\\ud83d\\udcc5 ${result.event_date}\\n` +\n    `\\ud83d\\udccd ${result.city}\\n`;\n  if (result.equipment) reply += `\\ud83c\\udfaa ${result.equipment}\\n`;\n  reply += `\\nStatusas: <b>Confirmed</b>`;\n} else if (result?.action === 'parse_error') {\n  reply = '\\u26a0\\ufe0f Nepavyko nuskaityti formos duomen\\u0173. Bandykite dar kart\\u0105.';\n} else {\n  reply = '\\u26a0\\ufe0f Nepavyko i\\u0161saugoti u\\u017esakymo. Bandykite dar kart\\u0105.';\n}\n\nreturn [{ json: { reply, chatId } }];"
+      },
+      "id": "format-webapp-result",
+      "name": "Format WebApp Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Format WebApp Result').first().json.chatId }}",
+        "text": "={{ $('Format WebApp Result').first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "send-webapp-result",
+      "name": "Send WebApp Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1940,
+        500
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
     },
     {
       "parameters": {
@@ -504,6 +587,24 @@
         ],
         [
           {
+            "node": "Is WebApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is WebApp?": {
+      "main": [
+        [
+          {
+            "node": "Process WebApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Parse Intent",
             "type": "main",
             "index": 0
@@ -614,18 +715,40 @@
       "main": [
         [
           {
-            "node": "Save Pending",
+            "node": "Send Confirmation",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Save Pending": {
+    "Process WebApp": {
       "main": [
         [
           {
-            "node": "Send Confirmation",
+            "node": "Save WebApp Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save WebApp Booking": {
+      "main": [
+        [
+          {
+            "node": "Format WebApp Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WebApp Result": {
+      "main": [
+        [
+          {
+            "node": "Send WebApp Result",
             "type": "main",
             "index": 0
           }

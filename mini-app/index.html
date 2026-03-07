@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Peržiūrėti užsakymą</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #222222);
+      padding: 16px;
+      padding-bottom: 80px;
+      min-height: 100vh;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-align: center;
+      color: var(--tg-theme-text-color, #222222);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--tg-theme-hint-color, #888888);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      color: var(--tg-theme-text-color, #222222);
+      background-color: var(--tg-theme-secondary-bg-color, #f4f4f4);
+      border: 1.5px solid transparent;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="date"],
+    input[type="time"] {
+      cursor: pointer;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--tg-theme-button-color, #2481cc);
+    }
+
+    input.error,
+    select.error {
+      border-color: #e53935;
+    }
+
+    .error-msg {
+      font-size: 0.78rem;
+      color: #e53935;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--tg-theme-hint-color, #cccccc);
+      opacity: 0.3;
+      margin: 20px 0;
+    }
+
+    .transcript-section {
+      margin-top: 24px;
+      padding: 12px 14px;
+      background-color: var(--tg-theme-secondary-bg-color, #f4f4f4);
+      border-radius: 8px;
+      border-left: 3px solid var(--tg-theme-hint-color, #aaaaaa);
+    }
+
+    .transcript-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--tg-theme-hint-color, #888888);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .transcript-text {
+      font-size: 0.88rem;
+      color: var(--tg-theme-hint-color, #888888);
+      font-style: italic;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .validation-summary {
+      background-color: #fdecea;
+      color: #c62828;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .validation-summary.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📋 Peržiūrėti užsakymą</h2>
+
+  <div id="validationSummary" class="validation-summary"></div>
+
+  <form id="bookingForm" novalidate>
+
+    <div class="form-group">
+      <label for="customerName">Kliento vardas</label>
+      <input type="text" id="customerName" name="customer_name" placeholder="Vardas Pavardė" autocomplete="name" />
+      <div class="error-msg" id="errName">Įveskite kliento vardą</div>
+    </div>
+
+    <div class="form-group">
+      <label for="customerPhone">Telefono numeris</label>
+      <input type="tel" id="customerPhone" name="customer_phone" placeholder="+370..." autocomplete="tel" />
+    </div>
+
+    <hr class="section-divider" />
+
+    <div class="row-2">
+      <div class="form-group">
+        <label for="eventDate">Renginio data</label>
+        <input type="date" id="eventDate" name="event_date" />
+        <div class="error-msg" id="errDate">Pasirinkite datą</div>
+      </div>
+      <div class="form-group">
+        <label for="eventTime">Pristatymo laikas</label>
+        <input type="time" id="eventTime" name="event_time" />
+        <div class="error-msg" id="errTime">Pasirinkite laiką</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="pickupTime">Surinkimo laikas</label>
+      <input type="time" id="pickupTime" name="pickup_time" placeholder="pvz. 20:00" />
+    </div>
+
+    <hr class="section-divider" />
+
+    <div class="form-group">
+      <label for="deliveryAddress">Pristatymo adresas</label>
+      <input type="text" id="deliveryAddress" name="delivery_address" placeholder="Gatvė, namo nr." autocomplete="street-address" />
+      <div class="error-msg" id="errAddress">Įveskite pristatymo adresą</div>
+    </div>
+
+    <div class="form-group">
+      <label for="city">Miestas</label>
+      <input type="text" id="city" name="city" placeholder="Pasirinkite arba įveskite miestą" list="cityList" autocomplete="off" />
+      <datalist id="cityList">
+        <option value="Tauragė"></option>
+        <option value="Klaipėda"></option>
+        <option value="Šilutė"></option>
+        <option value="Šilalė"></option>
+        <option value="Jurbarkas"></option>
+        <option value="Pagėgiai"></option>
+        <option value="Palanga"></option>
+        <option value="Kretinga"></option>
+        <option value="Gargždai"></option>
+        <option value="Kelmė"></option>
+      </datalist>
+    </div>
+
+    <hr class="section-divider" />
+
+    <div class="form-group">
+      <label for="equipment">Įranga</label>
+      <select id="equipment" name="equipment">
+        <option value="" disabled selected>Pasirinkite įrangą…</option>
+
+        <optgroup label="Didieji parkai">
+          <option value="Džiumandži parkas">Džiumandži parkas</option>
+          <option value="Fantazijų parkas">Fantazijų parkas</option>
+          <option value="Giga ruožas">Giga ruožas</option>
+        </optgroup>
+
+        <optgroup label="Mega batutai">
+          <option value="Mega Rocket">Mega Rocket</option>
+          <option value="Mega ruožas">Mega ruožas</option>
+          <option value="Mega Ufonautai">Mega Ufonautai</option>
+          <option value="Mega Waikiki">Mega Waikiki</option>
+        </optgroup>
+
+        <optgroup label="Standartiniai">
+          <option value="Chameleonas">Chameleonas</option>
+          <option value="Candy Pop">Candy Pop</option>
+          <option value="Vienaragiai">Vienaragiai</option>
+          <option value="Pilis mažiesiems">Pilis mažiesiems</option>
+          <option value="Monstrai">Monstrai</option>
+          <option value="Aštuonkojis">Aštuonkojis</option>
+        </optgroup>
+
+        <optgroup label="Priedai">
+          <option value="Milžiniškas Dart">Milžiniškas Dart</option>
+          <option value="Kamuolių medžioklė">Kamuolių medžioklė</option>
+          <option value="Rodeo bulius">Rodeo bulius</option>
+          <option value="Saldėsių aparatai">Saldėsių aparatai</option>
+        </optgroup>
+
+        <optgroup label="Šventės įranga">
+          <option value="Banketo stalai ir kėdės">Banketo stalai ir kėdės</option>
+          <option value="Disco paviljonas">Disco paviljonas</option>
+          <option value="Putų šou">Putų šou</option>
+        </optgroup>
+      </select>
+      <div class="error-msg" id="errEquipment">Pasirinkite įrangą</div>
+    </div>
+
+    <div class="form-group">
+      <label for="price">Kaina €</label>
+      <input type="number" id="price" name="price" min="0" step="0.01" placeholder="0.00" />
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Pastabos</label>
+      <input type="text" id="notes" name="notes" placeholder="pvz. sumokėta, avansas" />
+    </div>
+
+  </form>
+
+  <div id="transcriptSection" class="transcript-section" style="display:none;">
+    <div class="transcript-label">🎙️ Transkripcija</div>
+    <div class="transcript-text" id="transcriptText"></div>
+  </div>
+
+  <script>
+    // ---------- Telegram WebApp init ----------
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    // ---------- Parse URL query params ----------
+    const params = new URLSearchParams(window.location.search);
+
+    function getParam(key) {
+      const val = params.get(key);
+      return val ? decodeURIComponent(val) : '';
+    }
+
+    // ---------- Pre-fill fields ----------
+    document.getElementById('customerName').value    = getParam('name');
+    document.getElementById('customerPhone').value   = getParam('phone');
+    document.getElementById('eventDate').value       = getParam('date');
+    document.getElementById('eventTime').value       = getParam('time');
+    document.getElementById('pickupTime').value      = getParam('pickup');
+    document.getElementById('deliveryAddress').value = getParam('address');
+    document.getElementById('city').value            = getParam('city');
+    document.getElementById('price').value           = getParam('price');
+    document.getElementById('notes').value           = getParam('notes');
+
+    // Equipment select — match by value
+    const equipmentParam = getParam('equipment');
+    if (equipmentParam) {
+      const sel = document.getElementById('equipment');
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === equipmentParam) {
+          sel.selectedIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Transcript
+    const transcript = getParam('transcript');
+    if (transcript) {
+      document.getElementById('transcriptText').textContent = transcript;
+      document.getElementById('transcriptSection').style.display = 'block';
+    }
+
+    // ---------- Validation ----------
+    const REQUIRED = [
+      { id: 'customerName',    errId: 'errName',      label: 'Kliento vardas' },
+      { id: 'eventDate',       errId: 'errDate',      label: 'Renginio data' },
+      { id: 'eventTime',       errId: 'errTime',      label: 'Pristatymo laikas' },
+      { id: 'deliveryAddress', errId: 'errAddress',   label: 'Pristatymo adresas' },
+      { id: 'equipment',       errId: 'errEquipment', label: 'Įranga' },
+    ];
+
+    function validate() {
+      let valid = true;
+      const missing = [];
+
+      REQUIRED.forEach(({ id, errId, label }) => {
+        const el = document.getElementById(id);
+        const errEl = document.getElementById(errId);
+        if (!el.value.trim()) {
+          el.classList.add('error');
+          errEl.classList.add('visible');
+          missing.push(label);
+          valid = false;
+        } else {
+          el.classList.remove('error');
+          errEl.classList.remove('visible');
+        }
+      });
+
+      const summary = document.getElementById('validationSummary');
+      if (!valid) {
+        summary.textContent = 'Užpildykite privalomus laukus: ' + missing.join(', ');
+        summary.classList.add('visible');
+        summary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        summary.classList.remove('visible');
+      }
+
+      return valid;
+    }
+
+    // Clear error on input
+    REQUIRED.forEach(({ id, errId }) => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', () => {
+        if (el.value.trim()) {
+          el.classList.remove('error');
+          document.getElementById(errId).classList.remove('visible');
+        }
+      });
+      el.addEventListener('change', () => {
+        if (el.value.trim()) {
+          el.classList.remove('error');
+          document.getElementById(errId).classList.remove('visible');
+        }
+      });
+    });
+
+    // ---------- Gather form data ----------
+    function gatherData() {
+      return {
+        customer_name:    document.getElementById('customerName').value.trim(),
+        customer_phone:   document.getElementById('customerPhone').value.trim(),
+        event_date:       document.getElementById('eventDate').value,
+        event_time:       document.getElementById('eventTime').value,
+        pickup_time:      document.getElementById('pickupTime').value,
+        delivery_address: document.getElementById('deliveryAddress').value.trim(),
+        city:             document.getElementById('city').value.trim(),
+        equipment:        document.getElementById('equipment').value,
+        price:            document.getElementById('price').value,
+        notes:            document.getElementById('notes').value.trim(),
+      };
+    }
+
+    // ---------- Telegram MainButton ----------
+    if (tg && tg.MainButton) {
+      tg.MainButton.setText('PATVIRTINTI UŽSAKYMĄ');
+      tg.MainButton.show();
+      tg.MainButton.color = tg.themeParams.button_color || '#2481cc';
+
+      tg.MainButton.onClick(function () {
+        if (!validate()) return;
+
+        tg.MainButton.showProgress(true);
+        tg.MainButton.disable();
+
+        const data = gatherData();
+
+        try {
+          tg.sendData(JSON.stringify(data));
+        } catch (e) {
+          tg.MainButton.hideProgress();
+          tg.MainButton.enable();
+          alert('Klaida siunčiant duomenis. Bandykite dar kartą.');
+        }
+      });
+    } else {
+      // Fallback button for browser preview (no Telegram context)
+      const fallback = document.createElement('button');
+      fallback.textContent = 'PATVIRTINTI UŽSAKYMĄ (preview)';
+      fallback.style.cssText = [
+        'display:block',
+        'width:100%',
+        'padding:14px',
+        'margin-top:20px',
+        'font-size:1rem',
+        'font-weight:700',
+        'color:#fff',
+        'background:#2481cc',
+        'border:none',
+        'border-radius:8px',
+        'cursor:pointer',
+      ].join(';');
+      fallback.addEventListener('click', () => {
+        if (!validate()) return;
+        const data = gatherData();
+        console.log('Form data:', JSON.stringify(data, null, 2));
+        alert('Duomenys (preview):\n' + JSON.stringify(data, null, 2));
+      });
+      document.body.appendChild(fallback);
+    }
+  </script>
+</body>
+</html>
