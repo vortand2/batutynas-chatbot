@@ -1148,7 +1148,8 @@ return [{
 
 if __name__ == '__main__':
     wf = build_workflow()
-    output_path = '/Users/dovydasdobrovolskis/Projects/batutynas-chatbot/n8n-workflows/telegram-bot-workflow-v2.json'
+    import os
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'telegram-bot-workflow-v2.json')
     with open(output_path, 'w') as f:
         json.dump(wf, f, indent=2, ensure_ascii=False)
     print(f"Written to {output_path}")
