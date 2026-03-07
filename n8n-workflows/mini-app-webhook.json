@@ -7,7 +7,7 @@
         "path": "mini-app-booking",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "https://vortand2.github.io"
+          "allowedOrigins": "*"
         }
       },
       "id": "webhook-trigger",
@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body;\nconst chatId = body.chatId;\n\nfunction esc(v) {\n  if (!v) return null;\n  return \"'\" + String(v).replace(/'/g, \"''\") + \"'\";\n}\n\nconst name = esc(body.customer_name) || \"'Nenurodyta'\";\nconst phone = esc(body.customer_phone) || \"'Nenurodyta'\";\nconst date = body.event_date ? esc(body.event_date) : 'CURRENT_DATE';\nconst time = body.event_time ? esc(body.event_time) + '::time' : 'NULL';\nconst pickup = body.pickup_time ? esc(body.pickup_time) + '::time' : 'NULL';\nconst addr = esc(body.delivery_address) || \"''\";\nconst city = esc(body.city) || \"''\";\nconst price = body.price ? Number(body.price) || 0 : 0;\nconst notes = esc(body.notes) || \"''\";\nconst equip = esc(body.equipment) || \"''\";\n\nconst sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES (${name}, ${phone}, 'Telegram')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, event_time, pickup_time,\n    delivery_address, city, status, price, notes, entry_source\n  )\n  SELECT\n    cu.id,\n    ${date},\n    ${time},\n    ${pickup},\n    ${addr},\n    ${city},\n    'Confirmed',\n    ${price},\n    ${notes},\n    'Telegram'\n  FROM contact_upsert cu\n  RETURNING id\n)\nSELECT id FROM new_booking;\n`;\n\nconst equipArr = body.equipment ? [{ name: body.equipment, icon: '🎪', category: 'Batutai' }] : [];\n\nreturn [{ json: { chatId, sql, customerName: body.customer_name || 'Klientas', equipment: equipArr } }];"
+        "jsCode": "// Handle both possible data shapes from n8n webhook v2\nconst raw = $input.first().json;\nconst body = raw.body || raw;\nconst chatId = body.chatId || raw.chatId || '';\n\nfunction esc(v) {\n  if (!v) return null;\n  return \"'\" + String(v).replace(/'/g, \"''\") + \"'\";\n}\n\nconst name = esc(body.customer_name) || \"'Nenurodyta'\";\nconst phone = esc(body.customer_phone) || \"'Nenurodyta'\";\nconst date = body.event_date ? esc(body.event_date) : 'CURRENT_DATE';\nconst time = body.event_time ? esc(body.event_time) + '::time' : 'NULL';\nconst pickup = body.pickup_time ? esc(body.pickup_time) + '::time' : 'NULL';\nconst addr = esc(body.delivery_address) || \"''\";\nconst city = esc(body.city) || \"''\";\nconst price = body.price ? Number(body.price) || 0 : 0;\nconst notes = esc(body.notes) || \"''\";\n\nconst sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES (${name}, ${phone}, 'Telegram')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, event_time, pickup_time,\n    delivery_address, city, status, price, notes, entry_source\n  )\n  SELECT\n    cu.id,\n    ${date},\n    ${time},\n    ${pickup},\n    ${addr},\n    ${city},\n    'Confirmed',\n    ${price},\n    ${notes},\n    'Telegram'\n  FROM contact_upsert cu\n  RETURNING id\n)\nSELECT id FROM new_booking;\n`;\n\nreturn [{ json: { chatId, sql, customerName: body.customer_name || 'Klientas' } }];"
       },
       "id": "build-sql",
       "name": "Build SQL",
@@ -40,8 +40,8 @@
       "position": [690, 300],
       "credentials": {
         "postgres": {
-          "id": "uwOjwMrlfXOiGBsd",
-          "name": "Postgres \u2014 batutynas"
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
         }
       }
     },
@@ -51,7 +51,7 @@
         "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($json.chatId || $('Build SQL').first().json.chatId) }},\n  \"text\": \"\u2705 U\u017esakymas patvirtintas ir i\u0161saugotas!\",\n  \"parse_mode\": \"HTML\"\n}",
+        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($json.chatId || $('Build SQL').first().json.chatId) }},\n  \"text\": \"✅ Užsakymas patvirtintas ir išsaugotas!\",\n  \"parse_mode\": \"HTML\"\n}",
         "options": {}
       },
       "id": "send-confirmation-msg",
