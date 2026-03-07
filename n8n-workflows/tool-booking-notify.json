@@ -27,6 +27,72 @@
     },
     {
       "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Only build SQL for booking requests with valid data\nif (data.requestType !== 'booking') {\n  return [{ json: { hasSql: false } }];\n}\n\n// Escape single quotes for SQL\nfunction esc(v) { return (v || '').replace(/'/g, \"''\"); }\n\n// Normalize phone for DB: strip spaces, ensure +370 format\nfunction normalizePhone(phone) {\n  const digits = (phone || '').replace(/[^\\d]/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) return '+' + digits;\n  if (digits.startsWith('8') && digits.length >= 9) return '+370' + digits.substring(1);\n  if (digits.startsWith('6') && digits.length >= 8) return '+370' + digits;\n  return phone || '';\n}\n\nconst name = esc(data.contactName);\nconst phone = normalizePhone(data.contactPhone);\n\n// Validate: must have phone\nif (!phone || phone === 'Nenurodyta') {\n  return [{ json: { hasSql: false } }];\n}\n\nconst eventDate = (data.date && data.date !== 'Nenurodyta') ? esc(data.date) : null;\nconst address = esc(data.address || data.location || '');\nconst city = esc(data.location || '');\n\n// Build notes from event details\nconst notesParts = [];\nif (data.eventType && data.eventType !== 'Nenurodyta') notesParts.push('Renginys: ' + data.eventType);\nif (data.guestCount && data.guestCount !== 'Nenurodyta') notesParts.push('Svečiai: ' + data.guestCount);\nif (data.groupType && data.groupType !== 'Nenurodyta') notesParts.push('Grupė: ' + data.groupType);\nif (data.notes) notesParts.push(data.notes);\nconst notes = esc(notesParts.join('; '));\n\n// Build equipment names list from trampoline + addons\nconst equipmentNames = [];\nif (data.trampolinePreference && data.trampolinePreference !== 'Nenurodyta') {\n  equipmentNames.push(data.trampolinePreference.trim());\n}\nif (data.addons && data.addons !== 'Nenurodyta') {\n  data.addons.split(',').forEach(a => {\n    const trimmed = a.trim();\n    if (trimmed) equipmentNames.push(trimmed);\n  });\n}\n\nconst equipArraySql = equipmentNames.length > 0\n  ? 'ARRAY[' + equipmentNames.map(n => \"'\" + esc(n) + \"'\").join(',') + ']'\n  : \"ARRAY[]::text[]\";\n\n// Build CTE: upsert contact → insert booking → link equipment\nlet sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES ('${name}', '${phone}', 'Chatbot')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, delivery_address, city,\n    status, entry_source, notes\n  )\n  SELECT cu.id, ${eventDate ? \"'\" + eventDate + \"'::date\" : 'CURRENT_DATE'},\n    '${address}', '${city}', 'Inquiry', 'Chatbot', '${notes}'\n  FROM contact_upsert cu\n  RETURNING id\n)`;\n\nif (equipmentNames.length > 0) {\n  sql += `,\nequipment_link AS (\n  INSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\n  SELECT nb.id, e.id\n  FROM new_booking nb\n  CROSS JOIN batutynas.equipment e\n  WHERE e.name = ANY(${equipArraySql})\n  ON CONFLICT DO NOTHING\n)`;\n}\n\nsql += `\\nSELECT nb.id AS booking_id FROM new_booking nb;`;\n\nreturn [{ json: { hasSql: true, sql } }];\n"
+      },
+      "id": "booking-build-sql",
+      "name": "Build DB Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.hasSql }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "booking-if-db",
+      "name": "IF Should Save to DB",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "id": "booking-save-db",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1100,
+        140
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "fromEmail": "dovydasdobrovolskis@gmail.com",
         "toEmail": "info@batutynas.lt",
         "subject": "={{ $json.emailSubject }}",
@@ -39,18 +105,18 @@
       "typeVersion": 2.1,
       "position": [
         660,
-        300
+        440
       ],
       "credentials": {
         "smtp": {
-          "id": "SMTP_CRED_ID",
-          "name": "SMTP Credentials"
+          "id": "UHVHpJrJED5CHOJh",
+          "name": "SMTP account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    result: 'Užklausa sėkmingai išsiųsta administratoriui. Klientui pasakykite, kad komanda susisieks per 2 darbo valandas. Booking inquiry sent successfully to admin.'\n  }\n}];"
+        "jsCode": "return [{\n  json: {\n    result: 'Užklausa sėkmingai išsiųsta administratoriui ir išsaugota sistemoje. Klientui pasakykite, kad komanda susisieks per 2 darbo valandas. Booking inquiry sent successfully to admin and saved to database.'\n  }\n}];"
       },
       "id": "booking-response",
       "name": "Return Confirmation",
@@ -58,7 +124,7 @@
       "typeVersion": 2,
       "position": [
         880,
-        300
+        440
       ]
     }
   ],
@@ -78,11 +144,39 @@
       "main": [
         [
           {
+            "node": "Build DB Query",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Send Email to Admin",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Build DB Query": {
+      "main": [
+        [
+          {
+            "node": "IF Should Save to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Should Save to DB": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
     "Send Email to Admin": {
@@ -109,5 +203,5 @@
     }
   ],
   "triggerCount": 0,
-  "versionId": "2"
+  "versionId": "3"
 }
