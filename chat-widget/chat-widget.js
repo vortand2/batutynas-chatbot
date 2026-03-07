@@ -57,6 +57,10 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
+      if (!data || !data.sessionId || typeof data.timestamp !== 'number') {
+        localStorage.removeItem(STORAGE_KEY);
+        return null;
+      }
       if (Date.now() - data.timestamp > SESSION_TTL_MS) {
         localStorage.removeItem(STORAGE_KEY);
         return null;
@@ -129,6 +133,15 @@
   // --- Rendering ---
 
   function render() {
+    // Ensure Nunito font is loaded (backup for CSS @import)
+    if (!document.getElementById('batutynas-font-link')) {
+      var fontLink = document.createElement('link');
+      fontLink.id = 'batutynas-font-link';
+      fontLink.rel = 'stylesheet';
+      fontLink.href = 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap';
+      document.head.appendChild(fontLink);
+    }
+
     var existing = document.getElementById('woo-ai-chat-widget');
     // Cleanup viewport listener from previous render
     if (existing && existing._cleanupViewport) {
@@ -181,10 +194,11 @@
         '</div>' +
         '<div class="welcome-divider">K\u0105 norite veikti?</div>' +
         '<div class="welcome-actions">' +
-        '<button class="welcome-action-btn wa-birthday" data-welcome-action="Planuoju vaik\u0173 gimtadien\u012F arba krik\u0161tynas"><span class="welcome-action-emoji">\uD83C\uDF82</span>Planuoti gimtadien\u012F</button>' +
-        '<button class="welcome-action-btn wa-event" data-welcome-action="Planuoju vie\u0161\u0105 rengin\u012F arba \u012Fmon\u0117s s\u0105skrydi"><span class="welcome-action-emoji">\uD83C\uDFAA</span>Vie\u0161as renginys</button>' +
-        '<button class="welcome-action-btn wa-buy" data-welcome-action="Noriu pirkti batut\u0105"><span class="welcome-action-emoji">\uD83D\uDED2</span>Pirkti batut\u0105</button>' +
-        '<button class="welcome-action-btn wa-info" data-welcome-action="Saugumas, DUK ir kontaktai"><span class="welcome-action-emoji">\u2139\uFE0F</span>Info ir kontaktai</button>' +
+        '<button class="welcome-action-btn wa-birthday" data-welcome-action="Planuoju vaik\u0173 gimtadien\u012F arba krik\u0161tynas"><span class="welcome-action-emoji" aria-hidden="true">\uD83C\uDF82</span>Planuoti gimtadien\u012F</button>' +
+        '<button class="welcome-action-btn wa-event" data-welcome-action="Planuoju vie\u0161\u0105 rengin\u012F arba \u012Fmon\u0117s s\u0105skrydi\u012F"><span class="welcome-action-emoji" aria-hidden="true">\uD83C\uDFAA</span>Vie\u0161as renginys</button>' +
+        '<button class="welcome-action-btn wa-buy" data-welcome-action="Noriu pirkti batut\u0105"><span class="welcome-action-emoji" aria-hidden="true">\uD83D\uDED2</span>Pirkti batut\u0105</button>' +
+        '<button class="welcome-action-btn wa-party" data-welcome-action="Planuoju triuk\u0161ming\u0105 vakar\u0117l\u012F"><span class="welcome-action-emoji" aria-hidden="true">\uD83C\uDF89</span>Vakar\u0117lis</button>' +
+        '<button class="welcome-action-btn wa-info" data-welcome-action="Saugumas, DUK ir kontaktai"><span class="welcome-action-emoji" aria-hidden="true">\u2139\uFE0F</span>Info ir kontaktai</button>' +
         '</div>';
 
       messagesContainer.appendChild(welcomeDiv);
@@ -200,7 +214,7 @@
     });
 
     // Typing indicator
-    var typing = el('div', { className: 'woo-chat-typing', id: 'woo-chat-typing' }, [
+    var typing = el('div', { className: 'woo-chat-typing' + (state.sending ? ' visible' : ''), id: 'woo-chat-typing' }, [
       el('span'), el('span'), el('span')
     ]);
     messagesContainer.appendChild(typing);
@@ -211,6 +225,7 @@
     var textarea = el('textarea', {
       className: 'woo-chat-input',
       id: 'woo-chat-input',
+      'aria-label': t('placeholder'),
       placeholder: t('placeholder'),
       maxlength: String(MAX_MESSAGE_LENGTH),
       rows: '1',
@@ -263,9 +278,11 @@
       widget.style.setProperty('--chat-primary-hover', adjustColor(config.primaryColor, -20));
     }
 
-    // Scroll to bottom
-    if (state.open) {
+    // Scroll to bottom (skip when addMessage will handle scroll-to-start)
+    if (state.open && !state._scrollToStart) {
       scrollToBottom();
+    }
+    if (state.open) {
       var input = document.getElementById('woo-chat-input');
       if (input) input.focus();
     }
@@ -312,8 +329,10 @@
       'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
       'data-chat-custom-submit', 'data-chat-address', 'data-chat-address-confirm',
       'data-chat-address-fill', 'data-chat-detail-toggle', 'data-chat-addon',
-      'data-chat-addon-continue', 'data-chat-zoom', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
-      'target', 'rel', 'src', 'alt', 'placeholder', 'id', 'role', 'tabindex', 'rows'];
+      'data-chat-addon-continue', 'data-chat-no-addon-send', 'data-chat-no-addon-back',
+      'data-chat-zoom', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
+      'target', 'rel', 'src', 'alt', 'placeholder', 'id', 'role', 'tabindex', 'rows',
+      'aria-label', 'aria-pressed', 'aria-hidden', 'aria-describedby', 'loading', 'autocomplete', 'style'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
     var tmp = document.createElement('div');
@@ -358,6 +377,7 @@
   function createLanguageSelect() {
     var select = el('select', {
       className: 'woo-chat-lang-select',
+      'aria-label': 'Kalba',
       onChange: function () {
         state.language = this.value;
         saveSession();
@@ -435,12 +455,13 @@
           render();
         }
         win.classList.add('woo-animate-out');
-        win.addEventListener('animationend', doClose, { once: true });
-        setTimeout(doClose, 300);
+        win.addEventListener('animationend', function () { doClose(); var tb = document.querySelector('.woo-chat-toggle'); if (tb) tb.focus(); }, { once: true });
+        setTimeout(function () { doClose(); var tb = document.querySelector('.woo-chat-toggle'); if (tb) tb.focus(); }, 300);
       } else {
         state.open = false;
         state.animatedOpen = false;
         render();
+        var tb = document.querySelector('.woo-chat-toggle'); if (tb) tb.focus();
       }
     } else {
       state.open = true;
@@ -462,11 +483,25 @@
     if (visible) scrollToBottom();
   }
 
+  var _scrollTimer = null;
   function addMessage(role, text) {
     state.messages.push({ role: role, text: text, time: Date.now() });
     saveSession();
+    state._scrollToStart = true;
     render();
-    scrollToBottom();
+    // Cancel any previous pending scroll so only the latest message's scroll fires
+    if (_scrollTimer) clearTimeout(_scrollTimer);
+    _scrollTimer = setTimeout(function () {
+      state._scrollToStart = false;
+      _scrollTimer = null;
+      var container = document.getElementById('woo-chat-messages');
+      if (!container) return;
+      var msgs = container.querySelectorAll('.woo-chat-msg');
+      var last = msgs[msgs.length - 1];
+      if (last) {
+        container.scrollTop = last.offsetTop - 8;
+      }
+    }, 300);
   }
 
   // --- Shared webhook send logic ---
@@ -503,12 +538,14 @@
         return res.json();
       })
       .then(function (data) {
+        state.sending = false;
         showTyping(false);
         var response = data.response || data.output || data.text || 'Atsiprašome, \u012Fvyko klaida. Pabandykite dar kart\u0105.';
         addMessage('agent', response);
         if (data.session_id) state.sessionId = data.session_id;
       })
       .catch(function () {
+        state.sending = false;
         showTyping(false);
         addMessage('system', '{{HTML}}Ry\u0161io klaida.<br><button class="woo-chat-retry" data-chat-retry>Bandyti dar kart\u0105</button>');
       })
@@ -537,6 +574,10 @@
 
   function quickSend(text) {
     if (state.sending) return;
+    if (!text || (typeof text === 'string' && !text.trim())) return;
+    if (typeof text === 'string' && text.length > MAX_MESSAGE_LENGTH) {
+      text = text.substring(0, MAX_MESSAGE_LENGTH);
+    }
     addMessage('customer', text);
     _sendToWebhook(text);
   }
@@ -581,6 +622,7 @@
       // Welcome screen action buttons
       var welcomeBtn = e.target.closest('[data-welcome-action]');
       if (welcomeBtn) {
+        if (state.sending) return;
         var value = welcomeBtn.getAttribute('data-welcome-action');
         quickSend(value);
         // Safety fallback: remove welcome screen immediately in case render() is async/delayed
@@ -626,6 +668,8 @@
         function closeOverlay() { overlay.remove(); }
         overlay.addEventListener('click', closeOverlay);
         fullImg.addEventListener('click', function(ev) { ev.stopPropagation(); });
+        var existingOverlay = document.querySelector('.t-zoom-overlay');
+        if (existingOverlay) existingOverlay.remove();
         document.body.appendChild(overlay);
         return;
       }
@@ -634,7 +678,22 @@
       var optBtn = e.target.closest('[data-chat-option]');
       if (optBtn) {
         if (optBtn.hasAttribute('disabled')) return;
+        if (state.sending) return;
         var msgBubble = optBtn.closest('.chat-products') || optBtn.closest('.chat-options') || optBtn.closest('.chat-trampoline-grid') || optBtn.closest('.woo-chat-msg');
+
+        // If this bubble also has addon cards AND the clicked element is a trampoline card,
+        // treat it as single-select toggle (don't send yet). CTA buttons should send immediately.
+        var hasAddons = msgBubble && msgBubble.querySelector('[data-chat-addon]');
+        var isTrampolineCard = optBtn.classList.contains('chat-trampoline-select');
+        if (hasAddons && isTrampolineCard) {
+          // Deselect other trampoline options, select this one
+          msgBubble.querySelectorAll('.chat-trampoline-select[data-chat-option]').forEach(function (btn) {
+            btn.classList.remove('selected');
+          });
+          optBtn.classList.add('selected');
+          return;
+        }
+
         if (msgBubble) {
           msgBubble.querySelectorAll('[data-chat-option]').forEach(function (btn) {
             btn.setAttribute('disabled', 'true');
@@ -703,10 +762,55 @@
           if (!errEl) {
             errEl = document.createElement('div');
             errEl.className = 'form-error';
+            errEl.setAttribute('role', 'alert');
             errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
             emailInput.parentElement.appendChild(errEl);
           }
           errEl.textContent = 'Neteisingas el. pašto formatas';
+        }
+        return;
+      }
+
+      // No-addon confirmation: send without addons
+      var noAddonSend = e.target.closest('[data-chat-no-addon-send]');
+      if (noAddonSend) {
+        if (state.sending) return;
+        var confirmDiv = noAddonSend.closest('.chat-no-addon-confirm');
+        var trampName = noAddonSend.getAttribute('data-chat-no-addon-send');
+        if (confirmDiv) confirmDiv.remove();
+        quickSend(trampName);
+        return;
+      }
+      // No-addon confirmation: go back to pick addons
+      var noAddonBack = e.target.closest('[data-chat-no-addon-back]');
+      if (noAddonBack) {
+        var confirmDiv2 = noAddonBack.closest('.chat-no-addon-confirm');
+        if (confirmDiv2) {
+          var addonBubble2 = confirmDiv2.closest('.woo-chat-msg');
+          confirmDiv2.remove();
+          // Re-enable addon cards, trampoline options, and continue button so user can interact
+          if (addonBubble2) {
+            addonBubble2.querySelectorAll('[data-chat-addon]').forEach(function (card) {
+              card.removeAttribute('disabled');
+            });
+            addonBubble2.querySelectorAll('[data-chat-option]').forEach(function (btn) {
+              btn.removeAttribute('disabled');
+              if (btn.tagName === 'BUTTON') btn.disabled = false;
+            });
+            var continueBtn2 = addonBubble2.querySelector('[data-chat-addon-continue]');
+            if (continueBtn2) {
+              continueBtn2.disabled = false;
+              continueBtn2.removeAttribute('disabled');
+            }
+            // Persist the re-enabled state so session restore doesn't leave buttons stuck disabled
+            persistInteractionState(addonBubble2);
+            // Scroll to the addon section using direct scrollTop (reliable, matches Change 1 pattern)
+            var addonSection2 = addonBubble2.querySelector('[data-chat-addon]');
+            var chatContainer2 = document.getElementById('woo-chat-messages');
+            if (addonSection2 && chatContainer2) {
+              chatContainer2.scrollTop = addonSection2.offsetTop - 8;
+            }
+          }
         }
         return;
       }
@@ -716,6 +820,7 @@
       if (addonCard) {
         if (addonCard.hasAttribute('disabled')) return;
         addonCard.classList.toggle('addon-selected');
+        addonCard.setAttribute('aria-pressed', addonCard.classList.contains('addon-selected') ? 'true' : 'false');
         return;
       }
 
@@ -725,7 +830,25 @@
         if (addonContinueBtn.hasAttribute('disabled') || addonContinueBtn.disabled) return;
         var addonBubble = addonContinueBtn.closest('.chat-products') || addonContinueBtn.closest('.woo-chat-msg');
         var selected = [];
+        var trampolineSelection = '';
         if (addonBubble) {
+          // Collect trampoline selection (if trampolines are in same bubble)
+          var selectedTrampoline = addonBubble.querySelector('.chat-trampoline-select[data-chat-option].selected');
+          if (selectedTrampoline) {
+            trampolineSelection = selectedTrampoline.getAttribute('data-chat-option');
+          }
+          // Require trampoline if trampoline selection cards exist in this bubble (not cancel buttons)
+          var hasTrampolines = addonBubble.querySelector('.chat-trampoline-select[data-chat-option]');
+          if (hasTrampolines && !trampolineSelection) {
+            // Flash hint — user must select a trampoline first
+            addonContinueBtn.textContent = 'Pirma pasirinkite batutą ↑';
+            addonContinueBtn.classList.add('shake');
+            setTimeout(function () {
+              addonContinueBtn.textContent = 'Tęsti →';
+              addonContinueBtn.classList.remove('shake');
+            }, 2000);
+            return;
+          }
           addonBubble.querySelectorAll('[data-chat-addon].addon-selected').forEach(function (card) {
             selected.push(card.getAttribute('data-chat-addon'));
           });
@@ -735,12 +858,64 @@
           addonBubble.querySelectorAll('[data-chat-addon]').forEach(function (card) {
             card.setAttribute('disabled', 'true');
           });
+          addonBubble.querySelectorAll('[data-chat-option]').forEach(function (btn) {
+            btn.setAttribute('disabled', 'true');
+            if (btn.tagName === 'BUTTON') btn.disabled = true;
+          });
         }
         var chatBubble = addonContinueBtn.closest('.woo-chat-msg');
-        if (chatBubble) persistInteractionState(chatBubble);
-        var msg = selected.length > 0
-          ? 'Papildomos pramogos: ' + selected.join(', ')
-          : 'Be papildomų pramogų';
+        // Build message with trampoline + optional addons
+        var msg = '';
+        if (trampolineSelection) {
+          if (selected.length > 0) {
+            if (chatBubble) persistInteractionState(chatBubble);
+            msg = trampolineSelection + ' + Papildomos: ' + selected.join(', ');
+          } else {
+            // No addons chosen — ask "are you sure?" (they're free)
+            var confirmHtml = '<div class="chat-no-addon-confirm" style="background:#fffbe6;border:1px solid #ffe082;border-radius:12px;padding:14px 16px;margin-top:10px;text-align:center;">'
+              + '<div style="font-size:14px;margin-bottom:10px;">Papildomos pramogos yra <strong>NEMOKAMOS</strong>! Tikrai nenorite jokių?</div>'
+              + '<div style="display:flex;gap:8px;justify-content:center;">'
+              + '<button type="button" data-chat-no-addon-back style="padding:8px 16px;border-radius:8px;border:1px solid var(--chat-primary);background:white;color:var(--chat-primary);font-size:13px;font-weight:600;cursor:pointer;">Grįžti ir pasirinkti</button>'
+              + '<button type="button" data-chat-no-addon-send="' + trampolineSelection.replace(/"/g, '&quot;') + '" style="padding:8px 16px;border-radius:8px;border:none;background:var(--chat-primary);color:white;font-size:13px;font-weight:600;cursor:pointer;">Tęsti be pramogų</button>'
+              + '</div></div>';
+            var chatBubbleForConfirm = addonContinueBtn.closest('.woo-chat-msg');
+            if (chatBubbleForConfirm) {
+              chatBubbleForConfirm.insertAdjacentHTML('beforeend', confirmHtml);
+              // Persist AFTER confirm dialog is in DOM so session restore shows it
+              persistInteractionState(chatBubbleForConfirm);
+              var confirmEl = chatBubbleForConfirm.querySelector('.chat-no-addon-confirm');
+              // Scroll to confirm dialog using direct scrollTop (reliable, matches Change 1 pattern)
+              var chatContainer3 = document.getElementById('woo-chat-messages');
+              if (confirmEl && chatContainer3) {
+                chatContainer3.scrollTop = confirmEl.offsetTop - 8;
+              }
+            }
+            return;
+          }
+        } else {
+          // Party equipment flow (no trampoline selection)
+          if (selected.length === 0) {
+            // Re-enable everything so user can still interact after the shake hint
+            addonContinueBtn.disabled = false;
+            addonContinueBtn.removeAttribute('disabled');
+            if (addonBubble) {
+              addonBubble.querySelectorAll('[data-chat-addon]').forEach(function (card) {
+                card.removeAttribute('disabled');
+              });
+            }
+            // Re-persist with re-enabled state (prevents session restore from leaving buttons stuck disabled)
+            if (chatBubble) persistInteractionState(chatBubble);
+            addonContinueBtn.textContent = 'Pasirinkite bent vieną ↑';
+            addonContinueBtn.classList.add('shake');
+            setTimeout(function () {
+              addonContinueBtn.textContent = 'Tęsti →';
+              addonContinueBtn.classList.remove('shake');
+            }, 2000);
+            return;
+          }
+          msg = 'Papildomos pramogos: ' + selected.join(', ');
+          if (chatBubble) persistInteractionState(chatBubble);
+        }
         quickSend(msg);
         return;
       }
@@ -757,7 +932,25 @@
             addrInput.value = city + ', ';
             addrInput.focus();
             var addrConfirm = addressForm.querySelector('[data-chat-address-confirm]');
-            if (addrConfirm) addrConfirm.disabled = !addrInput.value.trim();
+            if (addrConfirm) {
+              var isOtherCity = city.toLowerCase().includes('kitas');
+              if (isOtherCity) {
+                // "Kitas miestas" — keep confirm disabled until user adds a real address
+                addrConfirm.disabled = true;
+                if (!addrInput._addrListener) {
+                  addrInput._addrListener = true;
+                  addrInput.addEventListener('input', function () {
+                    var val = addrInput.value.trim();
+                    // Enable when user typed something meaningful (min 3 chars, not just the prefix)
+                    // Also block bare "Kitas miestas" without comma (in case user manually removes the comma)
+                    addrConfirm.disabled = !val || val.length < 3 || val === 'Kitas miestas,' || val.toLowerCase() === 'kitas miestas';
+                  });
+                }
+              } else {
+                // Known city — enable confirm immediately
+                addrConfirm.disabled = false;
+              }
+            }
           }
         }
         return;
@@ -769,7 +962,8 @@
         if (addressConfirmBtn.hasAttribute('disabled') || addressConfirmBtn.disabled) return;
         var addrInput = addressConfirmBtn.parentElement.querySelector('[data-chat-address]');
         if (addrInput && addrInput.value.trim()) {
-          var addressValue = addrInput.value.trim();
+          // Strip trailing comma/space that the city fill button pre-populates (e.g. "Tauragė, ")
+          var addressValue = addrInput.value.trim().replace(/[,\s]+$/, '');
           addressConfirmBtn.disabled = true;
           addressConfirmBtn.setAttribute('disabled', 'true');
           addrInput.disabled = true;
@@ -810,6 +1004,7 @@
             if (!errEl) {
               errEl = document.createElement('div');
               errEl.className = 'form-error';
+              errEl.setAttribute('role', 'alert');
               errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
               emailInput.parentElement.appendChild(errEl);
             }
@@ -828,6 +1023,7 @@
             if (!errEl2) {
               errEl2 = document.createElement('div');
               errEl2.className = 'form-error';
+              errEl2.setAttribute('role', 'alert');
               errEl2.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
               phoneInput.parentElement.appendChild(errEl2);
             }
@@ -881,15 +1077,23 @@
         }
         addMessage('customer', textToRetry);
         _sendToWebhook(textToRetry);
-        render();
       }
     });
 
     document.addEventListener('keydown', function (e) {
+      // Close zoom overlay on Escape
+      if (e.key === 'Escape') {
+        var zoomOverlay = document.querySelector('.t-zoom-overlay');
+        if (zoomOverlay) {
+          zoomOverlay.remove();
+          return;
+        }
+      }
+
       // FR-5.6: Focus trap inside open dialog
       if (e.key === 'Tab' && state.open) {
         var chatWin = document.querySelector('.woo-chat-window');
-        if (!chatWin) return;
+        if (!chatWin || !chatWin.contains(document.activeElement)) return;
         var focusable = chatWin.querySelectorAll(
           'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
         );
@@ -969,6 +1173,22 @@
           addrConfirm.disabled = !addrInput.value.trim();
         }
       }
+
+      // Custom form field live validation — enable submit when email + phone are filled
+      var customField = e.target.closest('[data-custom-field]');
+      if (customField) {
+        var form = customField.closest('.chat-custom-form');
+        if (form) {
+          var emailField = form.querySelector('[data-custom-field="email"]');
+          var phoneField = form.querySelector('[data-custom-field="phone"]');
+          var submitBtn = form.querySelector('.chat-custom-submit');
+          if (submitBtn && emailField && phoneField) {
+            var hasEmail = emailField.value.trim().length > 0;
+            var hasPhone = phoneField.value.trim().replace(/\D/g, '').length >= 8;
+            submitBtn.disabled = !(hasEmail && hasPhone);
+          }
+        }
+      }
     });
   }
 
@@ -989,19 +1209,8 @@
       attachDelegation();
       render();
 
-      // Proactive greeting for new sessions (no existing messages)
-      if (state.messages.length === 0) {
-        setTimeout(function () {
-          if (state.open || state.messages.length > 0) return;
-          var greeting = state.language === 'en'
-            ? 'Hi! Planning an event? I can help with trampoline rental and prices.'
-            : 'Sveiki! Planuojate renginį? Galiu padėti su batutų nuoma ir kainomis.';
-          state.messages.push({ role: 'agent', text: greeting, time: Date.now() });
-          state._hasUnread = true;
-          saveSession();
-          render();
-        }, 6000);
-      }
+      // Proactive greeting for new sessions — triggers welcome with menu when chat opens
+      // (Handled in open() function — fetches welcome with [MAIN_MENU] buttons)
     },
 
     open: function () {
