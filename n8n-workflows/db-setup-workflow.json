@@ -1,0 +1,210 @@
+{
+  "name": "DB Setup — Batutynas PostgreSQL",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-create-schema",
+      "name": "1. Create Schema",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CREATE SCHEMA IF NOT EXISTS batutynas;"
+      }
+    },
+    {
+      "id": "node-create-tables",
+      "name": "2. Create Tables",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- -----------------------------------------------------------\n-- 1. Contacts\n-- -----------------------------------------------------------\nCREATE TABLE IF NOT EXISTS batutynas.contacts (\n  id            SERIAL PRIMARY KEY,\n  name          TEXT NOT NULL,\n  phone         TEXT NOT NULL,\n  email         TEXT,\n  source        TEXT NOT NULL DEFAULT 'Phone'\n                CHECK (source IN ('Facebook','Website','Phone','Referral','Chatbot')),\n  first_booking_date DATE,\n  total_bookings     INTEGER NOT NULL DEFAULT 0,\n  total_spent        NUMERIC(10,2) NOT NULL DEFAULT 0,\n  last_booking_date  DATE,\n  notes         TEXT,\n  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_phone ON batutynas.contacts (phone);\nCREATE INDEX IF NOT EXISTS idx_contacts_name ON batutynas.contacts (name);\n\n-- -----------------------------------------------------------\n-- 2. Equipment\n-- -----------------------------------------------------------\nCREATE TABLE IF NOT EXISTS batutynas.equipment (\n  id            SERIAL PRIMARY KEY,\n  name          TEXT NOT NULL,\n  icon          TEXT,\n  category      TEXT NOT NULL\n                CHECK (category IN ('big-park','mega-trampoline','standard-trampoline','addon','party-equipment')),\n  size_label    TEXT,\n  capacity      TEXT,\n  min_guests    INTEGER DEFAULT 1,\n  max_guests    INTEGER DEFAULT 999,\n  age_range     TEXT,\n  setup_time    TEXT,\n  detail        TEXT,\n  price         NUMERIC(10,2),\n  price_label   TEXT DEFAULT 'pagal užklausą',\n  image_url     TEXT,\n  status        TEXT NOT NULL DEFAULT 'Available'\n                CHECK (status IN ('Available','Reserved','Rented','In Transit','Needs Cleaning','Damaged')),\n  condition     TEXT NOT NULL DEFAULT 'Good'\n                CHECK (condition IN ('Good','Minor Wear','Needs Repair')),\n  purchase_date DATE,\n  last_cleaned  DATE,\n  popular       BOOLEAN NOT NULL DEFAULT FALSE,\n  notes         TEXT,\n  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS idx_equipment_category ON batutynas.equipment (category);\nCREATE INDEX IF NOT EXISTS idx_equipment_status ON batutynas.equipment (status);\n\n-- -----------------------------------------------------------\n-- 3. Bookings\n-- -----------------------------------------------------------\nCREATE TABLE IF NOT EXISTS batutynas.bookings (\n  id              SERIAL PRIMARY KEY,\n  contact_id      INTEGER NOT NULL REFERENCES batutynas.contacts(id) ON DELETE RESTRICT,\n  event_date      DATE NOT NULL,\n  event_time      TIME,\n  pickup_time     TIME,\n  delivery_address TEXT,\n  city            TEXT,\n  status          TEXT NOT NULL DEFAULT 'Inquiry'\n                  CHECK (status IN ('Inquiry','Confirmed','Delivered','Completed','Cancelled')),\n  price           NUMERIC(10,2),\n  deposit_amount  NUMERIC(10,2),\n  deposit_paid    BOOLEAN NOT NULL DEFAULT FALSE,\n  payment_status  TEXT NOT NULL DEFAULT 'Unpaid'\n                  CHECK (payment_status IN ('Unpaid','Deposit Paid','Paid in Full')),\n  entry_source    TEXT NOT NULL DEFAULT 'Phone'\n                  CHECK (entry_source IN ('Chatbot','Telegram','Direct Facebook','Phone')),\n  confirmation_sent BOOLEAN NOT NULL DEFAULT FALSE,\n  reminder_sent     BOOLEAN NOT NULL DEFAULT FALSE,\n  review_requested  BOOLEAN NOT NULL DEFAULT FALSE,\n  converted_from_inquiry BOOLEAN NOT NULL DEFAULT FALSE,\n  inquiry_lost_reason    TEXT\n                         CHECK (inquiry_lost_reason IS NULL OR\n                                inquiry_lost_reason IN ('Price','Availability','No Response','Other')),\n  notes           TEXT,\n  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX IF NOT EXISTS idx_bookings_event_date ON batutynas.bookings (event_date);\nCREATE INDEX IF NOT EXISTS idx_bookings_contact ON batutynas.bookings (contact_id);\nCREATE INDEX IF NOT EXISTS idx_bookings_status ON batutynas.bookings (status);\nCREATE INDEX IF NOT EXISTS idx_bookings_date_status ON batutynas.bookings (event_date, status);\n\n-- -----------------------------------------------------------\n-- 4. Booking_Equipment\n-- -----------------------------------------------------------\nCREATE TABLE IF NOT EXISTS batutynas.booking_equipment (\n  id              SERIAL PRIMARY KEY,\n  booking_id      INTEGER NOT NULL REFERENCES batutynas.bookings(id) ON DELETE CASCADE,\n  equipment_id    INTEGER NOT NULL REFERENCES batutynas.equipment(id) ON DELETE RESTRICT,\n  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  UNIQUE(booking_id, equipment_id)\n);\n\nCREATE INDEX IF NOT EXISTS idx_be_booking ON batutynas.booking_equipment (booking_id);\nCREATE INDEX IF NOT EXISTS idx_be_equipment ON batutynas.booking_equipment (equipment_id);\n\n-- -----------------------------------------------------------\n-- Auto-update updated_at on bookings\n-- -----------------------------------------------------------\nCREATE OR REPLACE FUNCTION batutynas.update_timestamp()\nRETURNS TRIGGER AS $$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nDO $$ BEGIN\n  IF NOT EXISTS (\n    SELECT 1 FROM pg_trigger\n    WHERE tgname = 'trg_bookings_updated'\n      AND tgrelid = 'batutynas.bookings'::regclass\n  ) THEN\n    CREATE TRIGGER trg_bookings_updated\n      BEFORE UPDATE ON batutynas.bookings\n      FOR EACH ROW EXECUTE FUNCTION batutynas.update_timestamp();\n  END IF;\nEND $$;\n\n-- -----------------------------------------------------------\n-- View: Today's schedule\n-- -----------------------------------------------------------\nCREATE OR REPLACE VIEW batutynas.v_today_schedule AS\nSELECT\n  b.id AS booking_id,\n  c.name AS customer_name,\n  c.phone AS customer_phone,\n  b.event_time,\n  b.pickup_time,\n  b.delivery_address,\n  b.city,\n  b.status,\n  b.price,\n  b.deposit_paid,\n  b.payment_status,\n  ARRAY_AGG(e.name ORDER BY e.name) AS equipment_names,\n  ARRAY_AGG(e.icon ORDER BY e.name) AS equipment_icons\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nLEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id\nLEFT JOIN batutynas.equipment e ON e.id = be.equipment_id\nWHERE b.event_date = CURRENT_DATE\n  AND b.status NOT IN ('Cancelled')\nGROUP BY b.id, c.name, c.phone, b.event_time, b.pickup_time,\n         b.delivery_address, b.city, b.status, b.price,\n         b.deposit_paid, b.payment_status\nORDER BY b.event_time;\n\n-- -----------------------------------------------------------\n-- View: Weekly revenue comparison\n-- -----------------------------------------------------------\nCREATE OR REPLACE VIEW batutynas.v_weekly_revenue AS\nSELECT\n  SUM(CASE WHEN event_date BETWEEN CURRENT_DATE - INTERVAL '6 days' AND CURRENT_DATE\n           THEN price ELSE 0 END) AS this_week_revenue,\n  COUNT(CASE WHEN event_date BETWEEN CURRENT_DATE - INTERVAL '6 days' AND CURRENT_DATE\n             AND status = 'Completed' THEN 1 END) AS this_week_bookings,\n  SUM(CASE WHEN event_date BETWEEN CURRENT_DATE - INTERVAL '13 days' AND CURRENT_DATE - INTERVAL '7 days'\n           THEN price ELSE 0 END) AS last_week_revenue,\n  COUNT(CASE WHEN event_date BETWEEN CURRENT_DATE - INTERVAL '13 days' AND CURRENT_DATE - INTERVAL '7 days'\n             AND status = 'Completed' THEN 1 END) AS last_week_bookings\nFROM batutynas.bookings\nWHERE status IN ('Completed','Delivered','Confirmed');\n\n-- -----------------------------------------------------------\n-- View: Equipment availability\n-- -----------------------------------------------------------\nCREATE OR REPLACE VIEW batutynas.v_equipment_availability AS\nSELECT\n  e.id,\n  e.name,\n  e.category,\n  e.status AS current_status,\n  e.size_label,\n  e.capacity,\n  CASE\n    WHEN e.status != 'Available' THEN FALSE\n    WHEN EXISTS (\n      SELECT 1 FROM batutynas.booking_equipment be\n      JOIN batutynas.bookings b ON b.id = be.booking_id\n      WHERE be.equipment_id = e.id\n        AND b.event_date = CURRENT_DATE\n        AND b.status IN ('Confirmed','Delivered')\n    ) THEN FALSE\n    ELSE TRUE\n  END AS available_today\nFROM batutynas.equipment e;"
+      }
+    },
+    {
+      "id": "node-seed-data",
+      "name": "3. Seed Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- -----------------------------------------------------------\n-- Equipment: All 20 items from live chatbot\n-- -----------------------------------------------------------\n\n-- Big Parks\nINSERT INTO batutynas.equipment (name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url, popular)\nSELECT * FROM (VALUES\n  ('Džiumandži parkas', '🌴', 'big-park', '14x16 m', 'Iki 40 vaikų', 15, 200, '4–14 m.', '~60 min', 'Nuotykių parkas · Surinkimas: ~60 min · Reikia: lygios 16x14 m aikštelės · Įeina: batutas, generatorius, prižiūrėtojas', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.18-Rc7QdQX9UPx5Qii4.jpeg', TRUE),\n  ('Fantazijų parkas', '🏰', 'big-park', '14x14 m', 'Iki 30 vaikų', 10, 150, '4–14 m.', '~50 min', 'Batutų parkas · Surinkimas: ~50 min · Reikia: lygios 14x14 m aikštelės · Įeina: batutas, generatorius, prižiūrėtojas', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183358_615_1752852849151_photo_optimized-1-Su0yn2ubUUAdRTaM.jpg', FALSE),\n  ('Giga ruožas', '🏃', 'big-park', '45x8 m', '360 dalyvių/val.', 10, 1000, '6+ m.', '~90 min', 'Kliūčių trasa 40 m · Surinkimas: ~90 min · Reikia: 45x8 m aikštelės · Įeina: trasa, generatorius, 2 prižiūrėtojai', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as7_-PF5s1CBJOSf9Dsw8.jpg', TRUE)\n) AS v(name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url, popular)\nWHERE NOT EXISTS (SELECT 1 FROM batutynas.equipment WHERE batutynas.equipment.name = v.name);\n\n-- Mega Trampolines\nINSERT INTO batutynas.equipment (name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url, popular)\nSELECT * FROM (VALUES\n  ('Mega Waikiki', '🌊', 'mega-trampoline', '16x4 m', 'Iki 15 vaikų', 5, 15, '4–14 m.', '~40 min', 'Aukščiausias 8,5 m · Čiuožykla + šokinėjimo zona · Įeina: generatorius', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2026-01-19-at-08.02.20-1-qKrIjl8vIiaDDEeJ.jpeg', TRUE),\n  ('Mega Rocket', '🚀', 'mega-trampoline', '14x5 m', 'Iki 15 vaikų', 5, 15, '4–14 m.', '~40 min', '2 dalys: čiuožykla + arena · Surinkimas: ~40 min · Įeina: generatorius', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250608_144102_598_1749383165455_photo-1-DWXubfRscVaZs0KU.jpg', FALSE),\n  ('Mega Ufonautai', '🛸', 'mega-trampoline', '14x5 m', 'Iki 15 vaikų', 5, 15, '4–14 m.', '~40 min', '2 dalys: čiuožykla + šokinėjimo zona · Surinkimas: ~40 min · Įeina: generatorius', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-03-21-at-15.48.00-k77GausjdJtLgsxH.jpeg', FALSE),\n  ('Mega ruožas', '🏃', 'mega-trampoline', '25x6 m', '240 dalyvių/val.', 8, 600, '6+ m.', '~45 min', '21 m kliūčių trasa · Surinkimas: ~45 min · Įeina: generatorius, prižiūrėtojas', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg', FALSE)\n) AS v(name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url, popular)\nWHERE NOT EXISTS (SELECT 1 FROM batutynas.equipment WHERE batutynas.equipment.name = v.name);\n\n-- Standard Trampolines\nINSERT INTO batutynas.equipment (name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url, popular)\nSELECT * FROM (VALUES\n  ('Monstrai', '👾', 'standard-trampoline', '8x5 m', 'Iki 12 vaikų', 4, 12, '3–12 m.', '~25 min', 'Su velcro Dart žaidimu · Surinkimas: ~25 min · Idealus gimtadieniams', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png', FALSE),\n  ('Candy Pop', '🍭', 'standard-trampoline', '8x5 m', 'Iki 12 vaikų', 4, 12, '3–12 m.', '~25 min', 'Spalvingas dizainas · Surinkimas: ~25 min · Šokinėjimo zona + čiuožykla', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-6FZ64pJgz45vxYSk.png', TRUE),\n  ('Aštuonkojis', '🐙', 'standard-trampoline', '8x5 m', 'Iki 12 vaikų', 4, 12, '3–12 m.', '~25 min', 'Jūros tematika · Surinkimas: ~25 min · Šokinėjimo zona + čiuožykla', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210164945_873_49-guBAxfjAKUTQkefw.png', FALSE),\n  ('Chameleonas', '🦎', 'standard-trampoline', '8x5 m', 'Iki 12 vaikų', 4, 12, '3–12 m.', '~25 min', 'Su didele čiuožykla · Surinkimas: ~25 min · Spalvų keitimo dizainas', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png', FALSE),\n  ('Vienaragiai', '🦄', 'standard-trampoline', '9x4 m', 'Iki 12 vaikų', 4, 12, '3–10 m.', '~25 min', 'Su tuneliais ir čiuožykla · Surinkimas: ~25 min · Vienaragių tema', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', FALSE),\n  ('Pilis mažiesiems', '🏯', 'standard-trampoline', '5x4 m', 'Iki 6 vaikų', 2, 6, '2–5 m.', '~15 min', 'Mažiausias batutas · Surinkimas: ~15 min · Saugus mažiausiems', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', FALSE)\n) AS v(name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url, popular)\nWHERE NOT EXISTS (SELECT 1 FROM batutynas.equipment WHERE batutynas.equipment.name = v.name);\n\n-- Addons\nINSERT INTO batutynas.equipment (name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url)\nSELECT * FROM (VALUES\n  ('Milžiniškas Dart', '🎯', 'addon', '5x4,5 m', '60 dalyvių/val.', 1, 999, 'Visos amžiaus grupės', '~15 min', 'Velcro kamuoliai + pripučiamas taikinys · Surinkimas: ~15 min', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg'),\n  ('Kamuolių medžioklė', '⚽', 'addon', '8 m arena', '4 žaidėjai/raundas', 1, 999, NULL, '~20 min', 'Pripučiama arena · 4 žaidėjai vienu metu · Komandinis žaidimas', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg'),\n  ('Rodeo bulius', '🤠', 'addon', '5x5 m', 'Neribota', 1, 999, '6+', NULL, 'Mechaninis bulius su saugiu pripučiamu kilimėliu · Reguliuojamas greitis', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png'),\n  ('Saldėsių aparatai', '🍬', 'addon', NULL, 'Vata, popcorn, šerbetas', 1, 999, NULL, NULL, 'Cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png')\n) AS v(name, icon, category, size_label, capacity, min_guests, max_guests, age_range, setup_time, detail, image_url)\nWHERE NOT EXISTS (SELECT 1 FROM batutynas.equipment WHERE batutynas.equipment.name = v.name);\n\n-- Party Equipment\nINSERT INTO batutynas.equipment (name, icon, category, size_label, capacity, min_guests, max_guests, detail, image_url, popular)\nSELECT * FROM (VALUES\n  ('Disco paviljonas', '🪩', 'party-equipment', '4x4 m', 'Iki 20 žmonių', 1, 999, 'LED apšvietimas + garso sistema · 4x4 m palapinė · Tinka vakarėliams ir šokiams', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', TRUE),\n  ('Putų šou', '🫧', 'party-equipment', NULL, 'Neribota', 1, 999, 'Putų mašina + pripučiamas baseinas · Neriboti dalyviai · Vasaros pramoga', '', FALSE),\n  ('Banketo stalai ir kėdės', '🪑', 'party-equipment', NULL, 'Iki 50 vietų', 1, 999, 'Banketo stalai + kėdės · Iki 50 vietų · Pristatymas ir surinkimas įskaičiuota', 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', FALSE)\n) AS v(name, icon, category, size_label, capacity, min_guests, max_guests, detail, image_url, popular)\nWHERE NOT EXISTS (SELECT 1 FROM batutynas.equipment WHERE batutynas.equipment.name = v.name);\n\n-- -----------------------------------------------------------\n-- Sample Contacts (idempotent via ON CONFLICT)\n-- -----------------------------------------------------------\nINSERT INTO batutynas.contacts (name, phone, email, source, first_booking_date, total_bookings, total_spent, last_booking_date)\nVALUES\n  ('Jonas Jonaitis',  '+37060012345', 'jonas@example.lt', 'Facebook', '2025-06-15', 3, 450.00, '2026-02-20'),\n  ('Ona Onaitė',      '+37060067890', 'ona@example.lt',   'Website',  '2025-08-10', 2, 280.00, '2025-12-05'),\n  ('Petras Petraitis','+37060011111', NULL,               'Phone',    '2026-01-20', 1, 150.00, '2026-01-20')\nON CONFLICT (phone) DO NOTHING;\n\n-- -----------------------------------------------------------\n-- Sample Bookings (idempotent: only insert if contacts exist\n-- and no bookings yet exist for those contacts)\n-- -----------------------------------------------------------\n\n-- Past completed bookings\nINSERT INTO batutynas.bookings\n  (contact_id, event_date, event_time, pickup_time, delivery_address, city,\n   status, price, deposit_amount, deposit_paid, payment_status,\n   entry_source, confirmation_sent, reminder_sent, review_requested, converted_from_inquiry)\nSELECT\n  c.id, CURRENT_DATE - INTERVAL '14 days', '10:00', '18:00',\n  'Kauno g. 15', 'Tauragė', 'Completed', 150.00, 50.00, TRUE, 'Paid in Full',\n  'Chatbot', TRUE, TRUE, TRUE, TRUE\nFROM batutynas.contacts c\nWHERE c.phone = '+37060012345'\n  AND NOT EXISTS (\n    SELECT 1 FROM batutynas.bookings b\n    WHERE b.contact_id = c.id\n      AND b.event_date = CURRENT_DATE - INTERVAL '14 days'\n  );\n\nINSERT INTO batutynas.bookings\n  (contact_id, event_date, event_time, pickup_time, delivery_address, city,\n   status, price, deposit_amount, deposit_paid, payment_status,\n   entry_source, confirmation_sent, reminder_sent, review_requested, converted_from_inquiry)\nSELECT\n  c.id, CURRENT_DATE - INTERVAL '7 days', '14:00', '20:00',\n  'Vilniaus g. 8', 'Šilutė', 'Completed', 180.00, 50.00, TRUE, 'Paid in Full',\n  'Phone', TRUE, TRUE, FALSE, FALSE\nFROM batutynas.contacts c\nWHERE c.phone = '+37060067890'\n  AND NOT EXISTS (\n    SELECT 1 FROM batutynas.bookings b\n    WHERE b.contact_id = c.id\n      AND b.event_date = CURRENT_DATE - INTERVAL '7 days'\n  );\n\n-- Today's booking\nINSERT INTO batutynas.bookings\n  (contact_id, event_date, event_time, pickup_time, delivery_address, city,\n   status, price, deposit_amount, deposit_paid, payment_status,\n   entry_source, confirmation_sent, reminder_sent)\nSELECT\n  c.id, CURRENT_DATE, '11:00', '19:00',\n  'Dariaus ir Girėno g. 22', 'Tauragė', 'Confirmed', 200.00, 70.00, TRUE, 'Deposit Paid',\n  'Telegram', TRUE, TRUE\nFROM batutynas.contacts c\nWHERE c.phone = '+37060012345'\n  AND NOT EXISTS (\n    SELECT 1 FROM batutynas.bookings b\n    WHERE b.contact_id = c.id\n      AND b.event_date = CURRENT_DATE\n  );\n\n-- Tomorrow's booking (deposit unpaid)\nINSERT INTO batutynas.bookings\n  (contact_id, event_date, event_time, pickup_time, delivery_address, city,\n   status, price, deposit_amount, deposit_paid, payment_status,\n   entry_source, confirmation_sent)\nSELECT\n  c.id, CURRENT_DATE + INTERVAL '1 day', '15:00', '21:00',\n  'Žemaičių g. 5', 'Kelmė', 'Confirmed', 120.00, 40.00, FALSE, 'Unpaid',\n  'Direct Facebook', TRUE\nFROM batutynas.contacts c\nWHERE c.phone = '+37060011111'\n  AND NOT EXISTS (\n    SELECT 1 FROM batutynas.bookings b\n    WHERE b.contact_id = c.id\n      AND b.event_date = CURRENT_DATE + INTERVAL '1 day'\n  );\n\n-- Future inquiry\nINSERT INTO batutynas.bookings\n  (contact_id, event_date, event_time, delivery_address, city, status, entry_source)\nSELECT\n  c.id, CURRENT_DATE + INTERVAL '10 days', '12:00',\n  'Tilžės g. 10', 'Šilutė', 'Inquiry', 'Chatbot'\nFROM batutynas.contacts c\nWHERE c.phone = '+37060067890'\n  AND NOT EXISTS (\n    SELECT 1 FROM batutynas.bookings b\n    WHERE b.contact_id = c.id\n      AND b.event_date = CURRENT_DATE + INTERVAL '10 days'\n  );\n\n-- -----------------------------------------------------------\n-- Booking_Equipment assignments (idempotent via ON CONFLICT)\n-- -----------------------------------------------------------\n\n-- Booking 1 (oldest for Jonas): Candy Pop + Saldėsių aparatai\nINSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\nSELECT b.id, e.id\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nCROSS JOIN batutynas.equipment e\nWHERE c.phone = '+37060012345'\n  AND b.event_date = CURRENT_DATE - INTERVAL '14 days'\n  AND e.name IN ('Candy Pop', 'Saldėsių aparatai')\nON CONFLICT (booking_id, equipment_id) DO NOTHING;\n\n-- Booking 2 (oldest for Ona): Mega Waikiki\nINSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\nSELECT b.id, e.id\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nCROSS JOIN batutynas.equipment e\nWHERE c.phone = '+37060067890'\n  AND b.event_date = CURRENT_DATE - INTERVAL '7 days'\n  AND e.name = 'Mega Waikiki'\nON CONFLICT (booking_id, equipment_id) DO NOTHING;\n\n-- Today's booking (Jonas): Monstrai + Milžiniškas Dart\nINSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\nSELECT b.id, e.id\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nCROSS JOIN batutynas.equipment e\nWHERE c.phone = '+37060012345'\n  AND b.event_date = CURRENT_DATE\n  AND e.name IN ('Monstrai', 'Milžiniškas Dart')\nON CONFLICT (booking_id, equipment_id) DO NOTHING;\n\n-- Tomorrow's booking (Petras): Vienaragiai\nINSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\nSELECT b.id, e.id\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nCROSS JOIN batutynas.equipment e\nWHERE c.phone = '+37060011111'\n  AND b.event_date = CURRENT_DATE + INTERVAL '1 day'\n  AND e.name = 'Vienaragiai'\nON CONFLICT (booking_id, equipment_id) DO NOTHING;"
+      }
+    },
+    {
+      "id": "node-verify",
+      "name": "4. Verify Counts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1120, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  (SELECT COUNT(*) FROM batutynas.equipment) AS equipment_count,\n  (SELECT COUNT(*) FROM batutynas.contacts) AS contacts_count,\n  (SELECT COUNT(*) FROM batutynas.bookings) AS bookings_count,\n  (SELECT COUNT(*) FROM batutynas.booking_equipment) AS assignments_count;"
+      }
+    },
+    {
+      "id": "node-success",
+      "name": "5. Success Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1340, 300],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-status",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            },
+            {
+              "id": "field-message",
+              "name": "message",
+              "type": "string",
+              "value": "=Database setup complete. Equipment: {{ $json.equipment_count }} rows | Contacts: {{ $json.contacts_count }} rows | Bookings: {{ $json.bookings_count }} rows | Assignments: {{ $json.assignments_count }} rows"
+            },
+            {
+              "id": "field-equipment",
+              "name": "equipment_count",
+              "type": "number",
+              "value": "={{ $json.equipment_count }}"
+            },
+            {
+              "id": "field-contacts",
+              "name": "contacts_count",
+              "type": "number",
+              "value": "={{ $json.contacts_count }}"
+            },
+            {
+              "id": "field-bookings",
+              "name": "bookings_count",
+              "type": "number",
+              "value": "={{ $json.bookings_count }}"
+            },
+            {
+              "id": "field-assignments",
+              "name": "assignments_count",
+              "type": "number",
+              "value": "={{ $json.assignments_count }}"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "1. Create Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Create Schema": {
+      "main": [
+        [
+          {
+            "node": "2. Create Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Create Tables": {
+      "main": [
+        [
+          {
+            "node": "3. Seed Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Seed Data": {
+      "main": [
+        [
+          {
+            "node": "4. Verify Counts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Verify Counts": {
+      "main": [
+        [
+          {
+            "node": "5. Success Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "database",
+      "createdAt": "2026-03-06T00:00:00.000Z",
+      "updatedAt": "2026-03-06T00:00:00.000Z"
+    },
+    {
+      "name": "setup",
+      "createdAt": "2026-03-06T00:00:00.000Z",
+      "updatedAt": "2026-03-06T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-06T00:00:00.000Z",
+  "versionId": "1"
+}

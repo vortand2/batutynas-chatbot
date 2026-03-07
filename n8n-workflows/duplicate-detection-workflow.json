@@ -1,0 +1,158 @@
+{
+  "name": "Duplicate Detection Sub-Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, phone, total_bookings, last_booking_date\nFROM batutynas.contacts\nWHERE phone = $1\nLIMIT 1;",
+        "options": {
+          "queryBatching": "independently"
+        },
+        "values": {
+          "values": [
+            {
+              "value": "={{ $json.phone }}"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Check Contact Duplicate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [500, 150],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT b.id, b.event_date, b.event_time, b.delivery_address, b.city, b.status,\n       c.name AS customer_name\nFROM batutynas.bookings b\nJOIN batutynas.contacts c ON c.id = b.contact_id\nWHERE b.event_date = $1::date\n  AND b.status IN ('Confirmed', 'Delivered')\n  AND LOWER(b.city) = LOWER($2)\nORDER BY b.event_time;",
+        "options": {
+          "queryBatching": "independently"
+        },
+        "values": {
+          "values": [
+            {
+              "value": "={{ $('Execute Workflow Trigger').first().json.event_date }}"
+            },
+            {
+              "value": "={{ $('Execute Workflow Trigger').first().json.city }}"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Check Booking Conflict",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [500, 450],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const contactResult = $('Check Contact Duplicate').first().json;\nconst bookingResults = $('Check Booking Conflict').all().map(i => i.json);\n\nconst result = {\n  // Contact duplicate info\n  contact_found: !!contactResult.id,\n  existing_contact: contactResult.id ? {\n    id: contactResult.id,\n    name: contactResult.name,\n    phone: contactResult.phone,\n    total_bookings: contactResult.total_bookings,\n    last_booking_date: contactResult.last_booking_date\n  } : null,\n  \n  // Booking conflict info\n  booking_conflicts: bookingResults.filter(b => b.id).map(b => ({\n    id: b.id,\n    customer_name: b.customer_name,\n    event_time: b.event_time,\n    address: b.delivery_address,\n    city: b.city,\n    status: b.status\n  })),\n  has_conflicts: bookingResults.some(b => b.id),\n  \n  // Message for Telegram (Lithuanian)\n  contact_message: contactResult.id \n    ? `Rastas esamas kontaktas: ${contactResult.name}, ${contactResult.total_bookings} užsakymai anksčiau.`\n    : null,\n  conflict_message: bookingResults.some(b => b.id)\n    ? `⚠️ Jau yra ${bookingResults.filter(b => b.id).length} užsakymas(-ai) ${$('Execute Workflow Trigger').first().json.event_date}, ${$('Execute Workflow Trigger').first().json.city}: ${bookingResults.filter(b => b.id).map(b => `${b.customer_name} ${b.event_time}`).join(', ')}`\n    : null\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "name": "Build Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Contact Duplicate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Booking Conflict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Contact Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Build Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Booking Conflict": {
+      "main": [
+        [
+          {
+            "node": "Build Result",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Build Result": {
+      "main": [
+        [
+          {
+            "node": "Return Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "batutynas"
+    },
+    {
+      "name": "sub-workflow"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-06T00:00:00.000Z",
+  "versionId": "1"
+}

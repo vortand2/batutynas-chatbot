@@ -1,0 +1,136 @@
+{
+  "name": "Availability Checker (Sub-workflow)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "execute-workflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DISTINCT be.equipment_id, e.name, e.category\nFROM batutynas.booking_equipment be\nJOIN batutynas.bookings b ON b.id = be.booking_id\nJOIN batutynas.equipment e ON e.id = be.equipment_id\nWHERE b.event_date = $1::date\n  AND b.status IN ('Confirmed', 'Delivered')\n  AND b.id != COALESCE($2::integer, 0);",
+        "additionalFields": {
+          "queryParams": "={{ [$('Execute Workflow Trigger').first().json.event_date, $('Execute Workflow Trigger').first().json.booking_id ?? null] }}"
+        }
+      },
+      "id": "get-booked-equipment",
+      "name": "Get Booked Equipment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [500, 180],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, icon, category, status, size_label, capacity\nFROM batutynas.equipment\nWHERE status NOT IN ('Damaged')\nORDER BY category, name;",
+        "additionalFields": {}
+      },
+      "id": "get-all-equipment",
+      "name": "Get All Equipment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [500, 420],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const bookedIds = $('Get Booked Equipment').all()\n  .map(i => i.json.equipment_id)\n  .filter(id => id != null);\n\nconst allEquipment = $('Get All Equipment').all().map(i => i.json);\nconst requested = $('Execute Workflow Trigger').first().json.requested_equipment || [];\n\nconst results = {\n  available: [],\n  unavailable: [],\n  all_available: true\n};\n\nfor (const reqName of requested) {\n  const equip = allEquipment.find(e => e.name === reqName);\n  if (!equip) {\n    results.unavailable.push({ name: reqName, reason: 'Nerastas kataloge' });\n    results.all_available = false;\n    continue;\n  }\n\n  if (equip.status !== 'Available') {\n    results.unavailable.push({\n      name: reqName,\n      icon: equip.icon,\n      reason: `Statusas: ${equip.status}`\n    });\n    results.all_available = false;\n    continue;\n  }\n\n  if (bookedIds.includes(equip.id)) {\n    results.unavailable.push({\n      name: reqName,\n      icon: equip.icon,\n      reason: 'Jau užsakytas šiai datai'\n    });\n    results.all_available = false;\n    continue;\n  }\n\n  results.available.push({\n    id: equip.id,\n    name: equip.name,\n    icon: equip.icon,\n    category: equip.category,\n    size_label: equip.size_label\n  });\n}\n\n// Build Telegram message\nlet msg = '';\nif (results.all_available) {\n  msg = `✅ Visi laisvi ${$('Execute Workflow Trigger').first().json.event_date}:\\n`;\n  msg += results.available.map(e => `${e.icon} ${e.name}`).join('\\n');\n  msg += '\\n\\nPriskirti? [Taip] [Atšaukti]';\n} else {\n  msg = `⚠️ Nepakanka laisvų:\\n`;\n  if (results.available.length > 0) {\n    msg += `Laisvi: ${results.available.map(e => `${e.icon} ${e.name}`).join(', ')}\\n`;\n  }\n  msg += `Nelaisvi: ${results.unavailable.map(e => `${e.icon || '❌'} ${e.name} — ${e.reason}`).join('\\n')}`;\n}\n\nresults.telegram_message = msg;\nreturn [{ json: results }];"
+      },
+      "id": "check-availability",
+      "name": "Check Availability",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "return-result",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1020, 300],
+      "notesInFlow": false,
+      "notes": "Returns availability results to the calling workflow"
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Booked Equipment",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get All Equipment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booked Equipment": {
+      "main": [
+        [
+          {
+            "node": "Check Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Equipment": {
+      "main": [
+        [
+          {
+            "node": "Check Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability": {
+      "main": [
+        [
+          {
+            "node": "Return Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "availability-checker-workflow",
+  "tags": ["sub-workflow", "availability"]
+}

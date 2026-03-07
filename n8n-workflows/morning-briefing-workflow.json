@@ -1,0 +1,87 @@
+{
+  "name": "Batutynas Morning Briefing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_build_object(\n  'today', COALESCE((\n    SELECT json_agg(row_to_json(bk.*) ORDER BY bk.event_time)\n    FROM (\n      SELECT b.id, b.event_date, b.event_time, b.pickup_time,\n        b.delivery_address, b.city, b.status, b.price,\n        b.deposit_amount, b.deposit_paid, b.payment_status,\n        c.name AS customer_name, c.phone AS customer_phone,\n        COALESCE((SELECT json_agg(json_build_object('name', e.name, 'icon', e.icon))\n          FROM batutynas.booking_equipment be\n          JOIN batutynas.equipment e ON e.id = be.equipment_id\n          WHERE be.booking_id = b.id), '[]'::json) AS equipment\n      FROM batutynas.bookings b\n      JOIN batutynas.contacts c ON c.id = b.contact_id\n      WHERE b.event_date = CURRENT_DATE AND b.status NOT IN ('Cancelled')\n    ) bk\n  ), '[]'::json),\n\n  'tomorrow', COALESCE((\n    SELECT json_agg(row_to_json(bk.*) ORDER BY bk.event_time)\n    FROM (\n      SELECT b.id, b.event_date, b.event_time, b.pickup_time,\n        b.delivery_address, b.city, b.status, b.price,\n        b.deposit_amount, b.deposit_paid,\n        c.name AS customer_name, c.phone AS customer_phone,\n        COALESCE((SELECT json_agg(json_build_object('name', e.name, 'icon', e.icon))\n          FROM batutynas.booking_equipment be\n          JOIN batutynas.equipment e ON e.id = be.equipment_id\n          WHERE be.booking_id = b.id), '[]'::json) AS equipment\n      FROM batutynas.bookings b\n      JOIN batutynas.contacts c ON c.id = b.contact_id\n      WHERE b.event_date = CURRENT_DATE + INTERVAL '1 day' AND b.status NOT IN ('Cancelled')\n    ) bk\n  ), '[]'::json),\n\n  'unpaid_deposits', COALESCE((\n    SELECT json_agg(json_build_object(\n      'id', b.id, 'event_date', b.event_date::text, 'deposit_amount', b.deposit_amount,\n      'customer_name', c.name, 'customer_phone', c.phone, 'city', b.city\n    ) ORDER BY b.event_date)\n    FROM batutynas.bookings b\n    JOIN batutynas.contacts c ON c.id = b.contact_id\n    WHERE b.event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'\n      AND b.deposit_paid = FALSE AND b.status = 'Confirmed'\n  ), '[]'::json),\n\n  'needs_cleaning', COALESCE((\n    SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon))\n    FROM batutynas.equipment e WHERE e.status = 'Needs Cleaning'\n  ), '[]'::json),\n\n  'stats', json_build_object(\n    'week_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days' AND status NOT IN ('Cancelled')),\n    'month_revenue', (SELECT COALESCE(SUM(price), 0) FROM batutynas.bookings WHERE event_date >= date_trunc('month', CURRENT_DATE) AND status IN ('Completed', 'Delivered', 'Confirmed')),\n    'available_equipment', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Available'),\n    'total_equipment', (SELECT COUNT(*) FROM batutynas.equipment)\n  )\n) AS result;",
+        "additionalFields": {}
+      },
+      "id": "fetch-briefing-data",
+      "name": "Fetch Briefing Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [480, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nconst data = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;\n\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Tre\\u010diadienis', 'Ketvirtadienis', 'Penktadienis', '\\u0160e\\u0161tadienis'];\nconst now = new Date();\nconst dayName = dayNames[now.getDay()];\nconst dateStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;\n\nfunction fmtBooking(b) {\n  const statusIcons = { 'Confirmed': '\\ud83d\\udfe1', 'Delivered': '\\ud83d\\ude9b', 'Completed': '\\u2705' };\n  const payIcon = b.payment_status === 'Paid' ? '\\ud83d\\udcb0' : (b.deposit_paid ? '\\ud83d\\udd35' : '\\ud83d\\udd34');\n  const icon = statusIcons[b.status] || '\\u2b1c';\n  const equip = Array.isArray(b.equipment) ? b.equipment.map(e => e.icon || '\\ud83c\\udfaa').join('') : '';\n  let line = `${icon} <b>#${b.id}</b> ${(b.event_time||'?').substring(0,5)} \\u2192 ${(b.pickup_time||'?').substring(0,5)}`;\n  line += `\\n   \\ud83d\\udccd ${b.delivery_address}, ${b.city}`;\n  line += `\\n   \\ud83d\\udc64 ${b.customer_name} | ${payIcon} \\u20ac${b.price||0}`;\n  if (!b.deposit_paid && b.status === 'Confirmed') line += ` \\u26a0\\ufe0f`;\n  return line;\n}\n\nconst today = data.today || [];\nconst tomorrow = data.tomorrow || [];\nconst unpaid = data.unpaid_deposits || [];\nconst cleaning = data.needs_cleaning || [];\nconst stats = data.stats || {};\n\n// Build morning briefing\nlet msg = `\\u2600\\ufe0f <b>Ryto ataskaita \\u2014 ${dateStr} (${dayName})</b>\\n`;\nmsg += `\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n`;\n\n// Today's bookings\nif (today.length === 0) {\n  msg += `\\ud83d\\udcc5 <b>\\u0160iandien:</b> U\\u017esakym\\u0173 n\\u0117ra \\ud83c\\udf89\\n\\n`;\n} else {\n  msg += `\\ud83d\\udcc5 <b>\\u0160iandien (${today.length} u\\u017es.):</b>\\n`;\n  today.forEach(b => { msg += fmtBooking(b) + '\\n'; });\n  msg += '\\n';\n}\n\n// Tomorrow preview\nif (tomorrow.length > 0) {\n  msg += `\\ud83d\\udcc6 <b>Rytoj (${tomorrow.length} u\\u017es.):</b>\\n`;\n  tomorrow.forEach(b => {\n    msg += `  \\ud83d\\udfe1 #${b.id} ${(b.event_time||'?').substring(0,5)} \\u2014 ${b.city} (${b.customer_name})\\n`;\n  });\n  msg += '\\n';\n}\n\n// Unpaid deposit alerts\nif (unpaid.length > 0) {\n  msg += `\\u26a0\\ufe0f <b>Nemok\\u0117ti avansai (${unpaid.length}):</b>\\n`;\n  unpaid.forEach(u => {\n    msg += `  \\ud83d\\udd34 #${u.id} ${u.event_date} \\u2014 ${u.customer_name} (\\u20ac${u.deposit_amount}) \\ud83d\\udcde ${u.customer_phone}\\n`;\n  });\n  msg += '\\n';\n}\n\n// Cleaning reminders\nif (cleaning.length > 0) {\n  msg += `\\ud83e\\uddf9 <b>Reikia i\\u0161valyti (${cleaning.length}):</b>\\n`;\n  cleaning.forEach(e => {\n    msg += `  ${e.icon||'\\ud83c\\udfaa'} #${e.id} ${e.name} \\u2014 /clean ${e.id}\\n`;\n  });\n  msg += '\\n';\n}\n\n// Quick stats\nmsg += `\\ud83d\\udcca <b>Savait\\u0117:</b> ${stats.week_bookings} u\\u017es. | `;\nmsg += `\\ud83d\\udcb0 M\\u0117n. pajamos: \\u20ac${stats.month_revenue} | `;\nmsg += `\\ud83c\\udfaa ${stats.available_equipment}/${stats.total_equipment} laisva`;\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "format-briefing",
+      "name": "Format Briefing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "8258463322",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "send-briefing",
+      "name": "Send Briefing",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{"node": "Fetch Briefing Data", "type": "main", "index": 0}]]
+    },
+    "Fetch Briefing Data": {
+      "main": [[{"node": "Format Briefing", "type": "main", "index": 0}]]
+    },
+    "Format Briefing": {
+      "main": [[{"node": "Send Briefing", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

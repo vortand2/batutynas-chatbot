@@ -1,0 +1,87 @@
+{
+  "name": "Batutynas Evening Check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_build_object(\n  'unreturned', COALESCE((\n    SELECT json_agg(json_build_object(\n      'id', b.id, 'event_time', b.event_time::text, 'pickup_time', b.pickup_time::text,\n      'delivery_address', b.delivery_address, 'city', b.city,\n      'customer_name', c.name, 'customer_phone', c.phone,\n      'equipment', COALESCE((SELECT json_agg(json_build_object('name', e.name, 'icon', e.icon))\n        FROM batutynas.booking_equipment be\n        JOIN batutynas.equipment e ON e.id = be.equipment_id\n        WHERE be.booking_id = b.id), '[]'::json)\n    ) ORDER BY b.pickup_time)\n    FROM batutynas.bookings b\n    JOIN batutynas.contacts c ON c.id = b.contact_id\n    WHERE b.event_date = CURRENT_DATE\n      AND b.status = 'Delivered'\n  ), '[]'::json),\n\n  'tomorrow_prep', COALESCE((\n    SELECT json_agg(json_build_object(\n      'id', b.id, 'event_time', b.event_time::text, 'pickup_time', b.pickup_time::text,\n      'delivery_address', b.delivery_address, 'city', b.city,\n      'customer_name', c.name, 'customer_phone', c.phone,\n      'deposit_paid', b.deposit_paid, 'deposit_amount', b.deposit_amount,\n      'equipment', COALESCE((SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon, 'status', e.status))\n        FROM batutynas.booking_equipment be\n        JOIN batutynas.equipment e ON e.id = be.equipment_id\n        WHERE be.booking_id = b.id), '[]'::json)\n    ) ORDER BY b.event_time)\n    FROM batutynas.bookings b\n    JOIN batutynas.contacts c ON c.id = b.contact_id\n    WHERE b.event_date = CURRENT_DATE + INTERVAL '1 day'\n      AND b.status NOT IN ('Cancelled')\n  ), '[]'::json),\n\n  'completed_today', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date = CURRENT_DATE AND status = 'Completed'),\n  'total_today', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date = CURRENT_DATE AND status NOT IN ('Cancelled'))\n) AS result;",
+        "additionalFields": {}
+      },
+      "id": "fetch-evening-data",
+      "name": "Fetch Evening Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [480, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nconst data = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;\n\nconst unreturned = data.unreturned || [];\nconst tomorrowPrep = data.tomorrow_prep || [];\nconst completed = Number(data.completed_today || 0);\nconst total = Number(data.total_today || 0);\n\n// If nothing to report, send a short summary\nif (unreturned.length === 0 && tomorrowPrep.length === 0) {\n  const msg = `\\ud83c\\udf19 <b>Vakaro ataskaita</b>\\n\\n` +\n    `\\u2705 Visos \\u012frangos gr\\u0105\\u017eintos (${completed}/${total} atlikta)\\n` +\n    `\\ud83d\\udcc5 Rytoj u\\u017esakym\\u0173 n\\u0117ra\\n\\n` +\n    `Geros nakties! \\ud83d\\ude34`;\n  return [{ json: { message: msg } }];\n}\n\nlet msg = `\\ud83c\\udf19 <b>Vakaro ataskaita</b>\\n`;\nmsg += `\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n`;\n\n// Day summary\nmsg += `\\ud83d\\udcca \\u0160iandien: ${completed}/${total} u\\u017esakym\\u0173 atlikta\\n\\n`;\n\n// Unreturned equipment alert\nif (unreturned.length > 0) {\n  msg += `\\ud83d\\udea8 <b>NEGR\\u0104\\u017dINTA \\u012eRANGA (${unreturned.length}):</b>\\n`;\n  unreturned.forEach(b => {\n    const equip = Array.isArray(b.equipment) ? b.equipment.map(e => `${e.icon||'\\ud83c\\udfaa'} ${e.name}`).join(', ') : '';\n    msg += `\\n  \\ud83d\\ude9b <b>#${b.id}</b> \\u2014 tur\\u0117jo b\\u016bti iki ${(b.pickup_time||'?').substring(0,5)}`;\n    msg += `\\n   \\ud83d\\udccd ${b.delivery_address}, ${b.city}`;\n    msg += `\\n   \\ud83d\\udc64 ${b.customer_name} \\ud83d\\udcde ${b.customer_phone}`;\n    msg += `\\n   ${equip}`;\n    msg += `\\n   \\u27a1\\ufe0f /returned ${b.id}\\n`;\n  });\n  msg += '\\n';\n}\n\n// Tomorrow preparation\nif (tomorrowPrep.length > 0) {\n  msg += `\\ud83d\\udcc6 <b>RYTOJAUS PARUOŠIMAS (${tomorrowPrep.length} u\\u017es.):</b>\\n`;\n  tomorrowPrep.forEach(b => {\n    const equip = Array.isArray(b.equipment) ? b.equipment : [];\n    const needsClean = equip.filter(e => e.status === 'Needs Cleaning');\n    const depositWarn = !b.deposit_paid ? ` \\ud83d\\udd34 Avansas \\u20ac${b.deposit_amount} NEMOK\\u0116TAS!` : '';\n    \n    msg += `\\n  \\ud83d\\udfe1 <b>#${b.id}</b> ${(b.event_time||'?').substring(0,5)} \\u2192 ${(b.pickup_time||'?').substring(0,5)}`;\n    msg += `\\n   \\ud83d\\udccd ${b.delivery_address}, ${b.city}`;\n    msg += `\\n   \\ud83d\\udc64 ${b.customer_name} \\ud83d\\udcde ${b.customer_phone}${depositWarn}`;\n    msg += `\\n   \\u2611\\ufe0f `;\n    equip.forEach(e => { msg += `${e.icon||'\\ud83c\\udfaa'} ${e.name} `; });\n    if (needsClean.length > 0) {\n      msg += `\\n   \\u26a0\\ufe0f REIKIA I\\u0160VALYTI: ${needsClean.map(e => `${e.icon} ${e.name} (/clean ${e.id})`).join(', ')}`;\n    }\n    msg += '\\n';\n  });\n}\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "format-evening",
+      "name": "Format Evening Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "8258463322",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "send-evening",
+      "name": "Send Evening Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{"node": "Fetch Evening Data", "type": "main", "index": 0}]]
+    },
+    "Fetch Evening Data": {
+      "main": [[{"node": "Format Evening Report", "type": "main", "index": 0}]]
+    },
+    "Format Evening Report": {
+      "main": [[{"node": "Send Evening Report", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "name": "Batutynas Telegram Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "batutynas-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json;\nconst text = (msg.message?.text || '').trim();\nconst chatId = String(msg.message?.chat?.id || msg.message?.from?.id || '');\n\nif (!text || !chatId) {\n  return [{ json: { intent: 'ignore', args: {}, sql: 'SELECT 1 AS placeholder', chatId } }];\n}\n\nlet intent = 'unknown';\nlet args = {};\nlet sql = 'SELECT 1 AS placeholder';\n\nconst cleanText = text.replace(/@[A-Za-z_]+bot/i, '').trim();\nconst parts = cleanText.split(/\\s+/);\nconst cmd = parts[0]?.toLowerCase() || '';\nconst arg = parts[1] || '';\nconst lowerText = cleanText.toLowerCase();\n\n// === COMMAND PARSING ===\nif (cleanText.startsWith('/')) {\n  switch(cmd) {\n    case '/start':\n    case '/help':\n    case '/pagalba':\n      intent = 'help';\n      break;\n    case '/today':\n    case '/siandien':\n      intent = 'today';\n      break;\n    case '/tomorrow':\n    case '/rytoj':\n      intent = 'tomorrow';\n      break;\n    case '/week':\n    case '/savaite':\n      intent = 'week';\n      break;\n    case '/available':\n    case '/laisvi':\n      intent = 'available';\n      break;\n    case '/stats':\n    case '/statistika':\n      intent = 'stats';\n      break;\n    case '/delivered':\n    case '/pristatyta':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /delivered 5'; break;\n      }\n      intent = 'delivered'; args.id = parseInt(arg);\n      break;\n    case '/returned':\n    case '/grazinta':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /returned 5'; break;\n      }\n      intent = 'returned'; args.id = parseInt(arg);\n      break;\n    case '/paid':\n    case '/apmoketa':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /paid 5'; break;\n      }\n      intent = 'paid'; args.id = parseInt(arg);\n      break;\n    case '/deposit':\n    case '/avansas':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /deposit 5'; break;\n      }\n      intent = 'deposit'; args.id = parseInt(arg);\n      break;\n    case '/cancel':\n    case '/atsaukti':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite u\\u017esakymo ID, pvz: /cancel 5'; break;\n      }\n      intent = 'cancel'; args.id = parseInt(arg);\n      break;\n    case '/clean':\n    case '/valyti':\n      if (!arg || isNaN(parseInt(arg)) || parseInt(arg) <= 0) {\n        intent = 'error'; args.msg = '\\u26a0\\ufe0f Nurodykite \\u012frangos ID, pvz: /clean 3'; break;\n      }\n      intent = 'clean'; args.id = parseInt(arg);\n      break;\n    default:\n      intent = 'unknown';\n  }\n} else {\n  // === NATURAL LANGUAGE (Lithuanian) ===\n  if (/\\b(siandien|\\u0161iandien|\\u0161iandie|kas siandien|kas \\u0161iandien)\\b/i.test(lowerText)) {\n    intent = 'today';\n  } else if (/\\b(rytoj|ryt\\b)/i.test(lowerText)) {\n    intent = 'tomorrow';\n  } else if (/(savait|savaite|savait\\u0117|\\u0161i\\u0105 savait\\u0119|sia savaite)/i.test(lowerText)) {\n    intent = 'week';\n  } else if (/(laisv|turimos|kiek laisv)/i.test(lowerText)) {\n    intent = 'available';\n  } else if (/(statistik|apzvalga|ap\\u017evalga)/i.test(lowerText)) {\n    intent = 'stats';\n  } else if (/(pagalb|komand)/i.test(lowerText)) {\n    intent = 'help';\n  }\n}\n\n// === BUILD SQL ===\nconst BOOKING_FIELDS = `b.id, b.event_date, b.event_time, b.pickup_time,\n  b.delivery_address, b.city, b.status, b.price,\n  b.deposit_amount, b.deposit_paid, b.payment_status,\n  c.name AS customer_name, c.phone AS customer_phone,\n  COALESCE((SELECT json_agg(json_build_object('name', e.name, 'icon', e.icon))\n    FROM batutynas.booking_equipment be\n    JOIN batutynas.equipment e ON e.id = be.equipment_id\n    WHERE be.booking_id = b.id), '[]'::json) AS equipment`;\n\nconst BOOKING_JOIN = `FROM batutynas.bookings b\n  JOIN batutynas.contacts c ON c.id = b.contact_id`;\n\nswitch(intent) {\n  case 'today':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date = CURRENT_DATE AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n\n  case 'tomorrow':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date = CURRENT_DATE + INTERVAL '1 day' AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n\n  case 'week':\n    sql = `SELECT COALESCE(json_agg(row_to_json(bk.*) ORDER BY bk.event_date, bk.event_time), '[]'::json) AS result\n      FROM (SELECT ${BOOKING_FIELDS} ${BOOKING_JOIN}\n        WHERE b.event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'\n          AND b.status NOT IN ('Cancelled')) bk`;\n    break;\n\n  case 'available':\n    sql = `SELECT json_build_object(\n      'available', COALESCE((\n        SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon, 'category', e.category) ORDER BY e.category, e.name)\n        FROM batutynas.equipment e\n        WHERE e.id NOT IN (\n          SELECT be.equipment_id FROM batutynas.booking_equipment be\n          JOIN batutynas.bookings b ON b.id = be.booking_id\n          WHERE b.event_date = CURRENT_DATE AND b.status IN ('Confirmed', 'Delivered')\n        )\n      ), '[]'::json),\n      'booked_today', COALESCE((\n        SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'icon', e.icon))\n        FROM batutynas.equipment e\n        WHERE e.id IN (\n          SELECT be.equipment_id FROM batutynas.booking_equipment be\n          JOIN batutynas.bookings b ON b.id = be.booking_id\n          WHERE b.event_date = CURRENT_DATE AND b.status IN ('Confirmed', 'Delivered')\n        )\n      ), '[]'::json)\n    ) AS result`;\n    break;\n\n  case 'stats':\n    sql = `SELECT json_build_object(\n      'today_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date = CURRENT_DATE AND status NOT IN ('Cancelled')),\n      'week_bookings', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days' AND status NOT IN ('Cancelled')),\n      'month_revenue', (SELECT COALESCE(SUM(price), 0) FROM batutynas.bookings WHERE event_date >= date_trunc('month', CURRENT_DATE) AND status IN ('Completed', 'Delivered', 'Confirmed')),\n      'unpaid_deposits', (SELECT COUNT(*) FROM batutynas.bookings WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' AND deposit_paid = FALSE AND status = 'Confirmed'),\n      'total_equipment', (SELECT COUNT(*) FROM batutynas.equipment),\n      'available_equipment', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Available'),\n      'needs_cleaning', (SELECT COUNT(*) FROM batutynas.equipment WHERE status = 'Needs Cleaning')\n    ) AS result`;\n    break;\n\n  case 'delivered':\n    sql = `WITH updated AS (\n      UPDATE batutynas.bookings SET status = 'Delivered', updated_at = NOW()\n      WHERE id = ${args.id} AND status = 'Confirmed'\n      RETURNING id, status, event_date, delivery_address, city\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated),\n      NULL\n    ) AS result`;\n    break;\n\n  case 'returned':\n    sql = `WITH updated AS (\n      UPDATE batutynas.bookings SET status = 'Completed', updated_at = NOW()\n      WHERE id = ${args.id} AND status = 'Delivered'\n      RETURNING id, status, event_date, delivery_address, city\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated),\n      NULL\n    ) AS result`;\n    break;\n\n  case 'paid':\n    sql = `WITH updated AS (\n      UPDATE batutynas.bookings SET payment_status = 'Paid', updated_at = NOW()\n      WHERE id = ${args.id}\n      RETURNING id, status, payment_status, price\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object('id', id, 'status', status, 'payment_status', payment_status, 'price', price) FROM updated),\n      NULL\n    ) AS result`;\n    break;\n\n  case 'deposit':\n    sql = `WITH updated AS (\n      UPDATE batutynas.bookings SET deposit_paid = TRUE, updated_at = NOW()\n      WHERE id = ${args.id}\n      RETURNING id, status, deposit_paid, deposit_amount\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object('id', id, 'status', status, 'deposit_paid', deposit_paid, 'deposit_amount', deposit_amount) FROM updated),\n      NULL\n    ) AS result`;\n    break;\n\n  case 'cancel':\n    sql = `WITH updated AS (\n      UPDATE batutynas.bookings SET status = 'Cancelled', updated_at = NOW()\n      WHERE id = ${args.id} AND status NOT IN ('Cancelled', 'Completed')\n      RETURNING id, status, event_date\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text) FROM updated),\n      NULL\n    ) AS result`;\n    break;\n\n  case 'clean':\n    sql = `WITH updated AS (\n      UPDATE batutynas.equipment SET status = 'Available', last_cleaned = NOW(), updated_at = NOW()\n      WHERE id = ${args.id}\n      RETURNING id, name, icon, status\n    )\n    SELECT COALESCE(\n      (SELECT json_build_object('id', id, 'name', name, 'icon', icon, 'status', status) FROM updated),\n      NULL\n    ) AS result`;\n    break;\n\n  case 'help':\n  case 'error':\n  case 'unknown':\n  case 'ignore':\n  default:\n    sql = 'SELECT 1 AS placeholder';\n    break;\n}\n\nreturn [{ json: { intent, args, sql, chatId } }];"
+      },
+      "id": "parse-intent",
+      "name": "Parse Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $('Parse Intent').first().json.sql }}",
+        "additionalFields": {}
+      },
+      "id": "execute-query",
+      "name": "Execute Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 300],
+      "credentials": {
+        "postgres": {
+          "id": "Xc90UM12HHMH6z3A",
+          "name": "Batutynas PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { intent, args } = $('Parse Intent').first().json;\nconst row = $input.first().json;\nlet result;\n\nif (['help', 'error', 'unknown', 'ignore'].includes(intent)) {\n  result = null;\n} else {\n  result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;\n}\n\nlet reply = '';\n\n// Lithuanian day names\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Tre\\u010diadienis', 'Ketvirtadienis', 'Penktadienis', '\\u0160e\\u0161tadienis'];\n\nfunction formatDate(dateStr) {\n  const d = new Date(dateStr + 'T00:00:00');\n  const month = String(d.getMonth() + 1).padStart(2, '0');\n  const day = String(d.getDate()).padStart(2, '0');\n  return `${month}-${day} (${dayNames[d.getDay()]})`;\n}\n\nfunction formatBooking(b) {\n  const statusIcons = { 'Confirmed': '\\ud83d\\udfe1', 'Delivered': '\\ud83d\\ude9b', 'Completed': '\\u2705', 'Cancelled': '\\u274c' };\n  const payIcon = b.payment_status === 'Paid' ? '\\ud83d\\udcb0' : (b.deposit_paid ? '\\ud83d\\udd35' : '\\ud83d\\udd34');\n  const icon = statusIcons[b.status] || '\\u2b1c';\n  const equip = Array.isArray(b.equipment) ? b.equipment.map(e => e.icon || '\\ud83c\\udfaa').join('') : '';\n\n  let line = `${icon} <b>#${b.id}</b> ${(b.event_time || '?').substring(0,5)} \\u2192 ${(b.pickup_time || '?').substring(0,5)}`;\n  line += `\\n   \\ud83d\\udccd ${b.delivery_address}, ${b.city}`;\n  line += `\\n   \\ud83d\\udc64 ${b.customer_name} | \\ud83d\\udcde ${b.customer_phone}`;\n  line += `\\n   ${equip} | ${payIcon} \\u20ac${b.price || 0}`;\n  if (!b.deposit_paid && b.status === 'Confirmed') {\n    line += ` \\u26a0\\ufe0f Avansas nemok\\u0117tas!`;\n  }\n  return line;\n}\n\nswitch(intent) {\n  case 'help':\n    reply = `\\ud83e\\udd16 <b>Batutynas Bot</b>\\n\\n` +\n      `\\ud83d\\udccb <b>Per\\u017ei\\u016bra:</b>\\n` +\n      `/today - \\u0160iandienos u\\u017esakymai\\n` +\n      `/tomorrow - Rytojaus u\\u017esakymai\\n` +\n      `/week - Savait\\u0117s u\\u017esakymai\\n` +\n      `/available - Laisva \\u012franga\\n` +\n      `/stats - Statistika\\n\\n` +\n      `\\u270f\\ufe0f <b>Veiksmai:</b>\\n` +\n      `/delivered <i>ID</i> - Pristatyta\\n` +\n      `/returned <i>ID</i> - Gr\\u0105\\u017einta\\n` +\n      `/paid <i>ID</i> - Apmok\\u0117ta\\n` +\n      `/deposit <i>ID</i> - Avansas sumok\\u0117tas\\n` +\n      `/cancel <i>ID</i> - At\\u0161aukti\\n` +\n      `/clean <i>ID</i> - \\u012eranga i\\u0161valyta\\n\\n` +\n      `\\ud83d\\udcac <b>Arba ra\\u0161ykite lietuvi\\u0161kai:</b>\\n` +\n      `\"\\u0161iandien\", \"rytoj\", \"savait\\u0117\", \"laisvi\", \"statistika\"`;\n    break;\n\n  case 'today':\n  case 'tomorrow':\n  case 'week': {\n    const bookings = Array.isArray(result) ? result : [];\n    const label = intent === 'today' ? '\\ud83d\\udcc5 \\u0160iandien' : intent === 'tomorrow' ? '\\ud83d\\udcc5 Rytoj' : '\\ud83d\\udcc5 \\u0160i savait\\u0117';\n\n    if (bookings.length === 0) {\n      reply = `${label}: U\\u017esakym\\u0173 n\\u0117ra \\ud83c\\udf89`;\n    } else {\n      reply = `${label} (${bookings.length} u\\u017es.):\\n`;\n\n      if (intent === 'week') {\n        const byDate = {};\n        bookings.forEach(b => {\n          const d = (b.event_date || '').substring(0, 10);\n          if (!byDate[d]) byDate[d] = [];\n          byDate[d].push(b);\n        });\n        for (const [date, bks] of Object.entries(byDate)) {\n          reply += `\\n\\ud83d\\udcc6 <b>${formatDate(date)}</b>\\n`;\n          bks.forEach(b => { reply += formatBooking(b) + '\\n'; });\n        }\n      } else {\n        bookings.forEach(b => { reply += '\\n' + formatBooking(b) + '\\n'; });\n      }\n    }\n    break;\n  }\n\n  case 'available': {\n    const avail = result?.available || [];\n    const booked = result?.booked_today || [];\n    reply = `\\ud83c\\udfaa <b>\\u012erangos statusas</b>\\n\\n`;\n    reply += `\\u2705 <b>Laisva (${avail.length}):</b>\\n`;\n    if (avail.length === 0) {\n      reply += `  Visi u\\u017eimti!\\n`;\n    } else {\n      avail.forEach(e => { reply += `  ${e.icon || '\\ud83c\\udfaa'} #${e.id} ${e.name}\\n`; });\n    }\n    if (booked.length > 0) {\n      reply += `\\n\\ud83d\\udd12 <b>U\\u017eimta \\u0161iandien (${booked.length}):</b>\\n`;\n      booked.forEach(e => { reply += `  ${e.icon || '\\ud83c\\udfaa'} ${e.name}\\n`; });\n    }\n    break;\n  }\n\n  case 'stats': {\n    reply = `\\ud83d\\udcca <b>Statistika</b>\\n\\n`;\n    reply += `\\ud83d\\udcc5 \\u0160iandien: ${result.today_bookings} u\\u017es.\\n`;\n    reply += `\\ud83d\\udcc5 \\u0160i savait\\u0117: ${result.week_bookings} u\\u017es.\\n`;\n    reply += `\\ud83d\\udcb0 M\\u0117nesio pajamos: \\u20ac${result.month_revenue}\\n`;\n    reply += `\\u26a0\\ufe0f Nemok\\u0117ti avansai: ${result.unpaid_deposits}\\n`;\n    reply += `\\ud83c\\udfaa \\u012eranga: ${result.available_equipment}/${result.total_equipment} laisva\\n`;\n    if (Number(result.needs_cleaning) > 0) {\n      reply += `\\ud83e\\uddf9 Reikia valyti: ${result.needs_cleaning}\\n`;\n    }\n    break;\n  }\n\n  case 'delivered': {\n    if (!result) {\n      reply = `\\u26a0\\ufe0f U\\u017esakymas #${args.id} nerastas arba statusas netinkamas (turi b\\u016bti \\\"Confirmed\\\")`;\n    } else {\n      reply = `\\ud83d\\ude9b U\\u017esakymas <b>#${result.id}</b> pa\\u017eym\\u0117tas kaip <b>Pristatyta</b>\\n\\ud83d\\udccd ${result.delivery_address}, ${result.city}`;\n    }\n    break;\n  }\n\n  case 'returned': {\n    if (!result) {\n      reply = `\\u26a0\\ufe0f U\\u017esakymas #${args.id} nerastas arba statusas netinkamas (turi b\\u016bti \\\"Delivered\\\")`;\n    } else {\n      reply = `\\u2705 U\\u017esakymas <b>#${result.id}</b> pa\\u017eym\\u0117tas kaip <b>Gr\\u0105\\u017einta/Atlikta</b>\\n\\ud83d\\udccd ${result.delivery_address}, ${result.city}`;\n    }\n    break;\n  }\n\n  case 'paid': {\n    if (!result) {\n      reply = `\\u26a0\\ufe0f U\\u017esakymas #${args.id} nerastas`;\n    } else {\n      reply = `\\ud83d\\udcb0 U\\u017esakymas <b>#${result.id}</b> \\u2014 mok\\u0117jimas pa\\u017eym\\u0117tas kaip <b>Apmok\\u0117ta</b> (\\u20ac${result.price})`;\n    }\n    break;\n  }\n\n  case 'deposit': {\n    if (!result) {\n      reply = `\\u26a0\\ufe0f U\\u017esakymas #${args.id} nerastas`;\n    } else {\n      reply = `\\ud83d\\udd35 U\\u017esakymas <b>#${result.id}</b> \\u2014 avansas <b>sumok\\u0117tas</b> (\\u20ac${result.deposit_amount})`;\n    }\n    break;\n  }\n\n  case 'cancel': {\n    if (!result) {\n      reply = `\\u26a0\\ufe0f U\\u017esakymas #${args.id} nerastas arba jau at\\u0161auktas/atliktas`;\n    } else {\n      reply = `\\u274c U\\u017esakymas <b>#${result.id}</b> <b>at\\u0161auktas</b>`;\n    }\n    break;\n  }\n\n  case 'clean': {\n    if (!result) {\n      reply = `\\u26a0\\ufe0f \\u012eranga #${args.id} nerasta`;\n    } else {\n      reply = `\\ud83e\\uddf9 ${result.icon || '\\ud83c\\udfaa'} <b>${result.name}</b> pa\\u017eym\\u0117ta kaip <b>I\\u0161valyta</b> \\u2705`;\n    }\n    break;\n  }\n\n  case 'error':\n    reply = args.msg || '\\u26a0\\ufe0f Klaida. Naudokite /help';\n    break;\n\n  case 'ignore':\n    reply = '';\n    break;\n\n  case 'unknown':\n  default:\n    reply = `\\ud83e\\udd14 Nesupratau. Naudokite /help arba ra\\u0161ykite lietuvi\\u0161kai (pvz. \\\"\\u0161iandien\\\", \\\"rytoj\\\")`;\n    break;\n}\n\nreturn [{ json: { reply } }];"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parse Intent').first().json.chatId }}",
+        "text": "={{ $('Format Response').first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "send-reply",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{"node": "Parse Intent", "type": "main", "index": 0}]]
+    },
+    "Parse Intent": {
+      "main": [[{"node": "Execute Query", "type": "main", "index": 0}]]
+    },
+    "Execute Query": {
+      "main": [[{"node": "Format Response", "type": "main", "index": 0}]]
+    },
+    "Format Response": {
+      "main": [[{"node": "Send Reply", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
