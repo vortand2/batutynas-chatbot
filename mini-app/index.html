@@ -155,6 +155,58 @@
     .validation-summary.visible {
       display: block;
     }
+
+    .submit-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tg-theme-button-color, #2481cc);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .submit-btn:active {
+      opacity: 0.8;
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .submit-btn .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .submit-success {
+      text-align: center;
+      padding: 24px;
+      font-size: 1.1rem;
+      color: var(--tg-theme-text-color, #222222);
+    }
+
+    .submit-success .check {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
@@ -276,6 +328,8 @@
       <input type="text" id="notes" name="notes" placeholder="pvz. sumokėta, avansas" />
     </div>
 
+    <button type="button" id="submitBtn" class="submit-btn">✅ PATVIRTINTI UŽSAKYMĄ</button>
+
   </form>
 
   <div id="transcriptSection" class="transcript-section" style="display:none;">
@@ -310,15 +364,42 @@
     document.getElementById('price').value           = getParam('price');
     document.getElementById('notes').value           = getParam('notes');
 
-    // Equipment select — match by value
+    // Equipment select — match by value (case-insensitive with fuzzy fallback)
     const equipmentParam = getParam('equipment');
     if (equipmentParam) {
       const sel = document.getElementById('equipment');
+      const paramLower = equipmentParam.toLowerCase().trim();
+      let bestMatch = -1;
+
+      // Pass 1: exact match
       for (let i = 0; i < sel.options.length; i++) {
         if (sel.options[i].value === equipmentParam) {
-          sel.selectedIndex = i;
+          bestMatch = i;
           break;
         }
+      }
+      // Pass 2: case-insensitive match
+      if (bestMatch === -1) {
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value.toLowerCase().trim() === paramLower) {
+            bestMatch = i;
+            break;
+          }
+        }
+      }
+      // Pass 3: partial match (param contains option or vice versa)
+      if (bestMatch === -1) {
+        for (let i = 0; i < sel.options.length; i++) {
+          const optLower = sel.options[i].value.toLowerCase().trim();
+          if (optLower && (paramLower.includes(optLower) || optLower.includes(paramLower))) {
+            bestMatch = i;
+            break;
+          }
+        }
+      }
+
+      if (bestMatch !== -1) {
+        sel.selectedIndex = bestMatch;
       }
     }
 
@@ -401,52 +482,76 @@
       };
     }
 
-    // ---------- Telegram MainButton ----------
-    if (tg && tg.MainButton) {
-      tg.MainButton.setText('PATVIRTINTI UŽSAKYMĄ');
-      tg.MainButton.show();
-      tg.MainButton.color = tg.themeParams.button_color || '#2481cc';
+    // ---------- Submit handler (shared by MainButton + in-form button) ----------
+    function setSubmitLoading(loading) {
+      const submitBtn = document.getElementById('submitBtn');
+      if (loading) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '\u23F3 Siun\u010Diama...';
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '\u2705 PATVIRTINTI U\u017DSAKYM\u0104';
+      }
+    }
 
-      tg.MainButton.onClick(function () {
-        if (!validate()) return;
+    function handleSubmit() {
+      if (!validate()) {
+        // Haptic feedback for validation error
+        if (tg && tg.HapticFeedback) {
+          tg.HapticFeedback.notificationOccurred('error');
+        }
+        return;
+      }
 
+      const data = gatherData();
+
+      // Disable both buttons
+      setSubmitLoading(true);
+      if (tg && tg.MainButton) {
         tg.MainButton.showProgress(true);
         tg.MainButton.disable();
+      }
 
-        const data = gatherData();
+      // Haptic feedback for submit
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
 
+      if (tg && tg.sendData) {
         try {
           tg.sendData(JSON.stringify(data));
+          // sendData closes the Mini App, so this code may not run
         } catch (e) {
-          tg.MainButton.hideProgress();
-          tg.MainButton.enable();
-          alert('Klaida siunčiant duomenis. Bandykite dar kartą.');
+          // If sendData fails, re-enable buttons
+          setSubmitLoading(false);
+          if (tg && tg.MainButton) {
+            tg.MainButton.hideProgress();
+            tg.MainButton.enable();
+          }
+          alert('Klaida siun\u010Diant duomenis. Bandykite dar kart\u0105.');
         }
-      });
-    } else {
-      // Fallback button for browser preview (no Telegram context)
-      const fallback = document.createElement('button');
-      fallback.textContent = 'PATVIRTINTI UŽSAKYMĄ (preview)';
-      fallback.style.cssText = [
-        'display:block',
-        'width:100%',
-        'padding:14px',
-        'margin-top:20px',
-        'font-size:1rem',
-        'font-weight:700',
-        'color:#fff',
-        'background:#2481cc',
-        'border:none',
-        'border-radius:8px',
-        'cursor:pointer',
-      ].join(';');
-      fallback.addEventListener('click', () => {
-        if (!validate()) return;
-        const data = gatherData();
+      } else {
+        // No Telegram context — preview mode
         console.log('Form data:', JSON.stringify(data, null, 2));
         alert('Duomenys (preview):\n' + JSON.stringify(data, null, 2));
-      });
-      document.body.appendChild(fallback);
+        setSubmitLoading(false);
+      }
+    }
+
+    // ---------- In-form submit button ----------
+    document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+
+    // ---------- Telegram MainButton (also wires up the native bottom button) ----------
+    if (tg && tg.MainButton) {
+      tg.MainButton.setText('PATVIRTINTI U\u017DSAKYM\u0104');
+      tg.MainButton.color = tg.themeParams.button_color || '#2481cc';
+      tg.MainButton.onClick(handleSubmit);
+      tg.MainButton.show();
+    }
+
+    // ---------- Prevent accidental close ----------
+    if (tg && tg.enableClosingConfirmation) {
+      tg.enableClosingConfirmation();
     }
   </script>
 </body>

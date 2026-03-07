@@ -21,12 +21,21 @@
       position: fixed; top: 0; left: 0; right: 0; z-index: 10000000;
       background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
       color: white;
-      padding: 0 24px;
-      height: 52px;
+      padding: 8px 24px;
+      min-height: 52px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    @media (max-width: 900px) {
+      .demo-bar { flex-direction: column; align-items: stretch; padding: 8px 12px; max-width: 100vw; overflow: hidden; box-sizing: border-box; }
+      .demo-bar-left { justify-content: center; }
+      .demo-scenarios { justify-content: center; flex-wrap: wrap; max-width: 100%; }
+      .demo-bar-title { display: none; }
+      .demo-btn { padding: 5px 10px; font-size: 11px; }
     }
     .demo-bar-left {
       display: flex; align-items: center; gap: 16px;
@@ -2041,7 +2050,7 @@
         <a href="#">Tauragė, Lietuva</a>
       </div>
     </div>
-    <div class="footer-copy">&copy; 2025 Batutynas.lt — Visos teisės saugomos. Tai yra demonstracinė svetainė.</div>
+    <div class="footer-copy">&copy; 2026 Batutynas.lt — Visos teisės saugomos. Tai yra demonstracinė svetainė.</div>
   </footer>
 </div>
 
@@ -2088,7 +2097,8 @@
     messages: [],
     language: 'lt',
     sending: false,
-    animatedOpen: false
+    animatedOpen: false,
+    _pendingBookingData: null // structured booking data to send with next webhook call
   };
 
   // --- Session Management ---
@@ -2150,8 +2160,9 @@
 
   function detectLanguage() {
     if (config.language) return config.language;
-    const browserLang = (navigator.language || navigator.userLanguage || 'lt').substring(0, 2).toLowerCase();
-    return LANGUAGES[browserLang] ? browserLang : 'lt';
+    // Default to Lithuanian — this is a Lithuanian business site
+    // Only switch to English if user explicitly requests it
+    return 'lt';
   }
 
   function t(key) {
@@ -2569,8 +2580,12 @@
       session_id: state.sessionId,
       language: state.language,
       email: config.userEmail || null,
-      name: config.userName || null
+      name: config.userName || null,
+      // Structured booking data (populated when booking confirmation is submitted)
+      booking_data: state._pendingBookingData || null
     };
+    // Clear pending booking data after sending
+    if (state._pendingBookingData) { state._pendingBookingData = null; }
 
     var fetchHeaders = { 'Content-Type': 'application/json' };
     if (config.authToken) {
@@ -3283,6 +3298,10 @@
     setUser: function (email, name) {
       config.userEmail = email;
       config.userName = name;
+    },
+
+    _getSessionId: function () {
+      return state.sessionId;
     }
   };
 })();
@@ -3664,10 +3683,12 @@
     var original = (msg || '').trim();
     var m = original.toLowerCase();
     if (!m || m === '__welcome__') return 'Sveiki! Kuo galiu padėti? 😊\n\n[MAIN_MENU]';
-    if (m.includes('gimtadien') || m.includes('krikštyn')) { _lastFlow = 'birthday'; return 'Puiku! Planuojate vaikų šventę! 🎂\n\nPirma pasirinkite datą:\n\n[DATE_PICKER]'; }
-    if (m.includes('viešą renginį') || m.includes('viešas renginys') || m.includes('įmonės')) { _lastFlow = 'public'; return 'Puiku! Planuojate viešą renginį! 🎪\n\nPirma pasirinkite datą:\n\n[DATE_PICKER]'; }
-    if (m.includes('vakarėl') || m.includes('triukšming')) { _lastFlow = 'party'; return 'Nuostabu! Planuojate vakarėlį! 🎉\n\nPirma pasirinkite datą:\n\n[DATE_PICKER]'; }
-    if (m.includes('pirkti') || m.includes('pirkt')) return 'Norite įsigyti batutą? 🛒\n\nPasirinkite:\n\n[PURCHASE_SUBMENU]';
+    // FIX: Reset all flow state when starting a new flow
+    function _resetFlowState() { _lastStep = ''; _selectedDate = ''; _selectedLocation = ''; _selectedGuestCount = ''; _selectedEquipment = ''; _selectedAddons = ''; }
+    if (m.includes('gimtadien') || m.includes('krikštyn')) { _resetFlowState(); _lastFlow = 'birthday'; return 'Puiku! Planuojate vaikų šventę! 🎂\n\nPirma pasirinkite datą:\n\n[DATE_PICKER]'; }
+    if (m.includes('viešą renginį') || m.includes('viešas renginys') || m.includes('įmonės')) { _resetFlowState(); _lastFlow = 'public'; return 'Puiku! Planuojate viešą renginį! 🎪\n\nPirma pasirinkite datą:\n\n[DATE_PICKER]'; }
+    if (m.includes('vakarėl') || m.includes('triukšming')) { _resetFlowState(); _lastFlow = 'party'; return 'Nuostabu! Planuojate vakarėlį! 🎉\n\nPirma pasirinkite datą:\n\n[DATE_PICKER]'; }
+    if (_lastStep !== 'contact' && (m.includes('pirkti') || m.includes('pirkt'))) return 'Norite įsigyti batutą? 🛒\n\nPasirinkite:\n\n[PURCHASE_SUBMENU]';
     if (_lastStep !== 'contact' && (m.includes('saugu') || m.includes('duk') || m.includes('kontakt') || m.includes('faq'))) return 'Mūsų batutai atitinka EN-14960 saugos standartą. Kiekviename renginyje dirba kvalifikuotas prižiūrėtojas. Susisiekite: +370 648 803 88 arba info@batutynas.lt';
     if (m.includes('meniu') || m.includes('pradž') || m.includes('menu') || m.includes('start')) {
       _lastStep = ''; _selectedDate = ''; _selectedLocation = ''; _selectedGuestCount = ''; _selectedEquipment = ''; _selectedAddons = '';
@@ -3696,8 +3717,8 @@
       if (addonMatch && addonMatch[1].trim().toLowerCase() !== 'nėra' && m !== 'be papildomų pramogų') {
         _selectedAddons = addonMatch[1].trim();
       }
-      // For party flow the addon list IS the equipment — capture it as equipment too
-      if (_lastFlow === 'party' && addonMatch && addonMatch[1].trim()) {
+      // For party flow, if no trampoline was selected earlier, the addon list serves as equipment
+      if (_lastFlow === 'party' && !_selectedEquipment && addonMatch && addonMatch[1].trim()) {
         _selectedEquipment = addonMatch[1].trim();
       }
       _lastStep = 'contact';
@@ -3722,11 +3743,11 @@
         function esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/"/g, "'"); }
         var gt = _lastFlow === 'public' ? 'Viešas renginys' : (_lastFlow === 'party' ? 'Vakarėlis' : 'Gimtadienis');
         var bookingData = '{"group_type":"' + gt + '"';
-        bookingData += ',"date":"' + esc(_selectedDate || '2026-03-14') + '"';
+        bookingData += ',"date":"' + esc(_selectedDate || 'Nenurodyta') + '"';
         bookingData += ',"location":"' + esc(_selectedLocation || 'Nenurodyta') + '"';
         bookingData += ',"guest_count":"' + esc(_selectedGuestCount || (_lastFlow === 'public' ? 'Apie 75 svečių' : 'Apie 8 vaikų')) + '"';
         if (_selectedEquipment) bookingData += ',"trampoline":"' + esc(_selectedEquipment) + '"';
-        if (_selectedAddons && _selectedAddons !== _selectedEquipment) bookingData += ',"addons":"' + esc(_selectedAddons) + '"';
+        if (_selectedAddons) bookingData += ',"addons":"' + esc(_selectedAddons) + '"';
         bookingData += ',"contact_name":"' + esc(contactName) + '"';
         bookingData += ',"contact_phone":"' + esc(phone) + '"';
         bookingData += '}';
@@ -3739,6 +3760,7 @@
       _selectedLocation = original;
       _lastStep = '';
       if (_lastFlow === 'public') return 'Ačiū! Kiek svečių planuojate? 👥\n\n[GUEST_COUNT_PUBLIC]';
+      if (_lastFlow === 'party') return 'Ačiū! Kiek žmonių dalyvaus? 🎉\n\n[GUEST_COUNT_PUBLIC]';
       return 'Ačiū! Kiek vaikų dalyvaus? 👧👦\n\n[GUEST_COUNT]';
     }
     // Broader address detection — comma-separated address or street suffix keywords
@@ -3746,6 +3768,7 @@
       _selectedLocation = original;
       _lastStep = '';
       if (_lastFlow === 'public') return 'Ačiū! Kiek svečių planuojate? 👥\n\n[GUEST_COUNT_PUBLIC]';
+      if (_lastFlow === 'party') return 'Ačiū! Kiek žmonių dalyvaus? 🎉\n\n[GUEST_COUNT_PUBLIC]';
       return 'Ačiū! Kiek vaikų dalyvaus? 👧👦\n\n[GUEST_COUNT]';
     }
     // Address step fallback — any text typed while at address step proceeds to guest count
@@ -3753,6 +3776,7 @@
       _selectedLocation = original;
       _lastStep = '';
       if (_lastFlow === 'public') return 'Ačiū! Kiek svečių planuojate? 👥\n\n[GUEST_COUNT_PUBLIC]';
+      if (_lastFlow === 'party') return 'Ačiū! Kiek žmonių dalyvaus? 🎉\n\n[GUEST_COUNT_PUBLIC]';
       return 'Ačiū! Kiek vaikų dalyvaus? 👧👦\n\n[GUEST_COUNT]';
     }
     if (m.includes('vaikų') || m.includes('vaiku') || m.includes('svečių') || m.includes('sveciu')) {
@@ -3914,6 +3938,11 @@
     enriched = enriched.replace(/\[BOOKING_CONFIRM:(\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g, function(match, jsonStr) {
       // Un-escape HTML entities that escapeHtml applied before marker processing
       var decoded = jsonStr.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+      // FIX: Send structured booking data to real webhook for DB persistence
+      try {
+        var bookingObj = JSON.parse(decoded);
+        _submitBookingToWebhook(bookingObj);
+      } catch(e) { console.warn('Booking JSON parse failed:', e); }
       return buildBookingConfirm(decoded);
     });
     if (enriched !== confirmBefore) hasMarker = true;
@@ -3972,6 +4001,31 @@
     return enriched;
   }
 
+  // 5b. Submit structured booking data to real webhook (bypasses mock interceptor)
+  var _lastBookingHash = '';
+  function _submitBookingToWebhook(bookingObj) {
+    // Dedup: prevent multiple submissions of the same booking
+    var hash = JSON.stringify(bookingObj);
+    if (hash === _lastBookingHash) { console.log('[Booking] Skipped duplicate submission'); return; }
+    _lastBookingHash = hash;
+    var webhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
+    var payload = {
+      type: 'booking_submission',
+      booking_data: bookingObj,
+      session_id: (typeof BatutynasChat !== 'undefined' && BatutynasChat._getSessionId) ? BatutynasChat._getSessionId() : 'demo_' + Date.now(),
+      timestamp: new Date().toISOString()
+    };
+    _realFetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(r) {
+      console.log('[Booking] Submitted to DB, status:', r.status);
+    }).catch(function(e) {
+      console.warn('[Booking] DB submission failed (demo mode?):', e.message);
+    });
+  }
+
   // 6. Fetch interceptor
   window.fetch = function(url, opts) {
     if (typeof url === 'string' && url.includes('webhook')) {
@@ -3993,7 +4047,7 @@
 })();
 /* ===== END MOCK BACKEND ===== */
 
-BatutynasChat.init({ webhookUrl: 'https://your-n8n-instance/webhook/batutynas-chat', primaryColor: '#6C3CE1' });
+BatutynasChat.init({ webhookUrl: 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot', primaryColor: '#6C3CE1' });
 
 /* -- Demo Helpers -- */
 function demoType(text) {
