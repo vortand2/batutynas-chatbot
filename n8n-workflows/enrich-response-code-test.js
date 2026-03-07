@@ -43,12 +43,12 @@ function buildTrampolineCards(items, highlight, multiSelect, compact) {
   let html = '<div class="' + gridClass + '">';
   for (const t of items) {
     const thumb = t.img
-      ? '<img src="' + t.img + '" alt="' + t.name + '" data-chat-zoom>'
+      ? '<img src="' + t.img + '" alt="' + t.name + '" loading="lazy" data-chat-zoom>'
       : t.icon;
     const bgClass = ' t-bg-' + t.cat;
     const recClass = highlight ? ' t-recommended' : '';
     const selectAttr = multiSelect
-      ? 'data-chat-addon="' + t.name + '"'
+      ? 'data-chat-addon="' + t.name + '" aria-pressed="false"'
       : 'data-chat-option="' + t.name + '"';
     html += '<div class="chat-trampoline-select' + bgClass + recClass + '" role="button" tabindex="0" ' + selectAttr + '>';
     if (t.popular) html += '<div class="chat-popular-badge">Populiariausias</div>';
@@ -59,7 +59,7 @@ function buildTrampolineCards(items, highlight, multiSelect, compact) {
     html += '<div class="t-price">' + t.price + '</div>';
     html += '</div>';
     if (t.detail) {
-      html += '<div class="t-detail-btn" data-chat-detail-toggle>ℹ</div>';
+      html += '<div class="t-detail-btn" role="button" tabindex="0" aria-label="Daugiau informacijos" data-chat-detail-toggle>ℹ</div>';
       html += '<div class="t-detail">' + t.detail + '</div>';
     }
     html += '</div>';
@@ -97,14 +97,14 @@ function buildGroupBirthdayEquipment(guestCount) {
   if (guestCount && guestCount > 15) {
     html += '<div class="chat-birthday-cta">';
     html += '<strong>💡 Dideliam būriui</strong> — turime dar didesnius nuotykių parkus ir kliūčių trasas!';
-    html += '<br><button class="chat-option-btn chat-cta-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Peržiūrėti didesnius batutus</button>';
+    html += '<br><button type="button" class="chat-option-btn chat-cta-btn" data-chat-option="Planuoju viešą renginį arba įmonės sąskrydį">🎪 Peržiūrėti didesnius batutus</button>';
     html += '</div>';
   }
 
   if (addons.length > 0) {
     html += '<div class="chat-section-subtitle">Papildomos pramogos:</div>';
     html += buildTrampolineCards(addons, false, true, true);
-    html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
+    html += '<button type="button" class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
   }
 
   return html;
@@ -139,7 +139,7 @@ function buildGroupPublicEquipment(guestCount) {
   if (addons.length > 0) {
     html += '<div class="chat-section-subtitle">Papildomos pramogos:</div>';
     html += buildTrampolineCards(addons, false, true, true);
-    html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
+    html += '<button type="button" class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
   }
 
   return html;
@@ -158,15 +158,15 @@ function buildAddonUpsell() {
   const addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });
   let html = '<div class="chat-section-title">Papildykite savo šventę:</div>';
   html += buildTrampolineCards(addons, false, true, false);
-  html += '<button class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
+  html += '<button type="button" class="chat-addon-continue" data-chat-addon-continue>Tęsti →</button>';
   return html;
 }
 
 // --- Group 4: Purchase submenu ---
 function buildPurchaseSubmenu() {
   let html = '<div class="chat-options">';
-  html += '<button class="chat-option-btn" data-chat-option="Noriu gauti batutų katalogą el. paštu">📧 Gauti katalogą el. paštu</button>';
-  html += '<button class="chat-option-btn" data-chat-option="Noriu individualios batuto gamybos">🎨 Individuali gamyba</button>';
+  html += '<button type="button" class="chat-option-btn" data-chat-option="Noriu gauti batutų katalogą el. paštu">📧 Gauti katalogą el. paštu</button>';
+  html += '<button type="button" class="chat-option-btn" data-chat-option="Noriu individualios batuto gamybos">🎨 Individuali gamyba</button>';
   html += '</div>';
   return html;
 }
@@ -174,9 +174,9 @@ function buildPurchaseSubmenu() {
 // --- Group 4: Email input for catalog ---
 function buildPurchaseEmailInput() {
   let html = '<div class="chat-email-form">';
-  html += '<p class="chat-form-text">Įveskite savo el. pašto adresą ir atsiųsime batutų katalogą:</p>';
-  html += '<input type="email" class="chat-email-input" data-chat-email placeholder="jusu@pastas.lt">';
-  html += '<button class="chat-email-confirm" data-chat-email-confirm disabled>Siųsti katalogą</button>';
+  html += '<label class="chat-form-text" for="catalog-email">Įveskite savo el. pašto adresą ir atsiųsime batutų katalogą:</label>';
+  html += '<input type="email" id="catalog-email" class="chat-email-input" data-chat-email placeholder="jusu@pastas.lt" autocomplete="email">';
+  html += '<button type="button" class="chat-email-confirm" data-chat-email-confirm disabled>Siųsti katalogą</button>';
   html += '</div>';
   return html;
 }
@@ -185,19 +185,19 @@ function buildPurchaseEmailInput() {
 function buildPurchaseCustomForm() {
   let html = '<div class="chat-custom-form">';
   html += '<p class="chat-form-title">Individualaus batuto užklausa:</p>';
-  html += '<label class="chat-form-label">Pageidaujami matmenys (plotis x ilgis x aukštis):</label>';
-  html += '<input type="text" class="chat-custom-input" data-custom-field="dimensions" placeholder="pvz. 8x5x4 m">';
-  html += '<label class="chat-form-label">Spalvos:</label>';
-  html += '<input type="text" class="chat-custom-input" data-custom-field="colors" placeholder="pvz. mėlyna, raudona, geltona">';
-  html += '<label class="chat-form-label">Personažai / tema:</label>';
-  html += '<input type="text" class="chat-custom-input" data-custom-field="characters" placeholder="pvz. Spiderman, dinozaurai">';
-  html += '<label class="chat-form-label">Papildomi pageidavimai / eskizas:</label>';
-  html += '<textarea class="chat-custom-textarea" data-custom-field="notes" placeholder="Aprašykite savo viziją..." rows="3"></textarea>';
-  html += '<label class="chat-form-label">Kontaktinis el. paštas:</label>';
-  html += '<input type="email" class="chat-custom-input" data-custom-field="email" placeholder="jusu@pastas.lt">';
-  html += '<label class="chat-form-label">Telefono numeris:</label>';
-  html += '<input type="text" class="chat-custom-input" data-custom-field="phone" placeholder="+370 600 00000">';
-  html += '<button class="chat-custom-submit" data-chat-custom-submit>Pateikti užklausą</button>';
+  html += '<label class="chat-form-label" for="custom-dimensions">Pageidaujami matmenys (plotis x ilgis x aukštis):</label>';
+  html += '<input type="text" id="custom-dimensions" class="chat-custom-input" data-custom-field="dimensions" placeholder="pvz. 8x5x4 m">';
+  html += '<label class="chat-form-label" for="custom-colors">Spalvos:</label>';
+  html += '<input type="text" id="custom-colors" class="chat-custom-input" data-custom-field="colors" placeholder="pvz. mėlyna, raudona, geltona">';
+  html += '<label class="chat-form-label" for="custom-characters">Personažai / tema:</label>';
+  html += '<input type="text" id="custom-characters" class="chat-custom-input" data-custom-field="characters" placeholder="pvz. Spiderman, dinozaurai">';
+  html += '<label class="chat-form-label" for="custom-notes">Papildomi pageidavimai / eskizas:</label>';
+  html += '<textarea id="custom-notes" class="chat-custom-textarea" data-custom-field="notes" placeholder="Aprašykite savo viziją..." rows="3"></textarea>';
+  html += '<label class="chat-form-label" for="custom-email">Kontaktinis el. paštas:</label>';
+  html += '<input type="email" id="custom-email" class="chat-custom-input" data-custom-field="email" placeholder="jusu@pastas.lt" autocomplete="email">';
+  html += '<label class="chat-form-label" for="custom-phone">Telefono numeris:</label>';
+  html += '<input type="tel" id="custom-phone" class="chat-custom-input" data-custom-field="phone" placeholder="+370 600 00000" autocomplete="tel">';
+  html += '<button type="button" class="chat-custom-submit" data-chat-custom-submit disabled>Pateikti užklausą</button>';
   html += '</div>';
   return html;
 }
@@ -214,12 +214,13 @@ function buildDatePicker() {
   for (let i = 0; i < 4; i++) {
     const iso = localIso(d);
     const label = d.toLocaleDateString('lt-LT', { month: 'short', day: 'numeric', weekday: 'short' });
-    days.push('<button class="chat-option-btn" data-chat-option="' + iso + '">' + label + '</button>');
+    days.push('<button type="button" class="chat-option-btn" data-chat-option="' + escapeHtml(iso) + '">' + escapeHtml(label) + '</button>');
     d.setDate(d.getDate() + 7);
   }
+  const nowIso = escapeHtml(localIso(now));
   let html = '<div class="chat-options">' + days.join('') + '</div>';
-  html += '<input type="date" class="chat-date-input" data-chat-date min="' + localIso(now) + '" placeholder="Kita data...">';
-  html += '<button class="chat-date-confirm" data-chat-date-confirm disabled>Patvirtinti datą</button>';
+  html += '<input type="date" class="chat-date-input" data-chat-date min="' + nowIso + '" placeholder="Kita data..." aria-label="Pasirinkti datą">';
+  html += '<button type="button" class="chat-date-confirm" data-chat-date-confirm disabled>Patvirtinti datą</button>';
   return html;
 }
 
@@ -227,13 +228,13 @@ function buildLocationOptions() {
   const locs = ['Tauragė', 'Šilalė', 'Jurbarkas', 'Pagėgiai', 'Raseiniai', 'Kelmė', 'Rietavas', 'Kitas miestas'];
   let html = '<div class="chat-options">';
   for (const loc of locs) {
-    html += '<button class="chat-option-btn" data-chat-address-fill="' + loc + '">' + loc + '</button>';
+    html += '<button type="button" class="chat-option-btn" data-chat-address-fill="' + escapeHtml(loc) + '">' + escapeHtml(loc) + '</button>';
   }
   html += '</div>';
   html += '<div class="chat-address-form">';
-  html += '<input type="text" class="chat-address-input" data-chat-address placeholder="pvz. Tauragė, Žemaitės g. 15">';
-  html += '<div class="chat-address-hint">💡 Galite įvesti pilną adresą su gatve</div>';
-  html += '<button class="chat-address-confirm" data-chat-address-confirm disabled>Patvirtinti vietą</button>';
+  html += '<input type="text" class="chat-address-input" data-chat-address placeholder="pvz. Tauragė, Žemaitės g. 15" aria-label="Adresas" aria-describedby="address-hint">';
+  html += '<div id="address-hint" class="chat-address-hint">💡 Galite įvesti pilną adresą su gatve</div>';
+  html += '<button type="button" class="chat-address-confirm" data-chat-address-confirm disabled>Patvirtinti vietą</button>';
   html += '</div>';
   return html;
 }
@@ -247,7 +248,23 @@ function buildGuestCountOptions() {
   ];
   let html = '<div class="chat-options" data-step="guest-count">';
   for (const r of ranges) {
-    html += '<button class="chat-option-btn" data-chat-option="' + r.value + '">' + r.label + '</button>';
+    html += '<button type="button" class="chat-option-btn" data-chat-option="' + escapeHtml(r.value) + '">' + escapeHtml(r.label) + '</button>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function buildGuestCountOptionsPublic() {
+  const ranges = [
+    { label: 'Apie 35 svečių', value: 'Apie 35 svečių' },
+    { label: 'Apie 75 svečių', value: 'Apie 75 svečių' },
+    { label: 'Apie 150 svečių', value: 'Apie 150 svečių' },
+    { label: 'Apie 350 svečių', value: 'Apie 350 svečių' },
+    { label: 'Apie 700 svečių', value: 'Apie 700 svečių' }
+  ];
+  let html = '<div class="chat-options" data-step="guest-count">';
+  for (const r of ranges) {
+    html += '<button type="button" class="chat-option-btn" data-chat-option="' + escapeHtml(r.value) + '">' + escapeHtml(r.label) + '</button>';
   }
   html += '</div>';
   return html;
@@ -325,7 +342,7 @@ function buildMainMenu() {
   ];
   let html = '<div class="chat-main-menu"><div class="chat-options chat-menu-options">';
   for (const item of items) {
-    html += '<button class="chat-option-btn chat-menu-btn" data-chat-option="' + item.value + '">' + item.label + '</button>';
+    html += '<button type="button" class="chat-option-btn chat-menu-btn" data-chat-option="' + escapeHtml(item.value) + '">' + escapeHtml(item.label) + '</button>';
   }
   html += '</div></div>';
   return html;
@@ -340,7 +357,7 @@ function buildQuickReplies(buttons) {
     const value = typeof btn === 'string' ? btn : (btn.value || btn.label);
     const isMenu = value === 'Pagrindinis meniu';
     const cls = isMenu ? 'chat-option-btn chat-quick-reply-menu' : 'chat-option-btn';
-    html += '<button class="' + cls + '" data-chat-option="' + value + '">' + label + '</button>';
+    html += '<button type="button" class="' + cls + '" data-chat-option="' + escapeHtml(value) + '">' + escapeHtml(label) + '</button>';
   }
   html += '</div>';
   return html;
@@ -350,15 +367,17 @@ function buildQuickReplies(buttons) {
 const markers = [
   { pattern: /\[DATE_PICKER\]/g, fn: () => buildProgressBar(1) + buildDatePicker() },
   { pattern: /\[GUEST_COUNT\]/g, fn: () => buildProgressBar(2) + buildGuestCountOptions() },
+  { pattern: /\[GUEST_COUNT_PUBLIC\]/g, fn: () => buildProgressBar(2) + buildGuestCountOptionsPublic() },
   { pattern: /\[MAIN_MENU\]/g, fn: () => buildMainMenu() },
   { pattern: /\[ADDON_UPSELL\]/g, fn: () => buildAddonUpsell() },
   { pattern: /\[PURCHASE_SUBMENU\]/g, fn: () => buildPurchaseSubmenu() },
   { pattern: /\[PURCHASE_EMAIL_INPUT\]/g, fn: () => buildPurchaseEmailInput() },
-  { pattern: /\[PURCHASE_CUSTOM_FORM\]/g, fn: () => buildPurchaseCustomForm() }
+  { pattern: /\[PURCHASE_CUSTOM_FORM\]/g, fn: () => buildPurchaseCustomForm() },
+  { pattern: /\[LOCATION_OPTIONS\]/g, fn: () => buildLocationOptions() }
 ];
 
 let hasMarker = false;
-let enriched = response;
+let enriched = escapeHtml(response);
 
 for (const m of markers) {
   const before = enriched;
@@ -392,7 +411,8 @@ if (enriched !== partyBefore) hasMarker = true;
 // Handle BOOKING_CONFIRM separately (has capture group)
 const confirmBefore = enriched;
 enriched = enriched.replace(/\[BOOKING_CONFIRM:(\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g, function(match, jsonStr) {
-  return buildBookingConfirm(jsonStr);
+  var decoded = jsonStr.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  return buildBookingConfirm(decoded);
 });
 if (enriched !== confirmBefore) hasMarker = true;
 
