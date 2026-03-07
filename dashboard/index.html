@@ -1,998 +1,1690 @@
 <!DOCTYPE html>
 <html lang="lt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Batutynas — Valdymo skydelis</title>
-<style>
-  :root {
-    --purple: #6C3CE1;
-    --purple-light: #8B5CF6;
-    --purple-dim: #3D1E8F;
-    --purple-glow: rgba(108, 60, 225, 0.25);
-    --bg: #0D0B14;
-    --bg2: #13101F;
-    --bg3: #1A1530;
-    --bg4: #221E38;
-    --border: #2A2545;
-    --border-light: #3A3460;
-    --text: #E8E4F4;
-    --text-dim: #9B94C0;
-    --text-faint: #5A5480;
-    --green: #22C55E;
-    --green-dim: rgba(34,197,94,0.15);
-    --blue: #3B82F6;
-    --blue-dim: rgba(59,130,246,0.15);
-    --gray: #6B7280;
-    --gray-dim: rgba(107,114,128,0.15);
-    --yellow: #F59E0B;
-    --yellow-dim: rgba(245,158,11,0.15);
-    --red: #EF4444;
-    --red-dim: rgba(239,68,68,0.15);
-    --orange: #F97316;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 14px;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Batutynas — Užsakymų valdymas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+/* ==========================================================================
+   1. CSS RESET
+   ========================================================================== */
 
-  /* HEADER */
-  .app-header {
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: -0.3px;
-  }
-  .logo-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, var(--purple), var(--purple-light));
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-  }
-  .header-meta { font-size: 12px; color: var(--text-dim); }
-  .refresh-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .refresh-btn:hover { border-color: var(--purple); color: var(--text); }
-  .refresh-btn.loading .spin { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-  /* STATS BAR */
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  tab-size: 4;
+}
+
+body {
+  min-height: 100vh;
+  line-height: inherit;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* ==========================================================================
+   2. CSS CUSTOM PROPERTIES
+   ========================================================================== */
+
+:root {
+  /* Backgrounds */
+  --bg: #F7F6F2;
+  --bg-card: #FFFFFF;
+  --bg-inset: #EFEDE8;
+
+  /* Borders */
+  --border: #E2DED6;
+  --border-strong: #C8C3B8;
+
+  /* Text */
+  --text: #1A1814;
+  --text-dim: #6B6560;
+  --text-faint: #A8A29C;
+
+  /* Accent — brand orange */
+  --accent: #FF5C2B;
+  --accent-dim: #FFF0EC;
+  --accent-hover: #E84D20;
+
+  /* Semantic colours */
+  --green: #16A34A;
+  --green-dim: #F0FDF4;
+
+  --yellow: #D97706;
+  --yellow-dim: #FFFBEB;
+
+  --blue: #2563EB;
+  --blue-dim: #EFF6FF;
+
+  --red: #DC2626;
+  --red-dim: #FEF2F2;
+
+  --gray: #6B7280;
+  --gray-dim: #F9FAFB;
+
+  /* Shape */
+  --radius: 10px;
+  --radius-sm: 6px;
+
+  /* Elevation */
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   3. TYPOGRAPHY BASE
+   ========================================================================== */
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "tnum" 1;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+h1 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Utility: small label / eyebrow text */
+.label {
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+/* Utility: muted text */
+.text-dim {
+  color: var(--text-dim);
+}
+
+/* Utility: accent text */
+.text-accent {
+  color: var(--accent);
+}
+
+/* ============================================================
+   02-css-layout.css — Dashboard Layout
+   ============================================================ */
+
+/* HEADER */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-logo {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.header-btn:hover {
+  background: var(--bg-inset);
+}
+
+.header-updated {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+/* STATS BAR */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.stat-card.accent {
+  border-left: 3px solid var(--accent);
+}
+
+.stat-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* MAIN SPLIT LAYOUT */
+.main-layout {
+  padding: 0 20px;
+}
+
+/* CALENDAR PANE */
+.calendar-pane {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* SIDE PANEL */
+.side-panel {
+  display: none;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* EQUIPMENT SECTION */
+.equipment-section {
+  padding: 20px;
+}
+
+.equipment-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.equipment-strip {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.equipment-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* RESPONSIVE — 640px: stats go 4-column */
+@media (min-width: 640px) {
   .stats-bar {
-    display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    padding: 16px 20px;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
   }
-  .stat-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-  }
-  .stat-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-faint);
-    margin-bottom: 6px;
-  }
-  .stat-value {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -1px;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .stat-sub { font-size: 11px; color: var(--text-dim); }
-  .stat-today   .stat-value { color: var(--purple-light); }
-  .stat-revenue .stat-value { color: var(--green); }
-  .stat-unpaid  .stat-value { color: var(--yellow); }
-  .stat-equip   .stat-value { color: var(--blue); }
+}
 
-  /* MAIN LAYOUT */
+/* RESPONSIVE — 768px: two-column layout, side panel visible */
+@media (min-width: 768px) {
   .main-layout {
     display: grid;
-    grid-template-columns: 1fr 390px;
-    height: calc(100vh - 130px);
-  }
-  .calendar-pane {
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
     padding: 20px;
-    overflow-y: auto;
-    border-right: 1px solid var(--border);
   }
+
   .side-panel {
-    overflow-y: auto;
-    background: var(--bg2);
-  }
-
-  /* CALENDAR NAV */
-  .cal-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .cal-month-title {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-  }
-  .cal-nav-btns { display: flex; gap: 8px; align-items: center; }
-  .cal-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.15s;
-    line-height: 1;
-  }
-  .cal-btn:hover { background: var(--bg4); border-color: var(--purple); }
-  .cal-btn.today-btn { color: var(--purple-light); border-color: var(--purple-dim); }
-  .cal-btn.today-btn:hover { background: var(--purple-glow); }
-  .cal-btn.arrow { font-size: 16px; padding: 6px 10px; }
-
-  /* CALENDAR GRID */
-  .cal-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 4px;
-  }
-  .cal-weekday {
-    text-align: center;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-faint);
-    padding: 4px 0;
-  }
-  .cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-  }
-  .cal-day {
-    min-height: 82px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    position: relative;
-  }
-  .cal-day:hover { border-color: var(--border-light); background: var(--bg4); }
-  .cal-day.other-month { opacity: 0.3; cursor: default; }
-  .cal-day.other-month:hover { background: var(--bg3); border-color: var(--border); }
-  .cal-day.is-today {
-    border-color: var(--purple);
-    background: rgba(108,60,225,0.08);
-  }
-  .cal-day.selected {
-    border-color: var(--purple-light);
-    background: rgba(139,92,246,0.12);
-    box-shadow: 0 0 0 2px var(--purple-glow);
-  }
-  .day-num {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-dim);
-    margin-bottom: 5px;
-    line-height: 1;
-  }
-  .cal-day.is-today .day-num { color: var(--purple-light); font-weight: 700; }
-  .day-booking-count {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-  }
-  .day-dots { display: flex; flex-wrap: wrap; gap: 3px; }
-  .day-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-  /* SIDE PANEL */
-  .side-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-faint);
-    gap: 12px;
-    padding: 40px;
-    text-align: center;
-  }
-  .side-empty-icon { font-size: 48px; opacity: 0.5; }
-  .side-header {
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid var(--border);
+    display: block;
     position: sticky;
-    top: 0;
-    background: var(--bg2);
-    z-index: 10;
-  }
-  .side-date { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-  .side-summary { font-size: 12px; color: var(--text-dim); }
-  .bookings-list {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    top: 16px;
+    height: calc(100vh - 32px);
+    overflow-y: auto;
   }
 
-  /* BOOKING CARD */
-  .booking-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px;
-    transition: border-color 0.15s;
-  }
-  .booking-card:hover { border-color: var(--border-light); }
-  .booking-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    gap: 8px;
-  }
-  .booking-name { font-weight: 700; font-size: 14px; line-height: 1.2; }
-  .booking-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-  .status-badge {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 3px 8px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .status-confirmed { background: var(--green-dim);                  color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
-  .status-delivered { background: var(--blue-dim);                   color: var(--blue);   border: 1px solid rgba(59,130,246,0.3); }
-  .status-completed { background: var(--gray-dim);                   color: var(--gray);   border: 1px solid rgba(107,114,128,0.3); }
-  .status-inquiry   { background: var(--yellow-dim);                 color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
-  .status-cancelled { background: var(--red-dim);                    color: var(--red);    border: 1px solid rgba(239,68,68,0.3); }
-  .booking-detail-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 5px;
-  }
-  .booking-detail-row .icon { width: 16px; flex-shrink: 0; text-align: center; font-size: 13px; }
-  .equipment-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-  }
-  .equip-pill {
-    background: var(--bg4);
-    border: 1px solid var(--border-light);
-    border-radius: 20px;
-    padding: 3px 9px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-  .booking-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-  }
-  .booking-price { font-weight: 700; font-size: 16px; color: var(--text); }
-  .payment-badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-  .pay-paid    { background: var(--green-dim);  color: var(--green); }
-  .pay-deposit { background: var(--yellow-dim); color: var(--yellow); }
-  .pay-unpaid  { background: var(--red-dim);    color: var(--red); }
-
-  /* EQUIPMENT SECTION */
-  .equip-section { padding: 20px; border-top: 1px solid var(--border); margin-top: 8px; }
-  .section-title {
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-faint);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .equip-grid {
+  .equipment-strip {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 8px;
-  }
-  .equip-item {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .equip-name { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.3; }
-  .equip-row  { display: flex; align-items: center; }
-  .equip-status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-  .equip-status-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-  .es-available { background: var(--green); }
-  .es-reserved  { background: var(--orange); }
-  .es-rented    { background: var(--red); }
-  .es-cleaning  { background: var(--gray); }
-  .esl-available { color: var(--green); }
-  .esl-reserved  { color: var(--orange); }
-  .esl-rented    { color: var(--red); }
-  .esl-cleaning  { color: var(--gray); }
-
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--bg4);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius);
-    padding: 10px 20px;
-    font-size: 13px;
-    color: var(--text);
-    box-shadow: var(--shadow);
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    z-index: 1000;
-    white-space: nowrap;
-  }
-  .toast.show  { transform: translateX(-50%) translateY(0); }
-  .toast.error   { border-color: var(--red);   color: var(--red); }
-  .toast.success { border-color: var(--green); color: var(--green); }
-
-  /* LOADING */
-  .loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(13,11,20,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 500;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-  .loading-overlay.active { opacity: 1; pointer-events: all; }
-  .loading-spinner {
-    width: 40px; height: 40px;
-    border: 3px solid var(--bg4);
-    border-top-color: var(--purple);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    overflow-x: unset;
+    padding-bottom: 0;
+    -webkit-overflow-scrolling: unset;
+    scroll-snap-type: unset;
   }
 
-  /* RESPONSIVE */
-  @media (max-width: 900px) {
-    .stats-bar { grid-template-columns: repeat(2,1fr); gap: 8px; padding: 12px; }
-    .main-layout { grid-template-columns: 1fr; height: auto; }
-    .side-panel { border-top: 1px solid var(--border); }
-    .calendar-pane { padding: 12px; }
-    .cal-day { min-height: 62px; padding: 6px; }
-  }
-  @media (max-width: 480px) {
-    .stats-bar { padding: 10px; gap: 6px; }
-    .stat-value { font-size: 22px; }
-    .equip-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); }
+  .mobile-only {
+    display: none;
   }
 
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
-</style>
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* RESPONSIVE — 1280px: wider spacing, larger stat values */
+@media (min-width: 1280px) {
+  .stats-bar {
+    gap: 16px;
+    padding: 20px 28px;
+  }
+
+  .main-layout {
+    gap: 32px;
+    padding: 24px 28px;
+  }
+
+  .stat-value {
+    font-size: clamp(2rem, 3vw, 2.75rem);
+  }
+
+  .stat-card {
+    padding: 20px;
+  }
+
+  .dashboard-header {
+    padding: 18px 28px;
+  }
+}
+
+/* ============================================================
+   03-css-components.css — UI component styles
+   ============================================================ */
+
+/* MONTH NAVIGATION */
+.month-nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.month-nav-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-width: 180px;
+  text-align: center;
+}
+
+.month-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-nav-btn:hover {
+  background: var(--bg-inset);
+  border-color: var(--border-strong);
+}
+
+.month-nav-today {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.month-nav-today:hover {
+  background: var(--accent-hover);
+}
+
+/* CALENDAR GRID */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 4px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cal-day {
+  min-height: 60px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-left: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+}
+
+.cal-day:nth-child(7n) {
+  border-right: none;
+}
+
+.cal-day:hover {
+  background: var(--bg-inset);
+}
+
+.cal-day.today {
+  background: var(--accent-dim);
+}
+
+.cal-day.today .cal-day-num {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.cal-day.selected {
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.cal-day.other-month {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.cal-day:active {
+  transform: scale(0.97);
+  transition: transform 80ms;
+}
+
+.cal-day-num {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cal-day-dots {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.cal-dot.status-confirmed { background: var(--green); }
+.cal-dot.status-delivered { background: var(--blue); }
+.cal-dot.status-completed { background: var(--gray); }
+.cal-dot.status-inquiry { background: var(--yellow); }
+.cal-dot.status-cancelled { background: var(--red); }
+
+.cal-day-count {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: var(--accent);
+  color: #fff;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* BOOKING CARD */
+.booking-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.booking-card-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.booking-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.booking-card-time {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-feature-settings: "tnum" 1;
+}
+
+.booking-card-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.booking-card-row .icon {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.booking-card-equipment {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.booking-card-equip-tag {
+  background: var(--bg-inset);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.booking-card-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.booking-card-price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.booking-card a[href^="tel"] {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* STATUS BADGES */
+.status-badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-badge.status-confirmed { background: var(--green-dim); color: var(--green); }
+.status-badge.status-delivered { background: var(--blue-dim); color: var(--blue); }
+.status-badge.status-completed { background: var(--gray-dim); color: var(--gray); }
+.status-badge.status-inquiry { background: var(--yellow-dim); color: var(--yellow); }
+.status-badge.status-cancelled { background: var(--red-dim); color: var(--red); }
+
+/* PAYMENT BADGES */
+.payment-badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.payment-badge.pay-paid { background: var(--green-dim); color: var(--green); }
+.payment-badge.pay-deposit { background: var(--yellow-dim); color: var(--yellow); }
+.payment-badge.pay-unpaid { background: var(--red-dim); color: var(--red); }
+
+/* EQUIPMENT PILL */
+.equip-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  min-width: 140px;
+  scroll-snap-align: start;
+}
+
+.equip-icon { font-size: 1.2rem; display: block; margin-bottom: 4px; }
+.equip-name { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.equip-status { display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
+
+.equip-available .equip-status { color: var(--green); }
+.equip-reserved .equip-status { color: var(--yellow); }
+.equip-rented .equip-status { color: var(--blue); }
+.equip-in-transit .equip-status { color: var(--accent); }
+.equip-needs-cleaning .equip-status { color: var(--yellow); }
+.equip-damaged .equip-status { color: var(--red); }
+
+/* DAY PANEL HEADER */
+.panel-header { padding: 16px; border-bottom: 1px solid var(--border); }
+.panel-date { font-size: 1.1rem; font-weight: 700; }
+.panel-meta { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+.panel-body { padding: 12px; overflow-y: auto; }
+
+/* DAY ACCORDION */
+.day-accordion {
+  grid-column: span 7;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: none;
+  padding: 12px;
+  overflow: hidden;
+  transition: max-height 250ms ease-out;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 1000;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.toast.visible { opacity: 1; }
+.toast.success { background: var(--green); color: #fff; }
+.toast.error { background: var(--red); color: #fff; }
+.toast.info { background: var(--text); color: #fff; }
+
+/* LOADING OVERLAY */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(247, 246, 242, 0.8);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-overlay.hidden { display: none; }
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-faint); }
+.empty-state-icon { font-size: 2rem; margin-bottom: 8px; }
+.empty-state-text { font-size: 0.9rem; }
+
+/* DEMO BANNER */
+.demo-banner {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+  text-align: center;
+  padding: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ============================================================
+   04 — ANIMATIONS
+   ============================================================ */
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOutUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-8px); } }
+@keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 600px; } }
+
+.panel-body { transition: opacity 150ms ease-in, transform 150ms ease-in; }
+.panel-body.entering { animation: fadeInUp 200ms ease-out forwards; }
+.panel-body.exiting { animation: fadeOutUp 150ms ease-in forwards; }
+
+.stat-card { animation: fadeInUp 400ms ease-out both; }
+.stat-card:nth-child(1) { animation-delay: 50ms; }
+.stat-card:nth-child(2) { animation-delay: 100ms; }
+.stat-card:nth-child(3) { animation-delay: 150ms; }
+.stat-card:nth-child(4) { animation-delay: 200ms; }
+
+.booking-card { animation: fadeInUp 250ms ease-out both; }
+.booking-card:nth-child(1)  { animation-delay: 60ms; }
+.booking-card:nth-child(2)  { animation-delay: 120ms; }
+.booking-card:nth-child(3)  { animation-delay: 180ms; }
+.booking-card:nth-child(4)  { animation-delay: 240ms; }
+.booking-card:nth-child(5)  { animation-delay: 300ms; }
+
+.header-btn:active, .month-nav-btn:active { transform: scale(0.92); transition: transform 60ms; }
+.month-nav-today:active { transform: scale(0.95); }
+
+.header-btn.refreshing { animation: spin 0.8s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.side-panel::-webkit-scrollbar { width: 4px; }
+.side-panel::-webkit-scrollbar-track { background: transparent; }
+.side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.side-panel::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+  </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loadingOverlay">
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
   <div class="loading-spinner"></div>
 </div>
-<div class="toast" id="toast"></div>
 
-<!-- HEADER -->
-<header class="app-header">
-  <div class="logo">
-    <div class="logo-icon">🎪</div>
-    <div>Batutynas</div>
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Demo Banner (shown when using fallback data) -->
+<div id="demoBanner" class="demo-banner" style="display:none;">
+  ⚠️ Demo režimas — rodomi pavyzdiniai duomenys
+</div>
+
+<!-- Header -->
+<header class="dashboard-header">
+  <div class="header-brand">
+    <span class="header-logo">🎪</span>
+    <span class="header-title">Batutynas</span>
   </div>
-  <div class="header-meta" id="lastUpdated">Kraunama...</div>
-  <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
-    <span class="spin">↻</span> Atnaujinti
-  </button>
+  <div class="header-actions">
+    <span class="header-updated" id="lastUpdated"></span>
+    <button class="header-btn" id="refreshBtn" title="Atnaujinti">↻</button>
+  </div>
 </header>
 
-<!-- STATS BAR -->
-<div class="stats-bar">
-  <div class="stat-card stat-today">
-    <div class="stat-label">Šiandien</div>
-    <div class="stat-value" id="statToday">—</div>
-    <div class="stat-sub">rezervacijų</div>
+<!-- Stats Bar -->
+<section class="stats-bar">
+  <div class="stat-card accent">
+    <div class="stat-label">Šiandien užsakymų</div>
+    <div class="stat-value" id="statTodayCount">—</div>
   </div>
-  <div class="stat-card stat-revenue">
+  <div class="stat-card">
     <div class="stat-label">Savaitės pajamos</div>
-    <div class="stat-value" id="statRevenue">—</div>
-    <div class="stat-sub">EUR šią savaitę</div>
+    <div class="stat-value" id="statWeekRevenue">—</div>
+    <div class="stat-sub" id="statWeekSub"></div>
   </div>
-  <div class="stat-card stat-unpaid">
-    <div class="stat-label">Neapmokėti</div>
+  <div class="stat-card">
+    <div class="stat-label">Neapmokėti avansai</div>
     <div class="stat-value" id="statUnpaid">—</div>
-    <div class="stat-sub">laukia avanso</div>
   </div>
-  <div class="stat-card stat-equip">
-    <div class="stat-label">Įranga</div>
-    <div class="stat-value" id="statEquip">—</div>
-    <div class="stat-sub">laisva šiandien</div>
+  <div class="stat-card">
+    <div class="stat-label">Laisva įranga</div>
+    <div class="stat-value" id="statAvailable">—</div>
+    <div class="stat-sub" id="statAvailableSub"></div>
   </div>
-</div>
+</section>
 
-<!-- MAIN -->
-<div class="main-layout">
+<!-- Main Layout -->
+<main class="main-layout">
+  <!-- Calendar Pane -->
   <div class="calendar-pane">
-    <div class="cal-nav">
-      <div class="cal-nav-btns">
-        <button class="cal-btn arrow" onclick="changeMonth(-1)">&#8249;</button>
-        <button class="cal-btn today-btn" onclick="goToday()">Šiandien</button>
-        <button class="cal-btn arrow" onclick="changeMonth(1)">&#8250;</button>
-      </div>
-      <div class="cal-month-title" id="calMonthTitle"></div>
+    <!-- Month Navigation -->
+    <div class="month-nav">
+      <button class="month-nav-btn" id="prevMonth" title="Ankstesnis mėnuo">‹</button>
+      <button class="month-nav-today" id="todayBtn">Šiandien</button>
+      <span class="month-nav-title" id="monthTitle"></span>
+      <button class="month-nav-btn" id="nextMonth" title="Kitas mėnuo">›</button>
     </div>
-    <div class="cal-weekdays">
-      <div class="cal-weekday">Pr</div>
-      <div class="cal-weekday">An</div>
-      <div class="cal-weekday">Tr</div>
-      <div class="cal-weekday">Kt</div>
-      <div class="cal-weekday">Pn</div>
-      <div class="cal-weekday">Št</div>
-      <div class="cal-weekday">Sk</div>
-    </div>
+    <!-- Calendar Grid -->
     <div class="cal-grid" id="calGrid"></div>
-    <div class="equip-section">
-      <div class="section-title">Įrangos statusas</div>
-      <div class="equip-grid" id="equipGrid"></div>
-    </div>
   </div>
-  <div class="side-panel" id="sidePanel">
-    <div class="side-empty">
-      <div class="side-empty-icon">📅</div>
-      <p>Pasirinkite dieną kalendoriuje,<br>kad matytumėte rezervacijas</p>
+
+  <!-- Side Panel (desktop) -->
+  <aside class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <div class="panel-date" id="panelDate">Pasirinkite dieną</div>
+      <div class="panel-meta" id="panelMeta"></div>
     </div>
-  </div>
-</div>
+    <div class="panel-body" id="panelBody">
+      <div class="empty-state">
+        <div class="empty-state-icon">📅</div>
+        <div class="empty-state-text">Pasirinkite dieną kalendoriuje</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- Equipment Section -->
+<section class="equipment-section">
+  <div class="equipment-title">🎪 Įrangos būsena</div>
+  <div class="equipment-strip" id="equipStrip"></div>
+</section>
 
 <script>
-// ── CONFIG ──
-var API_BASE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard';
+// ── CONSTANTS ──────────────────────────────────────────────
 
-// ── CONSTANTS ──
-var LT_MONTHS = ['Sausis','Vasaris','Kovas','Balandis','Gegužė','Birželis',
-  'Liepa','Rugpjūtis','Rugsėjis','Spalis','Lapkritis','Gruodis'];
+var LT_MONTHS = [
+  'Sausis', 'Vasaris', 'Kovas', 'Balandis', 'Gegužė', 'Birželis',
+  'Liepa', 'Rugpjūtis', 'Rugsėjis', 'Spalis', 'Lapkritis', 'Gruodis'
+];
 
-var LT_MONTHS_GEN = ['sausio','vasario','kovo','balandžio','gegužės','birželio',
-  'liepos','rugpjūčio','rugsėjo','spalio','lapkričio','gruodžio'];
+var LT_MONTHS_GEN = [
+  'sausio', 'vasario', 'kovo', 'balandžio', 'gegužės', 'birželio',
+  'liepos', 'rugpjūčio', 'rugsėjo', 'spalio', 'lapkričio', 'gruodžio'
+];
+
+var LT_WEEKDAYS = ['Pr', 'An', 'Tr', 'Kt', 'Pn', 'Št', 'Sk'];
+
+var LT_WEEKDAYS_FULL = [
+  'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis',
+  'Penktadienis', 'Šeštadienis', 'Sekmadienis'
+];
 
 var STATUS_LT = {
-  confirmed:'Patvirtinta', delivered:'Pristatyta',
-  completed:'Baigta',      inquiry:'Užklausa', cancelled:'Atšaukta'
-};
-var STATUS_COLOR = {
-  confirmed:'#22C55E', delivered:'#3B82F6',
-  completed:'#6B7280', inquiry:'#F59E0B', cancelled:'#EF4444'
-};
-var PAYMENT_LT = { paid:'Apmokėta', deposit:'Avansas', unpaid:'Neapmokėta' };
-var PAYMENT_CLASS = { paid:'pay-paid', deposit:'pay-deposit', unpaid:'pay-unpaid' };
-var EQUIP_EMOJI = {
-  'Candy Pop':'🍭','Mega Waikiki':'🌊','Monstrai':'👾','Vienaragiai':'🦄',
-  'Milžiniškas Dart':'🎯','Dino Park':'🦕','Space Jump':'🚀','Rainbow Burst':'🌈',
-  'Ocean Wave':'🌊','Jungle Safari':'🐒','Galaxy Bounce':'✨','Mini Waikiki':'🏄',
-  'Piratų Laivas':'🏴‍☠️','Fėjų Pilis':'🧚','Robotas':'🤖','Superherojus':'🦸',
-  'Sporto Arena':'⚽','Krokodilai':'🐊','Flamingo':'🦩','Ledų Fabrikas':'🍦'
-};
-var EQUIP_STATUS_LABELS = {
-  available:'Laisva', reserved:'Rezervuota', rented:'Išnuomota', cleaning:'Valoma'
+  'Confirmed':  'Patvirtinta',
+  'Delivered':  'Pristatyta',
+  'Completed':  'Baigta',
+  'Inquiry':    'Užklausa',
+  'Cancelled':  'Atšaukta'
 };
 
-// ── DEMO DATA ──
-function getDemoData() {
-  var now = new Date();
-  var y = now.getFullYear();
-  var m = now.getMonth();
-  var td = now.getDate();
-  function pad(n) { return String(n).padStart(2,'0'); }
-  function d(day, hr, mn) {
-    return y+'-'+pad(m+1)+'-'+pad(day)+'T'+pad(hr||10)+':'+pad(mn||0)+':00';
-  }
-  return {
-    stats: { today_count:2, week_revenue:480, unpaid_deposits:3, available_equipment:14 },
-    equipment: [
-      {name:'Candy Pop',status:'reserved'},{name:'Mega Waikiki',status:'reserved'},
-      {name:'Monstrai',status:'available'},{name:'Vienaragiai',status:'reserved'},
-      {name:'Milžiniškas Dart',status:'available'},{name:'Dino Park',status:'available'},
-      {name:'Space Jump',status:'rented'},{name:'Rainbow Burst',status:'available'},
-      {name:'Ocean Wave',status:'cleaning'},{name:'Jungle Safari',status:'available'},
-      {name:'Galaxy Bounce',status:'available'},{name:'Mini Waikiki',status:'available'},
-      {name:'Piratų Laivas',status:'rented'},{name:'Fėjų Pilis',status:'available'},
-      {name:'Robotas',status:'available'},{name:'Superherojus',status:'available'},
-      {name:'Sporto Arena',status:'cleaning'},{name:'Krokodilai',status:'available'},
-      {name:'Flamingo',status:'available'},{name:'Ledų Fabrikas',status:'reserved'}
-    ],
-    bookings: [
-      {id:'B001',customer_name:'Rasa Petrauskienė',date:d(td,10,0),duration:'3 val.',
-       address:'Laisvės g. 12',city:'Tauragė',status:'confirmed',payment:'deposit',
-       price:120,phone:'+37061234567',equipment:['Candy Pop','Vienaragiai'],
-       notes:'Vaikų gimtadienis, 15 vaikų'},
-      {id:'B002',customer_name:'Tomas Butkus',date:d(td,14,30),duration:'4 val.',
-       address:'Mindaugo pr. 5',city:'Šilutė',status:'confirmed',payment:'paid',
-       price:160,phone:'+37069876543',equipment:['Mega Waikiki'],notes:''},
-      {id:'B003',customer_name:'Jolanta Kazlauskienė',date:d(td+1,11,0),duration:'3 val.',
-       address:'Žemaitės g. 3',city:'Kelmė',status:'confirmed',payment:'deposit',
-       price:130,phone:'+37062345678',equipment:['Monstrai','Milžiniškas Dart'],
-       notes:'Prašo atvykti 30 min anksčiau'},
-      {id:'B004',customer_name:'Andrius Jankauskas',date:d(td+2,10,0),duration:'5 val.',
-       address:'Krantinės g. 8',city:'Raseiniai',status:'inquiry',payment:'unpaid',
-       price:200,phone:'+37068765432',equipment:['Space Jump','Dino Park'],
-       notes:'Laukia patvirtinimo'},
-      {id:'B005',customer_name:'Eglė Stankūnaitė',date:d(td+3,12,0),duration:'4 val.',
-       address:'Tilžės g. 20',city:'Tauragė',status:'confirmed',payment:'paid',
-       price:175,phone:'+37063456789',equipment:['Fėjų Pilis','Flamingo'],
-       notes:'Mergaičių vakarėlis'},
-      {id:'B006',customer_name:'Viktorija Laurinaitienė',date:d(td-2,10,0),duration:'3 val.',
-       address:'Ąžuolų al. 1',city:'Šilutė',status:'delivered',payment:'paid',
-       price:140,phone:'+37064567890',equipment:['Rainbow Burst'],notes:''},
-      {id:'B007',customer_name:'Mantas Urbonas',date:d(td-4,13,0),duration:'6 val.',
-       address:'Sodų g. 15',city:'Raseiniai',status:'completed',payment:'paid',
-       price:240,phone:'+37065678901',equipment:['Piratų Laivas','Ocean Wave'],
-       notes:'Vasaros šventė'},
-      {id:'B008',customer_name:'Simona Mikelionienė',date:d(td-6,11,30),duration:'3 val.',
-       address:'Parko g. 7',city:'Kelmė',status:'cancelled',payment:'unpaid',
-       price:110,phone:'+37066789012',equipment:['Mini Waikiki'],notes:'Atšaukė dėl ligos'},
-      {id:'B009',customer_name:'Darius Klimaitis',date:d(td+5,10,0),duration:'4 val.',
-       address:'Vilniaus g. 33',city:'Tauragė',status:'inquiry',payment:'unpaid',
-       price:160,phone:'+37067890123',equipment:['Robotas','Superherojus'],
-       notes:'Berniukų gimtadienis'},
-      {id:'B010',customer_name:'Kristina Sinkevičienė',date:d(td+7,15,0),duration:'3 val.',
-       address:'Kauno g. 44',city:'Raseiniai',status:'confirmed',payment:'deposit',
-       price:130,phone:'+37068901234',equipment:['Galaxy Bounce','Ledų Fabrikas'],notes:''}
-    ]
-  };
-}
+var STATUS_CLASS = {
+  'Confirmed':  'status-confirmed',
+  'Delivered':  'status-delivered',
+  'Completed':  'status-completed',
+  'Inquiry':    'status-inquiry',
+  'Cancelled':  'status-cancelled'
+};
 
-// ── STATE ──
+var PAYMENT_LT = {
+  'Paid in Full': 'Apmokėta',
+  'Deposit Paid': 'Avansas',
+  'Unpaid':       'Neapmokėta'
+};
+
+var PAYMENT_CLASS = {
+  'Paid in Full': 'pay-paid',
+  'Deposit Paid': 'pay-deposit',
+  'Unpaid':       'pay-unpaid'
+};
+
+var EQUIP_STATUS_LT = {
+  'Available':      'Laisva',
+  'Reserved':       'Rezervuota',
+  'Rented':         'Išnuomota',
+  'In Transit':     'Gabenama',
+  'Needs Cleaning': 'Valymas',
+  'Damaged':        'Pažeista'
+};
+
+var EQUIP_STATUS_CLASS = {
+  'Available':      'equip-available',
+  'Reserved':       'equip-reserved',
+  'Rented':         'equip-rented',
+  'In Transit':     'equip-in-transit',
+  'Needs Cleaning': 'equip-needs-cleaning',
+  'Damaged':        'equip-damaged'
+};
+
+// ── CONFIG ─────────────────────────────────────────────────
+
+var API_BASE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard';
+var REFRESH_INTERVAL_MS = 300000;
+
+// ── STATE ──────────────────────────────────────────────────
+
 var state = {
   viewYear: new Date().getFullYear(),
   viewMonth: new Date().getMonth(),
+  selectedDate: null,
   bookings: [],
   equipment: [],
-  selectedDate: null
+  stats: {},
+  loading: false,
+  usingDemo: false,
+  lastFetched: null,
+  firstLoad: true
 };
 
-// ── LOAD DATA ──
+// ── DATA ACCESS ────────────────────────────────────────────
+
+function getDateKey(b) {
+  return (b.event_date || '').slice(0, 10);
+}
+
+function getEventTime(b) {
+  return (b.event_time || '').slice(0, 5);
+}
+
+function getPickupTime(b) {
+  return (b.pickup_time || '').slice(0, 5);
+}
+
+function getEquipmentNames(b) {
+  if (Array.isArray(b.equipment_names)) return b.equipment_names;
+  if (Array.isArray(b.equipment)) return b.equipment.map(function(e) { return typeof e === 'string' ? e : e.name; });
+  return [];
+}
+
+function getEquipmentIcons(b) {
+  if (Array.isArray(b.equipment_icons)) return b.equipment_icons;
+  if (Array.isArray(b.equipment)) return b.equipment.map(function(e) { return typeof e === 'string' ? '' : (e.icon || ''); });
+  return [];
+}
+
+function getBookingsByDate(dateKey) {
+  return state.bookings.filter(function(b) {
+    return getDateKey(b) === dateKey;
+  }).sort(function(a, b) {
+    return (a.event_time || '').localeCompare(b.event_time || '');
+  });
+}
+
+function getBookingsForMonth(year, month) {
+  var byDay = {};
+  state.bookings.forEach(function(b) {
+    var key = getDateKey(b);
+    if (!key) return;
+    var d = new Date(key + 'T00:00:00');
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      if (!byDay[key]) byDay[key] = [];
+      byDay[key].push(b);
+    }
+  });
+  return byDay;
+}
+
+function getDayRevenue(bookings) {
+  var total = 0;
+  bookings.forEach(function(b) {
+    var p = parseFloat(b.price);
+    if (!isNaN(p)) total += p;
+  });
+  return total;
+}
+
+// ── API LAYER ──────────────────────────────────────────────
+
+function buildApiUrl() {
+  var mm = String(state.viewMonth + 1).padStart(2, '0');
+  var month = state.viewYear + '-' + mm;
+  return API_BASE + '?month=' + month + '&t=' + Date.now();
+}
+
 function loadData() {
-  var btn = document.getElementById('refreshBtn');
-  btn.classList.add('loading');
+  state.loading = true;
   showLoading(true);
 
-  var controller = new AbortController();
-  var tid = setTimeout(function() { controller.abort(); }, 6000);
-
-  fetch(API_BASE + '?t=' + Date.now(), { signal: controller.signal })
-    .then(function(r) {
-      clearTimeout(tid);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
+  fetch(buildApiUrl())
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
     })
     .then(function(data) {
-      applyData(data, false);
+      applyData(data);
+      state.usingDemo = false;
+      document.getElementById('demoBanner').style.display = 'none';
     })
     .catch(function(err) {
-      clearTimeout(tid);
-      console.warn('API nepasiekiamas:', err.message);
-      applyData(getDemoData(), true);
+      console.warn('API klaida, naudojami demo duomenys:', err);
+      applyDemoData();
+      state.usingDemo = true;
+      document.getElementById('demoBanner').style.display = 'block';
+    })
+    .finally(function() {
+      state.loading = false;
+      state.lastFetched = new Date();
+      showLoading(false);
+      renderAll();
+      state.firstLoad = false;
     });
 }
 
-function applyData(data, usedDemo) {
-  state.bookings  = data.bookings  || [];
-  state.equipment = data.equipment || getDemoData().equipment;
-
-  var s = data.stats || {};
-  setText('statToday',   s.today_count != null ? String(s.today_count) : '—');
-  setText('statRevenue', s.week_revenue != null ? s.week_revenue + ' €' : '—');
-  setText('statUnpaid',  s.unpaid_deposits != null ? String(s.unpaid_deposits) : '—');
-  setText('statEquip',   s.available_equipment != null ? String(s.available_equipment) : '—');
-
-  renderCalendar();
-  renderEquipment();
-  if (state.selectedDate) { showDayPanel(state.selectedDate); }
-
-  var now = new Date();
-  var hh = now.getHours();
-  var mm = String(now.getMinutes()).padStart(2,'0');
-  setText('lastUpdated', (usedDemo ? '⚠ Demo duomenys · ' : '') + 'Atnaujinta: ' + hh + ':' + mm);
-
-  document.getElementById('refreshBtn').classList.remove('loading');
-  showLoading(false);
-  showToast(usedDemo ? 'Naudojami demo duomenys (API nepasiekiamas)' : 'Duomenys atnaujinti',
-            usedDemo ? 'error' : 'success');
+function applyData(data) {
+  state.bookings = data.bookings || [];
+  state.equipment = data.equipment || [];
+  state.stats = data.stats || {};
 }
 
-// ── CALENDAR ──
+function applyDemoData() {
+  state.bookings = [
+    { booking_id: 1, customer_name: 'Jonas Petraitis', customer_phone: '+37061234567', event_date: todayStr(), event_time: '10:00:00', pickup_time: '20:00:00', delivery_address: 'Vytauto g. 15', city: 'Tauragė', status: 'Confirmed', price: '180.00', deposit_paid: true, payment_status: 'Deposit Paid', equipment_names: ['Džiumandži parkas'], equipment_icons: ['🏞️'], notes: '' },
+    { booking_id: 2, customer_name: 'Ona Kazlauskienė', customer_phone: '+37069876543', event_date: todayStr(), event_time: '14:00:00', pickup_time: '22:00:00', delivery_address: 'Laisvės al. 32', city: 'Klaipėda', status: 'Confirmed', price: '220.00', deposit_paid: false, payment_status: 'Unpaid', equipment_names: ['Mega Rocket', 'Saldėsių aparatai'], equipment_icons: ['🚀', '🍬'], notes: 'Gimtadienis, 8 vaikai' },
+    { booking_id: 3, customer_name: 'Petras Jonaitis', customer_phone: '+37065551234', event_date: tomorrowStr(), event_time: '11:00:00', pickup_time: '19:00:00', delivery_address: 'Tilžės g. 8', city: 'Šilutė', status: 'Inquiry', price: '150.00', deposit_paid: false, payment_status: 'Unpaid', equipment_names: ['Chameleonas'], equipment_icons: ['🦎'], notes: '' },
+    { booking_id: 4, customer_name: 'Rūta Navickaitė', customer_phone: '+37062223344', event_date: dayOffsetStr(3), event_time: '09:00:00', pickup_time: '18:00:00', delivery_address: 'Pergalės g. 5', city: 'Jurbarkas', status: 'Confirmed', price: '280.00', deposit_paid: true, payment_status: 'Paid in Full', equipment_names: ['Fantazijų parkas', 'Putų šou'], equipment_icons: ['🎠', '🫧'], notes: 'VIP klientas' },
+    { booking_id: 5, customer_name: 'Algis Balčiūnas', customer_phone: '+37068887766', event_date: dayOffsetStr(-1), event_time: '12:00:00', pickup_time: '20:00:00', delivery_address: 'Dariaus ir Girėno g. 22', city: 'Tauragė', status: 'Completed', price: '160.00', deposit_paid: true, payment_status: 'Paid in Full', equipment_names: ['Vienaragiai'], equipment_icons: ['🦄'], notes: '' }
+  ];
+
+  state.equipment = [
+    { id: 1, name: 'Džiumandži parkas', icon: '🏞️', category: 'big-park', current_status: 'Available', available_today: true },
+    { id: 2, name: 'Fantazijų parkas', icon: '🎠', category: 'big-park', current_status: 'Available', available_today: true },
+    { id: 3, name: 'Giga ruožas', icon: '🏟️', category: 'big-park', current_status: 'Available', available_today: true },
+    { id: 4, name: 'Mega Rocket', icon: '🚀', category: 'mega-trampoline', current_status: 'Rented', available_today: false },
+    { id: 5, name: 'Mega ruožas', icon: '🎯', category: 'mega-trampoline', current_status: 'Available', available_today: true },
+    { id: 6, name: 'Mega Ufonautai', icon: '👽', category: 'mega-trampoline', current_status: 'Available', available_today: true },
+    { id: 7, name: 'Mega Waikiki', icon: '🏄', category: 'mega-trampoline', current_status: 'Reserved', available_today: false },
+    { id: 8, name: 'Chameleonas', icon: '🦎', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 9, name: 'Candy Pop', icon: '🍭', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 10, name: 'Vienaragiai', icon: '🦄', category: 'standard-trampoline', current_status: 'Rented', available_today: false },
+    { id: 11, name: 'Pilis mažiesiems', icon: '🏰', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 12, name: 'Monstrai', icon: '👾', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 13, name: 'Aštuonkojis', icon: '🐙', category: 'standard-trampoline', current_status: 'Needs Cleaning', available_today: false },
+    { id: 14, name: 'Milžiniškas Dart', icon: '🎯', category: 'addon', current_status: 'Available', available_today: true },
+    { id: 15, name: 'Kamuolių medžioklė', icon: '🏐', category: 'addon', current_status: 'Available', available_today: true },
+    { id: 16, name: 'Rodeo bulius', icon: '🐂', category: 'addon', current_status: 'Damaged', available_today: false },
+    { id: 17, name: 'Saldėsių aparatai', icon: '🍬', category: 'addon', current_status: 'Available', available_today: true },
+    { id: 18, name: 'Banketo stalai ir kėdės', icon: '🪑', category: 'party-equipment', current_status: 'Available', available_today: true },
+    { id: 19, name: 'Disco paviljonas', icon: '🪩', category: 'party-equipment', current_status: 'Available', available_today: true },
+    { id: 20, name: 'Putų šou', icon: '🫧', category: 'party-equipment', current_status: 'Available', available_today: true }
+  ];
+
+  state.stats = {
+    today_count: 2,
+    week_revenue: 840,
+    unpaid_deposits: 1,
+    available_equipment: 15
+  };
+}
+
+function todayStr() { return fmtKey(new Date()); }
+function tomorrowStr() { var d = new Date(); d.setDate(d.getDate() + 1); return fmtKey(d); }
+function dayOffsetStr(offset) { var d = new Date(); d.setDate(d.getDate() + offset); return fmtKey(d); }
+
+// ── CALENDAR ──────────────────────────────────────────────
+
 function renderCalendar() {
-  var y = state.viewYear;
-  var m = state.viewMonth;
-  setText('calMonthTitle', LT_MONTHS[m] + ' ' + y);
+  var grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
 
-  var today = new Date();
-  var firstDay = new Date(y, m, 1);
-  var startOffset = firstDay.getDay() - 1;
-  if (startOffset < 0) startOffset = 6;
-  var daysInMonth = new Date(y, m+1, 0).getDate();
-  var daysInPrev  = new Date(y, m, 0).getDate();
+  // Update month title
+  document.getElementById('monthTitle').textContent =
+    LT_MONTHS[state.viewMonth] + ' ' + state.viewYear;
 
-  var byDay = {};
-  state.bookings.forEach(function(b) {
-    var dk = b.date.slice(0,10);
-    if (!byDay[dk]) byDay[dk] = [];
-    byDay[dk].push(b);
+  // Weekday headers (Mon-Sun)
+  LT_WEEKDAYS.forEach(function(wd) {
+    var hdr = document.createElement('div');
+    hdr.className = 'cal-header';
+    hdr.textContent = wd;
+    grid.appendChild(hdr);
   });
 
-  var grid = document.getElementById('calGrid');
-  grid.textContent = '';
+  var year = state.viewYear;
+  var month = state.viewMonth;
+  var firstDay = new Date(year, month, 1);
+  var lastDay = new Date(year, month + 1, 0);
+  var daysInMonth = lastDay.getDate();
 
-  var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+  // Monday-based: Mon=0 … Sun=6
+  var startDow = (firstDay.getDay() + 6) % 7;
 
-  for (var i = 0; i < totalCells; i++) {
-    var cellDate, isCurrent;
-    if (i < startOffset) {
-      cellDate = new Date(y, m-1, daysInPrev - startOffset + i + 1);
-      isCurrent = false;
-    } else if (i >= startOffset + daysInMonth) {
-      cellDate = new Date(y, m+1, i - startOffset - daysInMonth + 1);
-      isCurrent = false;
-    } else {
-      cellDate = new Date(y, m, i - startOffset + 1);
-      isCurrent = true;
-    }
+  // Get bookings grouped by day
+  var byDay = getBookingsForMonth(year, month);
+  var todayKey = fmtKey(new Date());
 
-    var dk = fmtKey(cellDate);
-    var dayBkgs = byDay[dk] || [];
-    var isToday    = cellDate.toDateString() === today.toDateString();
-    var isSelected = state.selectedDate === dk;
+  // Previous month trailing days
+  var prevMonthLast = new Date(year, month, 0).getDate();
+  for (var i = startDow - 1; i >= 0; i--) {
+    var day = prevMonthLast - i;
+    var cell = createDayCell(day, null, [], true);
+    grid.appendChild(cell);
+  }
 
-    var cell = document.createElement('div');
-    cell.className = 'cal-day' +
-      (!isCurrent ? ' other-month' : '') +
-      (isToday    ? ' is-today'    : '') +
-      (isSelected ? ' selected'    : '');
+  // Current month days
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateKey = year + '-' + pad(month + 1) + '-' + pad(d);
+    var dayBookings = byDay[dateKey] || [];
+    var isToday = dateKey === todayKey;
+    var cell = createDayCell(d, dateKey, dayBookings, false, isToday);
+    grid.appendChild(cell);
+  }
 
-    var numEl = document.createElement('div');
-    numEl.className = 'day-num';
-    numEl.textContent = cellDate.getDate();
-    cell.appendChild(numEl);
-
-    if (dayBkgs.length > 0) {
-      var countEl = document.createElement('div');
-      countEl.className = 'day-booking-count';
-      countEl.textContent = dayBkgs.length === 1 ? '1 rezervacija' : dayBkgs.length + ' rezervacijos';
-      cell.appendChild(countEl);
-
-      var dotsEl = document.createElement('div');
-      dotsEl.className = 'day-dots';
-      dayBkgs.slice(0, 6).forEach(function(b) {
-        var dot = document.createElement('div');
-        dot.className = 'day-dot';
-        dot.style.background = STATUS_COLOR[b.status] || '#6B7280';
-        dotsEl.appendChild(dot);
-      });
-      cell.appendChild(dotsEl);
-    }
-
-    if (isCurrent) {
-      (function(dateKey) {
-        cell.addEventListener('click', function() {
-          state.selectedDate = dateKey;
-          renderCalendar();
-          showDayPanel(dateKey);
-        });
-      })(dk);
-    }
-
+  // Next month leading days — fill to complete row
+  var totalCells = startDow + daysInMonth;
+  var remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (var n = 1; n <= remaining; n++) {
+    var cell = createDayCell(n, null, [], true);
     grid.appendChild(cell);
   }
 }
 
-function fmtKey(d) {
-  return d.getFullYear() + '-' +
-    String(d.getMonth()+1).padStart(2,'0') + '-' +
-    String(d.getDate()).padStart(2,'0');
-}
+function createDayCell(dayNum, dateKey, bookings, isOther, isToday) {
+  var cell = document.createElement('div');
+  cell.className = 'cal-day';
+  if (isOther) cell.classList.add('other-month');
+  if (isToday) cell.classList.add('today');
+  if (dateKey && dateKey === state.selectedDate) cell.classList.add('selected');
+  if (dateKey) cell.dataset.date = dateKey;
 
-// ── DAY PANEL ──
-function showDayPanel(dk) {
-  var panel = document.getElementById('sidePanel');
-  var parts  = dk.split('-').map(Number);
-  var y = parts[0], m = parts[1], day = parts[2];
+  // Day number
+  var num = document.createElement('div');
+  num.className = 'cal-day-num';
+  num.textContent = dayNum;
+  cell.appendChild(num);
 
-  var dayBkgs = state.bookings.filter(function(b) {
-    return b.date.slice(0,10) === dk;
-  }).sort(function(a,b) { return new Date(a.date) - new Date(b.date); });
+  // Booking dots
+  if (bookings.length > 0) {
+    var dots = document.createElement('div');
+    dots.className = 'cal-day-dots';
+    bookings.forEach(function(b) {
+      var dot = document.createElement('div');
+      dot.className = 'cal-dot ' + (STATUS_CLASS[b.status] || 'status-inquiry');
+      dots.appendChild(dot);
+    });
+    cell.appendChild(dots);
 
-  var totalRev = dayBkgs
-    .filter(function(b) { return b.status !== 'cancelled'; })
-    .reduce(function(s,b) { return s + (b.price || 0); }, 0);
-
-  // Header
-  var hdr = document.createElement('div');
-  hdr.className = 'side-header';
-  var dateEl = document.createElement('div');
-  dateEl.className = 'side-date';
-  dateEl.textContent = day + ' ' + LT_MONTHS_GEN[m-1] + ' ' + y;
-  hdr.appendChild(dateEl);
-  var sumEl = document.createElement('div');
-  sumEl.className = 'side-summary';
-  if (dayBkgs.length === 0) {
-    sumEl.textContent = 'Nėra rezervacijų';
-  } else {
-    var cnt = dayBkgs.length;
-    sumEl.textContent = cnt + ' rezervacij' + (cnt===1?'a':'os') + ' · ' + totalRev + ' €';
+    // Count badge for 2+
+    if (bookings.length >= 2) {
+      var badge = document.createElement('div');
+      badge.className = 'cal-day-count';
+      badge.textContent = bookings.length;
+      cell.appendChild(badge);
+    }
   }
-  hdr.appendChild(sumEl);
 
-  // List
-  var list = document.createElement('div');
-  list.className = 'bookings-list';
-
-  if (dayBkgs.length === 0) {
-    var empty = document.createElement('div');
-    empty.style.cssText = 'text-align:center;padding:40px 20px;color:var(--text-faint);';
-    var emIco = document.createElement('div');
-    emIco.style.cssText = 'font-size:36px;margin-bottom:12px;';
-    emIco.textContent = '📭';
-    var emTxt = document.createElement('div');
-    emTxt.textContent = 'Šią dieną rezervacijų nėra';
-    empty.appendChild(emIco);
-    empty.appendChild(emTxt);
-    list.appendChild(empty);
-  } else {
-    dayBkgs.forEach(function(b) {
-      list.appendChild(buildBookingCard(b));
+  // Click handler
+  if (dateKey && !isOther) {
+    cell.addEventListener('click', function() {
+      selectDay(dateKey);
     });
   }
 
-  panel.textContent = '';
-  panel.appendChild(hdr);
-  panel.appendChild(list);
+  return cell;
 }
+
+function selectDay(dateKey) {
+  // Toggle selection
+  if (state.selectedDate === dateKey) {
+    state.selectedDate = null;
+    // Deselect visually
+    var prev = document.querySelector('.cal-day.selected');
+    if (prev) prev.classList.remove('selected');
+    if (isMobile()) {
+      closeDayAccordion();
+    } else {
+      clearDayPanel();
+    }
+    return;
+  }
+
+  // Deselect previous
+  var prevCell = document.querySelector('.cal-day.selected');
+  if (prevCell) prevCell.classList.remove('selected');
+
+  state.selectedDate = dateKey;
+
+  // Select new
+  var newCell = document.querySelector('.cal-day[data-date="' + dateKey + '"]');
+  if (newCell) newCell.classList.add('selected');
+
+  if (isMobile()) {
+    toggleDayAccordion(dateKey);
+  } else {
+    showDayPanel(dateKey);
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────
+
+function changeMonth(dir) {
+  state.viewMonth += dir;
+  if (state.viewMonth < 0) {
+    state.viewMonth = 11;
+    state.viewYear--;
+  } else if (state.viewMonth > 11) {
+    state.viewMonth = 0;
+    state.viewYear++;
+  }
+  state.selectedDate = null;
+  closeDayAccordion();
+  if (!isMobile()) clearDayPanel();
+  loadData();
+}
+
+function goToday() {
+  var now = new Date();
+  state.viewYear = now.getFullYear();
+  state.viewMonth = now.getMonth();
+  loadData();
+  // After data loads, select today
+  setTimeout(function() {
+    selectDay(fmtKey(now));
+  }, 500);
+}
+
+function initNavigation() {
+  document.getElementById('prevMonth').addEventListener('click', function() {
+    changeMonth(-1);
+  });
+  document.getElementById('nextMonth').addEventListener('click', function() {
+    changeMonth(1);
+  });
+  document.getElementById('todayBtn').addEventListener('click', function() {
+    goToday();
+  });
+  document.getElementById('refreshBtn').addEventListener('click', function() {
+    var btn = document.getElementById('refreshBtn');
+    btn.classList.add('refreshing');
+    loadData();
+    setTimeout(function() { btn.classList.remove('refreshing'); }, 1000);
+  });
+}
+
+// ── DAY PANEL ──────────────────────────────────────────────
+
+function showDayPanel(dateKey) {
+  var bookings = getBookingsByDate(dateKey);
+  var d = new Date(dateKey + 'T00:00:00');
+  var dayOfWeek = (d.getDay() + 6) % 7;
+
+  var panelDate = document.getElementById('panelDate');
+  panelDate.textContent = LT_WEEKDAYS_FULL[dayOfWeek] + ', ' +
+    d.getDate() + ' ' + LT_MONTHS_GEN[d.getMonth()];
+
+  var panelMeta = document.getElementById('panelMeta');
+  if (bookings.length > 0) {
+    var revenue = getDayRevenue(bookings);
+    panelMeta.textContent = bookings.length + ' užsakym' +
+      pluralLT(bookings.length) + ' · ' + formatPrice(revenue);
+  } else {
+    panelMeta.textContent = 'Nėra užsakymų';
+  }
+
+  var panelBody = document.getElementById('panelBody');
+  panelBody.classList.add('exiting');
+
+  setTimeout(function() {
+    panelBody.innerHTML = '';
+    panelBody.classList.remove('exiting');
+
+    if (bookings.length === 0) {
+      panelBody.innerHTML =
+        '<div class="empty-state">' +
+        '<div class="empty-state-icon">📭</div>' +
+        '<div class="empty-state-text">Šią dieną užsakymų nėra</div>' +
+        '</div>';
+    } else {
+      bookings.forEach(function(b, idx) {
+        var card = buildBookingCard(b);
+        card.style.animationDelay = (idx * 60) + 'ms';
+        panelBody.appendChild(card);
+      });
+    }
+
+    panelBody.classList.add('entering');
+    setTimeout(function() { panelBody.classList.remove('entering'); }, 250);
+  }, 160);
+}
+
+function clearDayPanel() {
+  document.getElementById('panelDate').textContent = 'Pasirinkite dieną';
+  document.getElementById('panelMeta').textContent = '';
+  var panelBody = document.getElementById('panelBody');
+  panelBody.innerHTML =
+    '<div class="empty-state">' +
+    '<div class="empty-state-icon">📅</div>' +
+    '<div class="empty-state-text">Pasirinkite dieną kalendoriuje</div>' +
+    '</div>';
+}
+
+// MOBILE ACCORDION
+function toggleDayAccordion(dateKey) {
+  var existing = document.getElementById('dayAccordion');
+
+  if (existing && existing.dataset.date === dateKey) {
+    closeDayAccordion();
+    return;
+  }
+
+  if (existing) existing.remove();
+
+  var bookings = getBookingsByDate(dateKey);
+  var d = new Date(dateKey + 'T00:00:00');
+  var dayOfWeek = (d.getDay() + 6) % 7;
+
+  var acc = document.createElement('div');
+  acc.className = 'day-accordion';
+  acc.id = 'dayAccordion';
+  acc.dataset.date = dateKey;
+
+  var header = document.createElement('div');
+  header.className = 'panel-header';
+  var dateStr = LT_WEEKDAYS_FULL[dayOfWeek] + ', ' +
+    d.getDate() + ' ' + LT_MONTHS_GEN[d.getMonth()];
+  header.innerHTML = '<div class="panel-date">' + escHtml(dateStr) + '</div>';
+  if (bookings.length > 0) {
+    var revenue = getDayRevenue(bookings);
+    header.innerHTML += '<div class="panel-meta">' +
+      bookings.length + ' užsakym' + pluralLT(bookings.length) +
+      ' · ' + formatPrice(revenue) + '</div>';
+  } else {
+    header.innerHTML += '<div class="panel-meta">Nėra užsakymų</div>';
+  }
+  acc.appendChild(header);
+
+  if (bookings.length === 0) {
+    var emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-state';
+    emptyDiv.style.padding = '20px';
+    emptyDiv.innerHTML = '<div class="empty-state-icon">📭</div>' +
+      '<div class="empty-state-text">Šią dieną užsakymų nėra</div>';
+    acc.appendChild(emptyDiv);
+  } else {
+    bookings.forEach(function(b) {
+      acc.appendChild(buildBookingCard(b));
+    });
+  }
+
+  var clickedCell = document.querySelector('.cal-day[data-date="' + dateKey + '"]');
+  if (clickedCell) {
+    var grid = document.getElementById('calGrid');
+    var cells = Array.from(grid.children);
+    var cellIndex = cells.indexOf(clickedCell);
+    var adjustedIndex = cellIndex - 7;
+    var rowEnd = 7 + (Math.floor(adjustedIndex / 7) + 1) * 7;
+    var afterEl = cells[Math.min(rowEnd - 1, cells.length - 1)];
+    afterEl.after(acc);
+  } else {
+    document.getElementById('calGrid').appendChild(acc);
+  }
+
+  acc.style.maxHeight = '0';
+  acc.style.overflow = 'hidden';
+  requestAnimationFrame(function() {
+    acc.style.transition = 'max-height 250ms ease-out';
+    acc.style.maxHeight = acc.scrollHeight + 'px';
+    setTimeout(function() {
+      acc.style.maxHeight = 'none';
+      acc.style.overflow = 'visible';
+    }, 260);
+  });
+
+  setTimeout(function() {
+    acc.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
+}
+
+function closeDayAccordion() {
+  var acc = document.getElementById('dayAccordion');
+  if (acc) {
+    acc.style.overflow = 'hidden';
+    acc.style.maxHeight = acc.scrollHeight + 'px';
+    requestAnimationFrame(function() {
+      acc.style.transition = 'max-height 200ms ease-in';
+      acc.style.maxHeight = '0';
+      setTimeout(function() { acc.remove(); }, 210);
+    });
+  }
+}
+
+// ── BOOKING CARD ───────────────────────────────────────────
 
 function buildBookingCard(b) {
   var card = document.createElement('div');
   card.className = 'booking-card';
 
-  // Header row
-  var hdr = document.createElement('div');
-  hdr.className = 'booking-card-header';
+  var eventTime = getEventTime(b);
+  var pickupTime = getPickupTime(b);
+  var statusKey = b.status || 'Inquiry';
+  var paymentKey = b.payment_status || 'Unpaid';
+  var equipNames = getEquipmentNames(b);
+  var equipIcons = getEquipmentIcons(b);
+  var phone = b.customer_phone || '';
+  var address = b.delivery_address || '';
+  var city = b.city || '';
+  var price = b.price != null ? formatPrice(parseFloat(b.price)) : '—';
+  var notes = b.notes || '';
 
-  var nameWrap = document.createElement('div');
-  var nameEl = document.createElement('div');
-  nameEl.className = 'booking-name';
-  nameEl.textContent = b.customer_name || '';
-  nameWrap.appendChild(nameEl);
+  var timeStr = eventTime;
+  if (pickupTime) timeStr += ' → ' + pickupTime;
 
-  var timeEl = document.createElement('div');
-  timeEl.className = 'booking-time';
-  var dt = new Date(b.date);
-  var hh = String(dt.getHours()).padStart(2,'0');
-  var mm = String(dt.getMinutes()).padStart(2,'0');
-  timeEl.textContent = '⏰ ' + hh + ':' + mm + (b.duration ? ' · ' + b.duration : '');
-  nameWrap.appendChild(timeEl);
+  var html = '';
 
-  var badge = document.createElement('span');
-  badge.className = 'status-badge status-' + (b.status || 'inquiry');
-  badge.textContent = STATUS_LT[b.status] || b.status || '';
+  html += '<div class="booking-card-header">';
+  html += '<div class="booking-card-name">' + escHtml(b.customer_name || '—') + '</div>';
+  html += '<div class="booking-card-time">' + escHtml(timeStr) + '</div>';
+  html += '</div>';
 
-  hdr.appendChild(nameWrap);
-  hdr.appendChild(badge);
-  card.appendChild(hdr);
-
-  // Address
-  if (b.address || b.city) {
-    var addrRow = buildDetailRow('📍', (b.address || '') + (b.city ? ', ' + b.city : ''));
-    card.appendChild(addrRow);
+  if (phone) {
+    html += '<div class="booking-card-row">';
+    html += '<span class="icon">📞</span>';
+    html += '<a href="tel:' + escHtml(phone) + '">' + escHtml(phone) + '</a>';
+    html += '</div>';
   }
 
-  // Phone
-  if (b.phone) {
-    var phoneRow = document.createElement('div');
-    phoneRow.className = 'booking-detail-row';
-    var ico = document.createElement('span');
-    ico.className = 'icon';
-    ico.textContent = '📞';
-    var link = document.createElement('a');
-    link.href = 'tel:' + b.phone;
-    link.style.cssText = 'color:var(--purple-light);text-decoration:none;';
-    link.textContent = b.phone;
-    phoneRow.appendChild(ico);
-    phoneRow.appendChild(link);
-    card.appendChild(phoneRow);
+  if (address) {
+    html += '<div class="booking-card-row">';
+    html += '<span class="icon">📍</span>';
+    html += '<span>' + escHtml(address) + (city ? ', ' + escHtml(city) : '') + '</span>';
+    html += '</div>';
   }
 
-  // Notes
-  if (b.notes) {
-    var noteRow = buildDetailRow('💬', b.notes);
-    var spans = noteRow.querySelectorAll('span:not(.icon)');
-    if (spans.length) { spans[0].style.cssText = 'font-style:italic;color:var(--text-faint);'; }
-    card.appendChild(noteRow);
+  if (notes) {
+    html += '<div class="booking-card-row">';
+    html += '<span class="icon">📝</span>';
+    html += '<span>' + escHtml(notes) + '</span>';
+    html += '</div>';
   }
 
-  // Equipment pills
-  if (b.equipment && b.equipment.length > 0) {
-    var pillsWrap = document.createElement('div');
-    pillsWrap.className = 'equipment-pills';
-    b.equipment.forEach(function(eq) {
-      var pill = document.createElement('span');
-      pill.className = 'equip-pill';
-      pill.textContent = (EQUIP_EMOJI[eq] || '🎪') + ' ' + eq;
-      pillsWrap.appendChild(pill);
+  if (equipNames.length > 0) {
+    html += '<div class="booking-card-equipment">';
+    equipNames.forEach(function(name, idx) {
+      var icon = equipIcons[idx] || '';
+      html += '<span class="booking-card-equip-tag">' +
+        (icon ? icon + ' ' : '') + escHtml(name) + '</span>';
     });
-    card.appendChild(pillsWrap);
+    html += '</div>';
   }
 
-  // Footer: price + payment
-  var footer = document.createElement('div');
-  footer.className = 'booking-footer';
-  var priceEl = document.createElement('span');
-  priceEl.className = 'booking-price';
-  priceEl.textContent = b.price ? b.price + ' €' : '—';
-  var payEl = document.createElement('span');
-  payEl.className = 'payment-badge ' + (PAYMENT_CLASS[b.payment] || 'pay-unpaid');
-  payEl.textContent = PAYMENT_LT[b.payment] || b.payment || '';
-  footer.appendChild(priceEl);
-  footer.appendChild(payEl);
-  card.appendChild(footer);
+  html += '<div class="booking-card-footer">';
+  html += '<div class="booking-card-price">' + price + '</div>';
+  html += '<div>';
+  html += '<span class="status-badge ' + (STATUS_CLASS[statusKey] || '') + '">' +
+    escHtml(STATUS_LT[statusKey] || statusKey) + '</span> ';
+  html += '<span class="payment-badge ' + (PAYMENT_CLASS[paymentKey] || '') + '">' +
+    escHtml(PAYMENT_LT[paymentKey] || paymentKey) + '</span>';
+  html += '</div>';
+  html += '</div>';
 
+  card.innerHTML = html;
   return card;
 }
 
-function buildDetailRow(icon, text) {
-  var row = document.createElement('div');
-  row.className = 'booking-detail-row';
-  var ico = document.createElement('span');
-  ico.className = 'icon';
-  ico.textContent = icon;
-  var txt = document.createElement('span');
-  txt.textContent = text;
-  row.appendChild(ico);
-  row.appendChild(txt);
-  return row;
+// ── HELPERS ────────────────────────────────────────────────
+
+function pluralLT(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return 'as';
+  if (n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 10 || n % 100 >= 20)) return 'ai';
+  return 'ų';
 }
 
-// ── EQUIPMENT ──
+function formatPrice(val) {
+  if (isNaN(val)) return '—';
+  return val.toFixed(0) + ' €';
+}
+
+function escHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ── EQUIPMENT STRIP ────────────────────────────────────────
+
 function renderEquipment() {
-  var grid = document.getElementById('equipGrid');
-  grid.textContent = '';
+  var strip = document.getElementById('equipStrip');
+  strip.innerHTML = '';
+
   state.equipment.forEach(function(eq) {
-    var item = document.createElement('div');
-    item.className = 'equip-item';
+    var statusKey = eq.current_status || eq.status || 'Available';
+    var statusClass = EQUIP_STATUS_CLASS[statusKey] || 'equip-available';
 
-    var nm = document.createElement('div');
-    nm.className = 'equip-name';
-    nm.textContent = (EQUIP_EMOJI[eq.name] || '🎪') + ' ' + eq.name;
-    item.appendChild(nm);
+    var pill = document.createElement('div');
+    pill.className = 'equip-pill ' + statusClass;
 
-    var row = document.createElement('div');
-    row.className = 'equip-row';
-    var dot = document.createElement('div');
-    dot.className = 'equip-status-dot es-' + eq.status;
-    var lbl = document.createElement('span');
-    lbl.className = 'equip-status-label esl-' + eq.status;
-    lbl.textContent = EQUIP_STATUS_LABELS[eq.status] || eq.status;
-    row.appendChild(dot);
-    row.appendChild(lbl);
-    item.appendChild(row);
+    pill.innerHTML =
+      '<span class="equip-icon">' + (eq.icon || '🎪') + '</span>' +
+      '<span class="equip-name">' + escHtml(eq.name) + '</span>' +
+      '<span class="equip-status">' + (EQUIP_STATUS_LT[statusKey] || statusKey) + '</span>';
 
-    grid.appendChild(item);
+    strip.appendChild(pill);
   });
 }
 
-// ── NAV ──
-function changeMonth(dir) {
-  state.viewMonth += dir;
-  if (state.viewMonth > 11) { state.viewMonth = 0;  state.viewYear++; }
-  if (state.viewMonth < 0)  { state.viewMonth = 11; state.viewYear--; }
-  renderCalendar();
+// ── STATS ──────────────────────────────────────────────────
+
+function renderStats() {
+  var s = state.stats;
+
+  var todayCount = parseInt(s.today_count) || 0;
+  var weekRevenue = parseFloat(s.week_revenue) || 0;
+  var lastWeekRevenue = parseFloat(s.last_week_revenue) || 0;
+  var unpaid = parseInt(s.unpaid_deposits) || 0;
+  var available = parseInt(s.available_equipment) || 0;
+  var totalEquip = state.equipment.length || 20;
+
+  if (state.firstLoad) {
+    animateNumber(document.getElementById('statTodayCount'), todayCount, 600, '');
+    animateNumber(document.getElementById('statWeekRevenue'), weekRevenue, 600, ' €');
+    animateNumber(document.getElementById('statUnpaid'), unpaid, 600, '');
+    animateNumber(document.getElementById('statAvailable'), available, 600, '');
+  } else {
+    document.getElementById('statTodayCount').textContent = todayCount;
+    document.getElementById('statWeekRevenue').textContent = weekRevenue.toFixed(0) + ' €';
+    document.getElementById('statUnpaid').textContent = unpaid;
+    document.getElementById('statAvailable').textContent = available;
+  }
+
+  var weekSub = document.getElementById('statWeekSub');
+  if (lastWeekRevenue > 0) {
+    var diff = weekRevenue - lastWeekRevenue;
+    var pct = ((diff / lastWeekRevenue) * 100).toFixed(0);
+    var arrow = diff >= 0 ? '↑' : '↓';
+    var color = diff >= 0 ? 'var(--green)' : 'var(--red)';
+    weekSub.innerHTML = '<span style="color:' + color + '">' + arrow + ' ' +
+      Math.abs(pct) + '% nuo praėj. sav.</span>';
+  } else {
+    weekSub.textContent = '';
+  }
+
+  document.getElementById('statAvailableSub').textContent = 'iš ' + totalEquip;
+
+  if (state.lastFetched) {
+    var h = pad(state.lastFetched.getHours());
+    var m = pad(state.lastFetched.getMinutes());
+    document.getElementById('lastUpdated').textContent = h + ':' + m;
+  }
 }
 
-function goToday() {
-  var n = new Date();
-  state.viewYear  = n.getFullYear();
-  state.viewMonth = n.getMonth();
-  renderCalendar();
+function animateNumber(el, target, duration, suffix) {
+  if (!el) return;
+  if (target === 0) {
+    el.textContent = '0' + (suffix || '');
+    return;
+  }
+
+  var start = performance.now();
+  function frame(now) {
+    var progress = Math.min((now - start) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    var current = Math.round(eased * target);
+    el.textContent = current + (suffix || '');
+    if (progress < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
 
-// ── UTILS ──
-function setText(id, val) {
-  var el = document.getElementById(id);
-  if (el) el.textContent = val;
+// ── UTILS ──────────────────────────────────────────────────
+
+function pad(n) {
+  return n < 10 ? '0' + n : String(n);
+}
+
+function fmtKey(date) {
+  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+}
+
+function isMobile() {
+  return window.innerWidth < 768;
 }
 
 function showLoading(on) {
-  document.getElementById('loadingOverlay').classList.toggle('active', on);
+  var overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.classList.toggle('hidden', !on);
 }
 
 function showToast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + (type || '');
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
+  var toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.className = 'toast ' + (type || 'info') + ' visible';
+  setTimeout(function() { toast.classList.remove('visible'); }, 3000);
 }
 
-// ── INIT ──
-loadData();
-setInterval(loadData, 5 * 60 * 1000);
+function renderAll() {
+  renderCalendar();
+  renderStats();
+  renderEquipment();
+
+  if (state.selectedDate) {
+    if (isMobile()) {
+      // Don't auto-reopen accordion on refresh
+    } else {
+      showDayPanel(state.selectedDate);
+    }
+  }
+}
+
+// ── INIT ───────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function() {
+  initNavigation();
+  loadData();
+
+  setInterval(function() { loadData(); }, REFRESH_INTERVAL_MS);
+
+  window.addEventListener('resize', function() {
+    var acc = document.getElementById('dayAccordion');
+    if (!isMobile() && acc) {
+      acc.remove();
+      if (state.selectedDate) showDayPanel(state.selectedDate);
+    }
+  });
+});
 </script>
 </body>
 </html>

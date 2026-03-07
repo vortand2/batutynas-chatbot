@@ -953,7 +953,7 @@ return [{
             "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
             "sendBody": True,
             "specifyBody": "json",
-            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [[\n      {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n    ]]\n  }\n}',
+            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "keyboard": [[\n      {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n    ]],\n    "resize_keyboard": true,\n    "one_time_keyboard": true\n  }\n}',
             "options": {}
         },
         "id": "send-keyboard",
