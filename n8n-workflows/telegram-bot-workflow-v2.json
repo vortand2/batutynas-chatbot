@@ -418,29 +418,21 @@
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $('Format WebApp Result').first().json.chatId }}",
-        "text": "={{ $('Format WebApp Result').first().json.reply }}",
-        "additionalFields": {
-          "appendAttribution": false,
-          "parse_mode": "HTML"
-        }
+        "method": "POST",
+        "url": "https://api.telegram.org/botTELEGRAM_BOT_TOKEN_PLACEHOLDER/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($(\"Format WebApp Result\").first().json.chatId) }},\n  \"text\": {{ JSON.stringify($(\"Format WebApp Result\").first().json.reply) }},\n  \"parse_mode\": \"HTML\",\n  \"reply_markup\": {\"remove_keyboard\": true}\n}",
+        "options": {}
       },
       "id": "send-webapp-result",
       "name": "Send WebApp Result",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1940,
         500
-      ],
-      "credentials": {
-        "telegramApi": {
-          "id": "9BHFQfSuhUuhfdqW",
-          "name": "Batutynas Telegram Bot"
-        }
-      }
+      ]
     },
     {
       "parameters": {

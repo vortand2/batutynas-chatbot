@@ -1000,24 +1000,21 @@ return [{
         "position": [1720, 500]
     })
 
-    # 21. Send WebApp Result (Telegram)
+    # 21. Send WebApp Result (Telegram via HTTP — includes remove_keyboard)
     nodes.append({
         "parameters": {
-            "resource": "message",
-            "operation": "sendMessage",
-            "chatId": "={{ $('Format WebApp Result').first().json.chatId }}",
-            "text": "={{ $('Format WebApp Result').first().json.reply }}",
-            "additionalFields": {
-                "appendAttribution": False,
-                "parse_mode": "HTML"
-            }
+            "method": "POST",
+            "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            "sendBody": True,
+            "specifyBody": "json",
+            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Format WebApp Result").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Format WebApp Result").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {"remove_keyboard": true}\n}',
+            "options": {}
         },
         "id": "send-webapp-result",
         "name": "Send WebApp Result",
-        "type": "n8n-nodes-base.telegram",
-        "typeVersion": 1.2,
-        "position": [1940, 500],
-        "credentials": {"telegramApi": TELEGRAM_CRED}
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1940, 500]
     })
 
     # ============ CALLBACK PATH (TRUE from callback check) ============
@@ -1151,7 +1148,8 @@ return [{
 
 if __name__ == '__main__':
     wf = build_workflow()
-    output_path = '/Users/dovydasdobrovolskis/Projects/batutynas-chatbot/n8n-workflows/telegram-bot-workflow-v2.json'
+    import os
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'telegram-bot-workflow-v2.json')
     with open(output_path, 'w') as f:
         json.dump(wf, f, indent=2, ensure_ascii=False)
     print(f"Written to {output_path}")
