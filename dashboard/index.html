@@ -3,216 +3,150 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Batutynas — Užsakymų valdymas</title>
+  <title>Batutynas — Valdymo panel&#279;</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-/* ==========================================================================
-   1. CSS RESET
-   ========================================================================== */
+/* ================================================================
+   RESET
+   ================================================================ */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-height:100vh;line-height:1.5}
+img,picture,svg{display:block;max-width:100%}
+input,button,textarea,select{font:inherit}
+p,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word}
+ul,ol{list-style:none}
+a{color:inherit;text-decoration:inherit}
+table{border-collapse:collapse;border-spacing:0}
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  tab-size: 4;
-}
-
-body {
-  min-height: 100vh;
-  line-height: inherit;
-}
-
-img,
-picture,
-video,
-canvas,
-svg {
-  display: block;
-  max-width: 100%;
-}
-
-input,
-button,
-textarea,
-select {
-  font: inherit;
-}
-
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  overflow-wrap: break-word;
-}
-
-ul,
-ol {
-  list-style: none;
-}
-
-a {
-  color: inherit;
-  text-decoration: inherit;
-}
-
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
-/* ==========================================================================
-   2. CSS CUSTOM PROPERTIES
-   ========================================================================== */
-
+/* ================================================================
+   CUSTOM PROPERTIES
+   ================================================================ */
 :root {
-  /* Backgrounds */
-  --bg: #F7F6F2;
-  --bg-card: #FFFFFF;
-  --bg-inset: #EFEDE8;
+  /* Surface */
+  --bg:          #FAF8F4;
+  --bg-card:     #FFFFFF;
+  --bg-inset:    #F0EDE6;
+  --bg-hover:    #F5F2EC;
 
   /* Borders */
-  --border: #E2DED6;
-  --border-strong: #C8C3B8;
+  --border:      #E6E1D8;
+  --border-strong:#CFC9BD;
 
   /* Text */
-  --text: #1A1814;
-  --text-dim: #6B6560;
-  --text-faint: #A8A29C;
+  --text:        #1C1917;
+  --text-dim:    #78716C;
+  --text-faint:  #A8A29E;
 
-  /* Accent — brand orange */
-  --accent: #FF5C2B;
-  --accent-dim: #FFF0EC;
-  --accent-hover: #E84D20;
+  /* Accent — vivid orange */
+  --accent:      #FF6B35;
+  --accent-dim:  #FFF3ED;
+  --accent-hover:#E85D2C;
+  --accent-text: #C4411B;
 
-  /* Semantic colours */
-  --green: #16A34A;
-  --green-dim: #F0FDF4;
+  /* Semantic */
+  --green:       #16A34A;
+  --green-dim:   #ECFDF5;
+  --yellow:      #CA8A04;
+  --yellow-dim:  #FEFCE8;
+  --blue:        #2563EB;
+  --blue-dim:    #EFF6FF;
+  --red:         #DC2626;
+  --red-dim:     #FEF2F2;
+  --gray:        #6B7280;
+  --gray-dim:    #F3F4F6;
 
-  --yellow: #D97706;
-  --yellow-dim: #FFFBEB;
-
-  --blue: #2563EB;
-  --blue-dim: #EFF6FF;
-
-  --red: #DC2626;
-  --red-dim: #FEF2F2;
-
-  --gray: #6B7280;
-  --gray-dim: #F9FAFB;
+  /* Teal — secondary accent for variety */
+  --teal:        #0D9488;
+  --teal-dim:    #F0FDFA;
 
   /* Shape */
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-pill: 100px;
 
   /* Elevation */
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow:      0 1px 3px rgba(28,25,23,.05), 0 1px 2px rgba(28,25,23,.03);
+  --shadow-md:   0 4px 12px rgba(28,25,23,.06), 0 1px 3px rgba(28,25,23,.04);
+  --shadow-lg:   0 8px 24px rgba(28,25,23,.08), 0 2px 6px rgba(28,25,23,.04);
+
+  /* Motion */
+  --ease-bounce: cubic-bezier(.34,1.56,.64,1);
+  --ease-out:    cubic-bezier(.16,1,.3,1);
 }
 
-/* ==========================================================================
-   3. TYPOGRAPHY BASE
-   ========================================================================== */
-
+/* ================================================================
+   TYPOGRAPHY
+   ================================================================ */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-feature-settings: "tnum" 1;
+  font-family: 'Outfit', system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--text);
-  background-color: var(--bg);
+  background: var(--bg);
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-/* Utility: small label / eyebrow text */
-.label {
-  font-size: 0.625rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
-}
-
-/* Utility: muted text */
-.text-dim {
-  color: var(--text-dim);
-}
-
-/* Utility: accent text */
-.text-accent {
-  color: var(--accent);
-}
-
-/* ============================================================
-   02-css-layout.css — Dashboard Layout
-   ============================================================ */
-
-/* HEADER */
+/* ================================================================
+   LAYOUT — HEADER
+   ================================================================ */
 .dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 20px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.92);
 }
 
 .header-brand {
   display: flex;
-  flex-direction: row;
   align-items: center;
   gap: 10px;
 }
 
 .header-logo {
-  font-size: 1.5rem;
-  line-height: 1;
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, var(--accent), #FF9F6B);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 2px 8px rgba(255,107,53,.25);
 }
 
 .header-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--text) 50%, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-actions {
   display: flex;
-  flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+.header-updated {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-faint);
+  padding-right: 4px;
 }
 
 .header-btn {
@@ -225,19 +159,18 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  font-size: 1rem;
+  color: var(--text-dim);
+  transition: all .15s var(--ease-out);
 }
 
-.header-btn:hover {
-  background: var(--bg-inset);
-}
+.header-btn:hover { background: var(--bg-inset); border-color: var(--border-strong); }
+.header-btn:active { transform: scale(.9); }
+.header-btn.refreshing { animation: spin .7s linear infinite; }
 
-.header-updated {
-  font-size: 0.7rem;
-  color: var(--text-faint);
-}
-
-/* STATS BAR */
+/* ================================================================
+   LAYOUT — STATS BAR
+   ================================================================ */
 .stats-bar {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -250,65 +183,109 @@ h3 {
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: transform .2s var(--ease-bounce), box-shadow .2s;
 }
 
-.stat-card.accent {
-  border-left: 3px solid var(--accent);
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+  opacity: 0;
+  transition: opacity .2s;
 }
+
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.stat-card:hover::before { opacity: 1; }
+
+.stat-card:nth-child(1)::before { background: var(--accent); opacity: 1; }
+.stat-card:nth-child(2)::before { background: var(--teal); }
+.stat-card:nth-child(3)::before { background: var(--yellow); }
+.stat-card:nth-child(4)::before { background: var(--blue); }
 
 .stat-label {
-  font-size: 0.625rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   color: var(--text-faint);
   margin-bottom: 6px;
 }
 
 .stat-value {
-  font-size: clamp(1.5rem, 4vw, 2.25rem);
-  font-weight: 800;
+  font-size: clamp(1.6rem, 5vw, 2.5rem);
+  font-weight: 900;
   color: var(--text);
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .stat-sub {
   font-size: 0.75rem;
+  font-weight: 500;
   color: var(--text-dim);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
-/* MAIN SPLIT LAYOUT */
+/* ================================================================
+   LAYOUT — MAIN SPLIT
+   ================================================================ */
 .main-layout {
-  padding: 0 20px;
+  padding: 0 20px 20px;
 }
 
-/* CALENDAR PANE */
+/* Calendar Pane */
 .calendar-pane {
   background: var(--bg-card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 
-/* SIDE PANEL */
+/* Side Panel (desktop only by default) */
 .side-panel {
   display: none;
   background: var(--bg-card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
-/* EQUIPMENT SECTION */
+/* ================================================================
+   LAYOUT — EQUIPMENT SECTION
+   ================================================================ */
 .equipment-section {
   padding: 20px;
 }
 
+.equipment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.equipment-header-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent-dim);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
 .equipment-title {
   font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 12px;
+  font-size: 0.95rem;
   color: var(--text);
 }
 
@@ -316,25 +293,22 @@ h3 {
   display: flex;
   overflow-x: auto;
   gap: 10px;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.equipment-strip::-webkit-scrollbar {
-  display: none;
-}
+.equipment-strip::-webkit-scrollbar { display: none; }
 
-/* RESPONSIVE — 640px: stats go 4-column */
+/* ================================================================
+   RESPONSIVE BREAKPOINTS
+   ================================================================ */
 @media (min-width: 640px) {
-  .stats-bar {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  .stats-bar { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* RESPONSIVE — 768px: two-column layout, side panel visible */
 @media (min-width: 768px) {
   .main-layout {
     display: grid;
@@ -342,78 +316,50 @@ h3 {
     gap: 24px;
     padding: 20px;
   }
-
   .side-panel {
     display: block;
     position: sticky;
-    top: 16px;
-    height: calc(100vh - 32px);
+    top: 72px;
+    max-height: calc(100vh - 88px);
     overflow-y: auto;
   }
-
   .equipment-strip {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 10px;
     overflow-x: unset;
     padding-bottom: 0;
-    -webkit-overflow-scrolling: unset;
     scroll-snap-type: unset;
   }
-
-  .mobile-only {
-    display: none;
-  }
-
-  .desktop-only {
-    display: block;
-  }
+  .mobile-only { display: none; }
+  .desktop-only { display: block; }
 }
 
-/* RESPONSIVE — 1280px: wider spacing, larger stat values */
 @media (min-width: 1280px) {
-  .stats-bar {
-    gap: 16px;
-    padding: 20px 28px;
-  }
-
-  .main-layout {
-    gap: 32px;
-    padding: 24px 28px;
-  }
-
-  .stat-value {
-    font-size: clamp(2rem, 3vw, 2.75rem);
-  }
-
-  .stat-card {
-    padding: 20px;
-  }
-
-  .dashboard-header {
-    padding: 18px 28px;
-  }
+  .stats-bar { gap: 16px; padding: 20px 28px; }
+  .main-layout { gap: 28px; padding: 24px 28px; }
+  .stat-card { padding: 20px; }
+  .dashboard-header { padding: 16px 28px; }
+  .equipment-section { padding: 20px 28px; }
 }
 
-/* ============================================================
-   03-css-components.css — UI component styles
-   ============================================================ */
-
-/* MONTH NAVIGATION */
+/* ================================================================
+   MONTH NAVIGATION
+   ================================================================ */
 .month-nav {
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   padding: 16px;
 }
 
 .month-nav-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   min-width: 180px;
   text-align: center;
+  letter-spacing: -0.01em;
 }
 
 .month-nav-btn {
@@ -423,112 +369,118 @@ h3 {
   background: transparent;
   border: 1px solid var(--border);
   cursor: pointer;
-  transition: all 0.15s;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  color: var(--text-dim);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all .15s var(--ease-out);
 }
 
-.month-nav-btn:hover {
-  background: var(--bg-inset);
-  border-color: var(--border-strong);
-}
+.month-nav-btn:hover { background: var(--bg-inset); border-color: var(--border-strong); }
+.month-nav-btn:active { transform: scale(.88); }
 
 .month-nav-today {
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: #fff;
   border: none;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  box-shadow: 0 2px 8px rgba(255,107,53,.2);
+  transition: all .15s var(--ease-out);
 }
 
-.month-nav-today:hover {
-  background: var(--accent-hover);
-}
+.month-nav-today:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,107,53,.3); }
+.month-nav-today:active { transform: scale(.95); }
 
-/* CALENDAR GRID */
+/* ================================================================
+   CALENDAR GRID
+   ================================================================ */
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
 }
 
 .cal-header {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-align: center;
-  padding: 8px 4px;
+  padding: 10px 4px;
   color: var(--text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .cal-day {
-  min-height: 60px;
-  padding: 6px;
+  min-height: 64px;
+  padding: 8px 6px;
   border: 1px solid var(--border);
   border-top: none;
   border-left: none;
   cursor: pointer;
   position: relative;
-  transition: background 0.12s;
+  transition: background .12s, transform 80ms;
 }
 
-.cal-day:nth-child(7n) {
-  border-right: none;
-}
-
-.cal-day:hover {
-  background: var(--bg-inset);
-}
+.cal-day:nth-child(7n) { border-right: none; }
+.cal-day:hover { background: var(--bg-hover); }
+.cal-day:active { transform: scale(.96); }
 
 .cal-day.today {
   background: var(--accent-dim);
 }
 
 .cal-day.today .cal-day-num {
-  color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 800;
+  font-size: 0.78rem;
 }
 
 .cal-day.selected {
   background: var(--accent-dim);
   box-shadow: inset 0 0 0 2px var(--accent);
+  border-radius: 4px;
 }
 
 .cal-day.other-month {
-  opacity: 0.3;
+  opacity: 0.25;
   pointer-events: none;
-}
-
-.cal-day:active {
-  transform: scale(0.97);
-  transition: transform 80ms;
 }
 
 .cal-day-num {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text);
+  line-height: 1;
 }
 
 .cal-day-dots {
   display: flex;
   gap: 3px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .cal-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  transition: transform .15s var(--ease-bounce);
 }
+
+.cal-day:hover .cal-dot { transform: scale(1.3); }
 
 .cal-dot.status-confirmed { background: var(--green); }
 .cal-dot.status-delivered { background: var(--blue); }
@@ -539,200 +491,254 @@ h3 {
 .cal-day-count {
   position: absolute;
   top: 4px;
-  right: 6px;
+  right: 4px;
   font-size: 0.6rem;
   font-weight: 800;
   background: var(--accent);
   color: #fff;
-  width: 18px;
+  min-width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 1px 4px rgba(255,107,53,.3);
 }
 
-/* BOOKING CARD */
+/* ================================================================
+   BOOKING CARD
+   ================================================================ */
 .booking-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 14px 16px;
   margin-bottom: 10px;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.booking-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
 }
 
 .booking-card-header {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  gap: 8px;
 }
 
 .booking-card-name {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
+  line-height: 1.2;
 }
 
 .booking-card-time {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--accent);
-  font-feature-settings: "tnum" 1;
+  background: var(--accent-dim);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .booking-card-row {
   display: flex;
-  flex-direction: row;
   gap: 8px;
   align-items: center;
   margin-top: 6px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-dim);
 }
 
-.booking-card-row .icon {
-  width: 16px;
+.booking-card-row .row-icon {
+  width: 18px;
   text-align: center;
   flex-shrink: 0;
+  font-size: 0.85rem;
 }
 
 .booking-card-equipment {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .booking-card-equip-tag {
   background: var(--bg-inset);
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--text-dim);
+  border: 1px solid var(--border);
 }
 
 .booking-card-footer {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
 
 .booking-card-price {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--text);
+  letter-spacing: -0.02em;
 }
 
 .booking-card a[href^="tel"] {
   color: var(--accent);
-  text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  transition: color .15s;
 }
 
-/* STATUS BADGES */
-.status-badge {
+.booking-card a[href^="tel"]:hover { color: var(--accent-hover); }
+
+.booking-card-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ================================================================
+   STATUS & PAYMENT BADGES
+   ================================================================ */
+.badge {
   display: inline-flex;
   padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  font-weight: 800;
+  border-radius: var(--radius-pill);
+  font-size: 0.6rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
 }
 
-.status-badge.status-confirmed { background: var(--green-dim); color: var(--green); }
-.status-badge.status-delivered { background: var(--blue-dim); color: var(--blue); }
-.status-badge.status-completed { background: var(--gray-dim); color: var(--gray); }
-.status-badge.status-inquiry { background: var(--yellow-dim); color: var(--yellow); }
-.status-badge.status-cancelled { background: var(--red-dim); color: var(--red); }
+.badge.status-confirmed { background: var(--green-dim); color: var(--green); }
+.badge.status-delivered { background: var(--blue-dim); color: var(--blue); }
+.badge.status-completed { background: var(--gray-dim); color: var(--gray); }
+.badge.status-inquiry   { background: var(--yellow-dim); color: var(--yellow); }
+.badge.status-cancelled { background: var(--red-dim); color: var(--red); }
 
-/* PAYMENT BADGES */
-.payment-badge {
-  display: inline-flex;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+.badge.pay-paid    { background: var(--green-dim); color: var(--green); }
+.badge.pay-deposit { background: var(--yellow-dim); color: var(--yellow); }
+.badge.pay-unpaid  { background: var(--red-dim); color: var(--red); }
 
-.payment-badge.pay-paid { background: var(--green-dim); color: var(--green); }
-.payment-badge.pay-deposit { background: var(--yellow-dim); color: var(--yellow); }
-.payment-badge.pay-unpaid { background: var(--red-dim); color: var(--red); }
-
-/* EQUIPMENT PILL */
+/* ================================================================
+   EQUIPMENT PILL
+   ================================================================ */
 .equip-pill {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 14px;
-  min-width: 140px;
+  padding: 12px 14px;
+  min-width: 150px;
   scroll-snap-align: start;
+  transition: transform .2s var(--ease-bounce), box-shadow .2s, border-color .15s;
 }
 
-.equip-icon { font-size: 1.2rem; display: block; margin-bottom: 4px; }
+.equip-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--border-strong);
+}
+
+.equip-icon { font-size: 1.3rem; margin-bottom: 6px; }
 .equip-name { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.equip-status { display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
+.equip-status { display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
 
 .equip-available .equip-status { color: var(--green); }
-.equip-reserved .equip-status { color: var(--yellow); }
-.equip-rented .equip-status { color: var(--blue); }
+.equip-reserved .equip-status  { color: var(--yellow); }
+.equip-rented .equip-status    { color: var(--blue); }
 .equip-in-transit .equip-status { color: var(--accent); }
 .equip-needs-cleaning .equip-status { color: var(--yellow); }
-.equip-damaged .equip-status { color: var(--red); }
+.equip-damaged .equip-status   { color: var(--red); }
 
-/* DAY PANEL HEADER */
-.panel-header { padding: 16px; border-bottom: 1px solid var(--border); }
-.panel-date { font-size: 1.1rem; font-weight: 700; }
-.panel-meta { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
-.panel-body { padding: 12px; overflow-y: auto; }
+/* ================================================================
+   PANEL HEADER & BODY
+   ================================================================ */
+.panel-header {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
 
-/* DAY ACCORDION */
+.panel-date {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.panel-meta {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+.panel-body {
+  padding: 14px;
+  overflow-y: auto;
+  transition: opacity 150ms ease-in, transform 150ms ease-in;
+}
+
+/* ================================================================
+   DAY ACCORDION (MOBILE)
+   ================================================================ */
 .day-accordion {
   grid-column: span 7;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-top: none;
-  padding: 12px;
+  border-top: 2px solid var(--accent);
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 14px;
   overflow: hidden;
-  transition: max-height 250ms ease-out;
+  transition: max-height 250ms var(--ease-out);
 }
 
-/* TOAST */
+/* ================================================================
+   TOAST
+   ================================================================ */
 .toast {
   position: fixed;
   bottom: 24px;
   left: 50%;
-  transform: translateX(-50%);
-  padding: 10px 20px;
-  border-radius: var(--radius);
-  font-size: 0.85rem;
+  transform: translateX(-50%) translateY(12px);
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
   font-weight: 600;
   z-index: 1000;
   box-shadow: var(--shadow-lg);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity .3s, transform .3s var(--ease-out);
   pointer-events: none;
 }
 
-.toast.visible { opacity: 1; }
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.success { background: var(--green); color: #fff; }
-.toast.error { background: var(--red); color: #fff; }
-.toast.info { background: var(--text); color: #fff; }
+.toast.error   { background: var(--red); color: #fff; }
+.toast.info    { background: var(--text); color: #fff; }
 
-/* LOADING OVERLAY */
+/* ================================================================
+   LOADING OVERLAY
+   ================================================================ */
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(247, 246, 242, 0.8);
+  background: rgba(250,248,244,.85);
+  backdrop-filter: blur(4px);
   z-index: 999;
   display: flex;
   align-items: center;
@@ -742,72 +748,853 @@ h3 {
 .loading-overlay.hidden { display: none; }
 
 .loading-spinner {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: 3px solid var(--border);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin .65s linear infinite;
 }
 
-/* EMPTY STATE */
-.empty-state { text-align: center; padding: 40px 20px; color: var(--text-faint); }
-.empty-state-icon { font-size: 2rem; margin-bottom: 8px; }
-.empty-state-text { font-size: 0.9rem; }
+/* ================================================================
+   EMPTY STATE
+   ================================================================ */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-faint); }
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.empty-state-text { font-size: 0.88rem; font-weight: 500; }
 
-/* DEMO BANNER */
+/* ================================================================
+   DEMO BANNER
+   ================================================================ */
 .demo-banner {
   background: var(--yellow-dim);
   color: var(--yellow);
   text-align: center;
-  padding: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 8px 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(202,138,4,.15);
 }
 
-/* ============================================================
-   04 — ANIMATIONS
-   ============================================================ */
-
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeOutUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-8px); } }
-@keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 600px; } }
 
-.panel-body { transition: opacity 150ms ease-in, transform 150ms ease-in; }
-.panel-body.entering { animation: fadeInUp 200ms ease-out forwards; }
-.panel-body.exiting { animation: fadeOutUp 150ms ease-in forwards; }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-.stat-card { animation: fadeInUp 400ms ease-out both; }
-.stat-card:nth-child(1) { animation-delay: 50ms; }
-.stat-card:nth-child(2) { animation-delay: 100ms; }
-.stat-card:nth-child(3) { animation-delay: 150ms; }
-.stat-card:nth-child(4) { animation-delay: 200ms; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
-.booking-card { animation: fadeInUp 250ms ease-out both; }
-.booking-card:nth-child(1)  { animation-delay: 60ms; }
-.booking-card:nth-child(2)  { animation-delay: 120ms; }
-.booking-card:nth-child(3)  { animation-delay: 180ms; }
-.booking-card:nth-child(4)  { animation-delay: 240ms; }
-.booking-card:nth-child(5)  { animation-delay: 300ms; }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
 
-.header-btn:active, .month-nav-btn:active { transform: scale(0.92); transition: transform 60ms; }
-.month-nav-today:active { transform: scale(0.95); }
+.panel-body.entering { animation: slideUp 200ms var(--ease-out) forwards; }
+.panel-body.exiting  { animation: fadeIn 120ms ease-in reverse forwards; }
 
-.header-btn.refreshing { animation: spin 0.8s linear infinite; }
+.stat-card  { animation: slideUp 400ms var(--ease-out) both; }
+.stat-card:nth-child(1) { animation-delay: 40ms; }
+.stat-card:nth-child(2) { animation-delay: 90ms; }
+.stat-card:nth-child(3) { animation-delay: 140ms; }
+.stat-card:nth-child(4) { animation-delay: 190ms; }
+
+.booking-card { animation: slideUp 280ms var(--ease-out) both; }
+
+.calendar-pane { animation: scaleIn 350ms var(--ease-out) both; animation-delay: 100ms; }
+
+/* Scrollbar styling */
+.side-panel::-webkit-scrollbar { width: 4px; }
+.side-panel::-webkit-scrollbar-track { background: transparent; }
+.side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.side-panel::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,*::before,*::after {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-.side-panel::-webkit-scrollbar { width: 4px; }
-.side-panel::-webkit-scrollbar-track { background: transparent; }
-.side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-.side-panel::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+/* ================================================================
+   EDIT MODAL, DELETE DIALOG, FILTER BAR, DATE PICKER, ACTION BUTTONS
+   ================================================================ */
+
+/* Shared backdrop — used by both edit modal and confirm dialog */
+.edit-modal-backdrop,
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(28, 25, 23, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out);
+}
+
+.edit-modal-backdrop.is-open,
+.confirm-dialog-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.edit-modal-content,
+.confirm-dialog {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  width: 100%;
+  position: relative;
+  transform: scale(0.96) translateY(8px);
+  transition:
+    transform 0.25s var(--ease-bounce),
+    opacity   0.2s  var(--ease-out);
+  opacity: 0;
+}
+
+.edit-modal-backdrop.is-open .edit-modal-content,
+.confirm-dialog-backdrop.is-open .confirm-dialog {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.edit-modal-content {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.edit-modal-content::-webkit-scrollbar { width: 4px; }
+.edit-modal-content::-webkit-scrollbar-track { background: transparent; }
+.edit-modal-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.edit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  z-index: 1;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.edit-modal-content.is-scrolled .edit-modal-header {
+  border-bottom-color: var(--border);
+}
+
+.edit-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  flex: 1;
+}
+
+.edit-modal-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.edit-modal-close:hover {
+  background: var(--bg-inset);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.edit-modal-close:active { transform: scale(0.9); }
+
+.edit-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-card);
+}
+
+.btn-cancel {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-cancel:hover {
+  background: var(--bg-inset);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-save {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: #ffffff;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-save:hover { background: var(--accent-hover); }
+.btn-save:active { transform: scale(0.97); }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Delete confirm dialog */
+.confirm-dialog {
+  max-width: 360px;
+  padding: 24px;
+  text-align: center;
+}
+
+.confirm-dialog-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--red-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 16px;
+  border: 1px solid rgba(220, 38, 38, 0.15);
+}
+
+.confirm-dialog-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.confirm-dialog-message {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin-bottom: 24px;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-dialog-cancel {
+  flex: 1;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-dialog-cancel:hover {
+  background: var(--bg-inset);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-dialog-delete {
+  flex: 1;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--red);
+  color: #ffffff;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-dialog-delete:hover { background: #b91c1c; }
+.btn-dialog-delete:active { transform: scale(0.97); }
+
+/* Booking card action buttons */
+.booking-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.booking-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  transition:
+    background  0.15s var(--ease-out),
+    border-color 0.15s,
+    color       0.15s,
+    transform   0.1s;
+  flex-shrink: 0;
+}
+
+.booking-action-btn:hover {
+  background: var(--bg-inset);
+  border-color: var(--border);
+  color: var(--accent);
+  transform: scale(1.08);
+}
+
+.booking-action-btn:active { transform: scale(0.92); }
+
+.booking-action-delete:hover {
+  background: var(--red-dim);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: var(--red);
+}
+
+.booking-action-btn[data-tooltip] { position: relative; }
+
+.booking-action-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.booking-action-btn[data-tooltip]:hover::after { opacity: 1; }
+
+/* Source badge in booking card */
+.booking-source-badge {
+  font-size: 0.75rem;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* Meta row styling */
+.booking-card-meta {
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  position: sticky;
+  top: 65px;
+  z-index: 40;
+}
+
+.filter-bar::-webkit-scrollbar { display: none; }
+
+.filter-bar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 32px;
+  height: 100%;
+  background: linear-gradient(to left, var(--bg-card), transparent);
+  pointer-events: none;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  color: var(--text-dim);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background  0.15s var(--ease-out),
+    border-color 0.15s,
+    color       0.15s,
+    transform   0.1s;
+  user-select: none;
+}
+
+.filter-pill:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.filter-pill:active { transform: scale(0.95); }
+
+.filter-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.filter-pill.active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* Mini date picker */
+.date-picker-dropdown {
+  position: absolute;
+  z-index: 300;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 248px;
+  padding: 12px;
+  user-select: none;
+  margin-top: 6px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  pointer-events: none;
+  transition:
+    opacity   0.18s var(--ease-out),
+    transform 0.2s  var(--ease-bounce);
+}
+
+.date-picker-dropdown.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 4px;
+}
+
+.dp-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  transition: background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+.dp-nav-btn:hover {
+  background: var(--bg-inset);
+  border-color: var(--border-strong);
+}
+
+.dp-month-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+
+.dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.dp-weekday {
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  padding: 2px 0;
+  text-transform: uppercase;
+}
+
+.dp-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, transform 0.1s;
+  border: 1px solid transparent;
+}
+
+.dp-day:hover {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+}
+
+.dp-day:active { transform: scale(0.88); }
+
+.dp-day.is-today {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.dp-day.is-selected {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+  border-color: var(--accent);
+}
+
+.dp-day.is-selected:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #ffffff;
+}
+
+.dp-day.is-outside {
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+/* Form elements */
+.edit-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.edit-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.edit-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.edit-label .required {
+  color: var(--red);
+  margin-left: 2px;
+}
+
+.edit-input,
+.edit-select,
+.edit-textarea {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  color: var(--text);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  outline: none;
+  transition:
+    border-color 0.15s var(--ease-out),
+    background   0.15s,
+    box-shadow   0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.edit-input::placeholder,
+.edit-textarea::placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.edit-input:focus,
+.edit-select:focus,
+.edit-textarea:focus {
+  border-color: var(--accent);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.edit-input:hover:not(:focus),
+.edit-select:hover:not(:focus),
+.edit-textarea:hover:not(:focus) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.edit-textarea {
+  height: auto;
+  min-height: 88px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.edit-select-wrapper { position: relative; }
+.edit-select-wrapper .edit-select { padding-right: 36px; cursor: pointer; }
+
+.edit-select-wrapper::after {
+  content: '\25BE';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+input[type="date"].edit-input,
+input[type="time"].edit-input { cursor: pointer; }
+
+input[type="date"].edit-input::-webkit-calendar-picker-indicator,
+input[type="time"].edit-input::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: none;
+}
+
+.edit-form-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Toast container (replaces simple toast) */
+.toast-container {
+  position: fixed;
+  top: 72px;
+  right: 16px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid transparent;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 0.875rem;
+  max-width: 320px;
+  min-width: 220px;
+  line-height: 1.45;
+  pointer-events: auto;
+  animation: toastSlideIn 0.28s var(--ease-bounce) forwards;
+}
+
+.toast-item.is-exiting {
+  animation: toastSlideOut 0.22s var(--ease-out) forwards;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(12px) scale(0.95); }
+}
+
+.toast-item.toast-success {
+  background: var(--green-dim);
+  border-color: rgba(22, 163, 74, 0.25);
+  color: #14532d;
+}
+
+.toast-item.toast-error {
+  background: var(--red-dim);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #7f1d1d;
+}
+
+/* Responsive overrides for new features */
+@media (max-width: 640px) {
+  .edit-modal-backdrop,
+  .confirm-dialog-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .edit-modal-content {
+    max-width: 100%;
+    max-height: 92vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    transform: translateY(24px) scale(1);
+  }
+
+  .edit-modal-backdrop.is-open .edit-modal-content {
+    transform: translateY(0) scale(1);
+  }
+
+  .confirm-dialog {
+    max-width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    transform: translateY(16px);
+  }
+
+  .confirm-dialog-backdrop.is-open .confirm-dialog {
+    transform: translateY(0);
+  }
+
+  .edit-form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .edit-input,
+  .edit-select { height: 44px; }
+
+  .filter-bar { top: 60px; }
+
+  .toast-container {
+    top: auto;
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+    align-items: stretch;
+  }
+
+  .toast-item { max-width: 100%; }
+
+  .edit-modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    width: 100%;
+    height: 44px;
+    justify-content: center;
+  }
+
+  .date-picker-dropdown {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 360px) {
+  .confirm-dialog-actions { flex-direction: column-reverse; }
+  .btn-dialog-cancel,
+  .btn-dialog-delete { width: 100%; height: 44px; }
+}
+
   </style>
 </head>
 <body>
@@ -820,70 +1607,74 @@ h3 {
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<!-- Demo Banner (shown when using fallback data) -->
+<!-- Demo Banner -->
 <div id="demoBanner" class="demo-banner" style="display:none;">
-  ⚠️ Demo režimas — rodomi pavyzdiniai duomenys
+  &#9888;&#65039; Demo re&#382;imas &#8212; rodomi pavyzdiniai duomenys
 </div>
 
 <!-- Header -->
 <header class="dashboard-header">
   <div class="header-brand">
-    <span class="header-logo">🎪</span>
+    <div class="header-logo">&#127914;</div>
     <span class="header-title">Batutynas</span>
   </div>
   <div class="header-actions">
     <span class="header-updated" id="lastUpdated"></span>
-    <button class="header-btn" id="refreshBtn" title="Atnaujinti">↻</button>
+    <button class="header-btn" id="refreshBtn" title="Atnaujinti">&#8635;</button>
   </div>
 </header>
 
 <!-- Stats Bar -->
 <section class="stats-bar">
-  <div class="stat-card accent">
-    <div class="stat-label">Šiandien užsakymų</div>
-    <div class="stat-value" id="statTodayCount">—</div>
+  <div class="stat-card">
+    <div class="stat-label">&#352;iandien u&#382;sakym&#371;</div>
+    <div class="stat-value" id="statTodayCount">&mdash;</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Savaitės pajamos</div>
-    <div class="stat-value" id="statWeekRevenue">—</div>
+    <div class="stat-label">Savait&#279;s pajamos</div>
+    <div class="stat-value" id="statWeekRevenue">&mdash;</div>
     <div class="stat-sub" id="statWeekSub"></div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Neapmokėti avansai</div>
-    <div class="stat-value" id="statUnpaid">—</div>
+    <div class="stat-label">Neapmok&#279;ti avansai</div>
+    <div class="stat-value" id="statUnpaid">&mdash;</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Laisva įranga</div>
-    <div class="stat-value" id="statAvailable">—</div>
+    <div class="stat-label">Laisva &#303;ranga</div>
+    <div class="stat-value" id="statAvailable">&mdash;</div>
     <div class="stat-sub" id="statAvailableSub"></div>
   </div>
 </section>
+
+<!-- Filter Bar -->
+<div id="filterBar" class="filter-bar"></div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
 
 <!-- Main Layout -->
 <main class="main-layout">
   <!-- Calendar Pane -->
   <div class="calendar-pane">
-    <!-- Month Navigation -->
     <div class="month-nav">
-      <button class="month-nav-btn" id="prevMonth" title="Ankstesnis mėnuo">‹</button>
-      <button class="month-nav-today" id="todayBtn">Šiandien</button>
+      <button class="month-nav-btn" id="prevMonth" title="Ankstesnis m&#279;nuo">&#8249;</button>
+      <button class="month-nav-today" id="todayBtn">&#352;iandien</button>
       <span class="month-nav-title" id="monthTitle"></span>
-      <button class="month-nav-btn" id="nextMonth" title="Kitas mėnuo">›</button>
+      <button class="month-nav-btn" id="nextMonth" title="Kitas m&#279;nuo">&#8250;</button>
     </div>
-    <!-- Calendar Grid -->
     <div class="cal-grid" id="calGrid"></div>
   </div>
 
   <!-- Side Panel (desktop) -->
   <aside class="side-panel" id="sidePanel">
     <div class="panel-header">
-      <div class="panel-date" id="panelDate">Pasirinkite dieną</div>
+      <div class="panel-date" id="panelDate">Pasirinkite dien&#261;</div>
       <div class="panel-meta" id="panelMeta"></div>
     </div>
     <div class="panel-body" id="panelBody">
       <div class="empty-state">
-        <div class="empty-state-icon">📅</div>
-        <div class="empty-state-text">Pasirinkite dieną kalendoriuje</div>
+        <div class="empty-state-icon">&#128197;</div>
+        <div class="empty-state-text">Pasirinkite dien&#261; kalendoriuje</div>
       </div>
     </div>
   </aside>
@@ -891,36 +1682,41 @@ h3 {
 
 <!-- Equipment Section -->
 <section class="equipment-section">
-  <div class="equipment-title">🎪 Įrangos būsena</div>
+  <div class="equipment-header">
+    <div class="equipment-header-icon">&#127914;</div>
+    <div class="equipment-title">&#302;rangos b&#363;sena</div>
+  </div>
   <div class="equipment-strip" id="equipStrip"></div>
 </section>
 
 <script>
-// ── CONSTANTS ──────────────────────────────────────────────
+// ================================================================
+// CONSTANTS
+// ================================================================
 
 var LT_MONTHS = [
-  'Sausis', 'Vasaris', 'Kovas', 'Balandis', 'Gegužė', 'Birželis',
-  'Liepa', 'Rugpjūtis', 'Rugsėjis', 'Spalis', 'Lapkritis', 'Gruodis'
+  'Sausis', 'Vasaris', 'Kovas', 'Balandis', 'Gegu\u017e\u0117', 'Bir\u017eelis',
+  'Liepa', 'Rugpj\u016btis', 'Rugs\u0117jis', 'Spalis', 'Lapkritis', 'Gruodis'
 ];
 
 var LT_MONTHS_GEN = [
-  'sausio', 'vasario', 'kovo', 'balandžio', 'gegužės', 'birželio',
-  'liepos', 'rugpjūčio', 'rugsėjo', 'spalio', 'lapkričio', 'gruodžio'
+  'sausio', 'vasario', 'kovo', 'baland\u017eio', 'gegu\u017e\u0117s', 'bir\u017eelio',
+  'liepos', 'rugpj\u016b\u010dio', 'rugs\u0117jo', 'spalio', 'lapkri\u010dio', 'gruod\u017eio'
 ];
 
-var LT_WEEKDAYS = ['Pr', 'An', 'Tr', 'Kt', 'Pn', 'Št', 'Sk'];
+var LT_WEEKDAYS = ['Pr', 'An', 'Tr', 'Kt', 'Pn', '\u0160t', 'Sk'];
 
 var LT_WEEKDAYS_FULL = [
-  'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis',
-  'Penktadienis', 'Šeštadienis', 'Sekmadienis'
+  'Pirmadienis', 'Antradienis', 'Tre\u010diadienis', 'Ketvirtadienis',
+  'Penktadienis', '\u0160e\u0161tadienis', 'Sekmadienis'
 ];
 
 var STATUS_LT = {
   'Confirmed':  'Patvirtinta',
   'Delivered':  'Pristatyta',
   'Completed':  'Baigta',
-  'Inquiry':    'Užklausa',
-  'Cancelled':  'Atšaukta'
+  'Inquiry':    'U\u017eklausa',
+  'Cancelled':  'At\u0161aukta'
 };
 
 var STATUS_CLASS = {
@@ -932,9 +1728,9 @@ var STATUS_CLASS = {
 };
 
 var PAYMENT_LT = {
-  'Paid in Full': 'Apmokėta',
+  'Paid in Full': 'Apmok\u0117ta',
   'Deposit Paid': 'Avansas',
-  'Unpaid':       'Neapmokėta'
+  'Unpaid':       'Neapmok\u0117ta'
 };
 
 var PAYMENT_CLASS = {
@@ -946,10 +1742,10 @@ var PAYMENT_CLASS = {
 var EQUIP_STATUS_LT = {
   'Available':      'Laisva',
   'Reserved':       'Rezervuota',
-  'Rented':         'Išnuomota',
+  'Rented':         'I\u0161nuomota',
   'In Transit':     'Gabenama',
   'Needs Cleaning': 'Valymas',
-  'Damaged':        'Pažeista'
+  'Damaged':        'Pa\u017eeista'
 };
 
 var EQUIP_STATUS_CLASS = {
@@ -961,12 +1757,16 @@ var EQUIP_STATUS_CLASS = {
   'Damaged':        'equip-damaged'
 };
 
-// ── CONFIG ─────────────────────────────────────────────────
+// ================================================================
+// CONFIG
+// ================================================================
 
 var API_BASE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard';
 var REFRESH_INTERVAL_MS = 300000;
 
-// ── STATE ──────────────────────────────────────────────────
+// ================================================================
+// STATE
+// ================================================================
 
 var state = {
   viewYear: new Date().getFullYear(),
@@ -978,10 +1778,13 @@ var state = {
   loading: false,
   usingDemo: false,
   lastFetched: null,
-  firstLoad: true
+  firstLoad: true,
+  activeFilter: null
 };
 
-// ── DATA ACCESS ────────────────────────────────────────────
+// ================================================================
+// DATA ACCESS HELPERS
+// ================================================================
 
 function getDateKey(b) {
   return (b.event_date || '').slice(0, 10);
@@ -997,13 +1800,21 @@ function getPickupTime(b) {
 
 function getEquipmentNames(b) {
   if (Array.isArray(b.equipment_names)) return b.equipment_names;
-  if (Array.isArray(b.equipment)) return b.equipment.map(function(e) { return typeof e === 'string' ? e : e.name; });
+  if (Array.isArray(b.equipment)) {
+    return b.equipment.map(function(e) {
+      return typeof e === 'string' ? e : e.name;
+    });
+  }
   return [];
 }
 
 function getEquipmentIcons(b) {
   if (Array.isArray(b.equipment_icons)) return b.equipment_icons;
-  if (Array.isArray(b.equipment)) return b.equipment.map(function(e) { return typeof e === 'string' ? '' : (e.icon || ''); });
+  if (Array.isArray(b.equipment)) {
+    return b.equipment.map(function(e) {
+      return typeof e === 'string' ? '' : (e.icon || '');
+    });
+  }
   return [];
 }
 
@@ -1017,7 +1828,8 @@ function getBookingsByDate(dateKey) {
 
 function getBookingsForMonth(year, month) {
   var byDay = {};
-  state.bookings.forEach(function(b) {
+  var filtered = getFilteredBookings();
+  filtered.forEach(function(b) {
     var key = getDateKey(b);
     if (!key) return;
     var d = new Date(key + 'T00:00:00');
@@ -1038,7 +1850,9 @@ function getDayRevenue(bookings) {
   return total;
 }
 
-// ── API LAYER ──────────────────────────────────────────────
+// ================================================================
+// API LAYER
+// ================================================================
 
 function buildApiUrl() {
   var mm = String(state.viewMonth + 1).padStart(2, '0');
@@ -1083,34 +1897,34 @@ function applyData(data) {
 
 function applyDemoData() {
   state.bookings = [
-    { booking_id: 1, customer_name: 'Jonas Petraitis', customer_phone: '+37061234567', event_date: todayStr(), event_time: '10:00:00', pickup_time: '20:00:00', delivery_address: 'Vytauto g. 15', city: 'Tauragė', status: 'Confirmed', price: '180.00', deposit_paid: true, payment_status: 'Deposit Paid', equipment_names: ['Džiumandži parkas'], equipment_icons: ['🏞️'], notes: '' },
-    { booking_id: 2, customer_name: 'Ona Kazlauskienė', customer_phone: '+37069876543', event_date: todayStr(), event_time: '14:00:00', pickup_time: '22:00:00', delivery_address: 'Laisvės al. 32', city: 'Klaipėda', status: 'Confirmed', price: '220.00', deposit_paid: false, payment_status: 'Unpaid', equipment_names: ['Mega Rocket', 'Saldėsių aparatai'], equipment_icons: ['🚀', '🍬'], notes: 'Gimtadienis, 8 vaikai' },
-    { booking_id: 3, customer_name: 'Petras Jonaitis', customer_phone: '+37065551234', event_date: tomorrowStr(), event_time: '11:00:00', pickup_time: '19:00:00', delivery_address: 'Tilžės g. 8', city: 'Šilutė', status: 'Inquiry', price: '150.00', deposit_paid: false, payment_status: 'Unpaid', equipment_names: ['Chameleonas'], equipment_icons: ['🦎'], notes: '' },
-    { booking_id: 4, customer_name: 'Rūta Navickaitė', customer_phone: '+37062223344', event_date: dayOffsetStr(3), event_time: '09:00:00', pickup_time: '18:00:00', delivery_address: 'Pergalės g. 5', city: 'Jurbarkas', status: 'Confirmed', price: '280.00', deposit_paid: true, payment_status: 'Paid in Full', equipment_names: ['Fantazijų parkas', 'Putų šou'], equipment_icons: ['🎠', '🫧'], notes: 'VIP klientas' },
-    { booking_id: 5, customer_name: 'Algis Balčiūnas', customer_phone: '+37068887766', event_date: dayOffsetStr(-1), event_time: '12:00:00', pickup_time: '20:00:00', delivery_address: 'Dariaus ir Girėno g. 22', city: 'Tauragė', status: 'Completed', price: '160.00', deposit_paid: true, payment_status: 'Paid in Full', equipment_names: ['Vienaragiai'], equipment_icons: ['🦄'], notes: '' }
+    { booking_id: 1, customer_name: 'Jonas Petraitis', customer_phone: '+37061234567', event_date: todayStr(), event_time: '10:00:00', pickup_time: '20:00:00', delivery_address: 'Vytauto g. 15', city: 'Taurag\u0117', status: 'Confirmed', price: '180.00', deposit_paid: true, payment_status: 'Deposit Paid', equipment_names: ['D\u017eiumand\u017ei parkas'], equipment_icons: ['\uD83C\uDFDE\uFE0F'], notes: '' },
+    { booking_id: 2, customer_name: 'Ona Kazlauskien\u0117', customer_phone: '+37069876543', event_date: todayStr(), event_time: '14:00:00', pickup_time: '22:00:00', delivery_address: 'Laisv\u0117s al. 32', city: 'Klaip\u0117da', status: 'Confirmed', price: '220.00', deposit_paid: false, payment_status: 'Unpaid', equipment_names: ['Mega Rocket', 'Sald\u0117si\u0173 aparatai'], equipment_icons: ['\uD83D\uDE80', '\uD83C\uDF6C'], notes: 'Gimtadienis, 8 vaikai' },
+    { booking_id: 3, customer_name: 'Petras Jonaitis', customer_phone: '+37065551234', event_date: tomorrowStr(), event_time: '11:00:00', pickup_time: '19:00:00', delivery_address: 'Til\u017e\u0117s g. 8', city: '\u0160ilut\u0117', status: 'Inquiry', price: '150.00', deposit_paid: false, payment_status: 'Unpaid', equipment_names: ['Chameleonas'], equipment_icons: ['\uD83E\uDD8E'], notes: '' },
+    { booking_id: 4, customer_name: 'R\u016bta Navickait\u0117', customer_phone: '+37062223344', event_date: dayOffsetStr(3), event_time: '09:00:00', pickup_time: '18:00:00', delivery_address: 'Pergal\u0117s g. 5', city: 'Jurbarkas', status: 'Confirmed', price: '280.00', deposit_paid: true, payment_status: 'Paid in Full', equipment_names: ['Fantazij\u0173 parkas', 'Put\u0173 \u0161ou'], equipment_icons: ['\uD83C\uDFA0', '\uD83E\uDEE7'], notes: 'VIP klientas' },
+    { booking_id: 5, customer_name: 'Algis Bal\u010di\u016bnas', customer_phone: '+37068887766', event_date: dayOffsetStr(-1), event_time: '12:00:00', pickup_time: '20:00:00', delivery_address: 'Dariaus ir Gir\u0117no g. 22', city: 'Taurag\u0117', status: 'Completed', price: '160.00', deposit_paid: true, payment_status: 'Paid in Full', equipment_names: ['Vienaragiai'], equipment_icons: ['\uD83E\uDD84'], notes: '' }
   ];
 
   state.equipment = [
-    { id: 1, name: 'Džiumandži parkas', icon: '🏞️', category: 'big-park', current_status: 'Available', available_today: true },
-    { id: 2, name: 'Fantazijų parkas', icon: '🎠', category: 'big-park', current_status: 'Available', available_today: true },
-    { id: 3, name: 'Giga ruožas', icon: '🏟️', category: 'big-park', current_status: 'Available', available_today: true },
-    { id: 4, name: 'Mega Rocket', icon: '🚀', category: 'mega-trampoline', current_status: 'Rented', available_today: false },
-    { id: 5, name: 'Mega ruožas', icon: '🎯', category: 'mega-trampoline', current_status: 'Available', available_today: true },
-    { id: 6, name: 'Mega Ufonautai', icon: '👽', category: 'mega-trampoline', current_status: 'Available', available_today: true },
-    { id: 7, name: 'Mega Waikiki', icon: '🏄', category: 'mega-trampoline', current_status: 'Reserved', available_today: false },
-    { id: 8, name: 'Chameleonas', icon: '🦎', category: 'standard-trampoline', current_status: 'Available', available_today: true },
-    { id: 9, name: 'Candy Pop', icon: '🍭', category: 'standard-trampoline', current_status: 'Available', available_today: true },
-    { id: 10, name: 'Vienaragiai', icon: '🦄', category: 'standard-trampoline', current_status: 'Rented', available_today: false },
-    { id: 11, name: 'Pilis mažiesiems', icon: '🏰', category: 'standard-trampoline', current_status: 'Available', available_today: true },
-    { id: 12, name: 'Monstrai', icon: '👾', category: 'standard-trampoline', current_status: 'Available', available_today: true },
-    { id: 13, name: 'Aštuonkojis', icon: '🐙', category: 'standard-trampoline', current_status: 'Needs Cleaning', available_today: false },
-    { id: 14, name: 'Milžiniškas Dart', icon: '🎯', category: 'addon', current_status: 'Available', available_today: true },
-    { id: 15, name: 'Kamuolių medžioklė', icon: '🏐', category: 'addon', current_status: 'Available', available_today: true },
-    { id: 16, name: 'Rodeo bulius', icon: '🐂', category: 'addon', current_status: 'Damaged', available_today: false },
-    { id: 17, name: 'Saldėsių aparatai', icon: '🍬', category: 'addon', current_status: 'Available', available_today: true },
-    { id: 18, name: 'Banketo stalai ir kėdės', icon: '🪑', category: 'party-equipment', current_status: 'Available', available_today: true },
-    { id: 19, name: 'Disco paviljonas', icon: '🪩', category: 'party-equipment', current_status: 'Available', available_today: true },
-    { id: 20, name: 'Putų šou', icon: '🫧', category: 'party-equipment', current_status: 'Available', available_today: true }
+    { id: 1, name: 'D\u017eiumand\u017ei parkas', icon: '\uD83C\uDFDE\uFE0F', category: 'big-park', current_status: 'Available', available_today: true },
+    { id: 2, name: 'Fantazij\u0173 parkas', icon: '\uD83C\uDFA0', category: 'big-park', current_status: 'Available', available_today: true },
+    { id: 3, name: 'Giga ruo\u017eas', icon: '\uD83C\uDFDF\uFE0F', category: 'big-park', current_status: 'Available', available_today: true },
+    { id: 4, name: 'Mega Rocket', icon: '\uD83D\uDE80', category: 'mega-trampoline', current_status: 'Rented', available_today: false },
+    { id: 5, name: 'Mega ruo\u017eas', icon: '\uD83C\uDFAF', category: 'mega-trampoline', current_status: 'Available', available_today: true },
+    { id: 6, name: 'Mega Ufonautai', icon: '\uD83D\uDC7D', category: 'mega-trampoline', current_status: 'Available', available_today: true },
+    { id: 7, name: 'Mega Waikiki', icon: '\uD83C\uDFC4', category: 'mega-trampoline', current_status: 'Reserved', available_today: false },
+    { id: 8, name: 'Chameleonas', icon: '\uD83E\uDD8E', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 9, name: 'Candy Pop', icon: '\uD83C\uDF6D', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 10, name: 'Vienaragiai', icon: '\uD83E\uDD84', category: 'standard-trampoline', current_status: 'Rented', available_today: false },
+    { id: 11, name: 'Pilis ma\u017eiesiems', icon: '\uD83C\uDFF0', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 12, name: 'Monstrai', icon: '\uD83D\uDC7E', category: 'standard-trampoline', current_status: 'Available', available_today: true },
+    { id: 13, name: 'A\u0161tuonkojis', icon: '\uD83D\uDC19', category: 'standard-trampoline', current_status: 'Needs Cleaning', available_today: false },
+    { id: 14, name: 'Mil\u017eini\u0161kas Dart', icon: '\uD83C\uDFAF', category: 'addon', current_status: 'Available', available_today: true },
+    { id: 15, name: 'Kamuoli\u0173 med\u017eiokl\u0117', icon: '\uD83C\uDFD0', category: 'addon', current_status: 'Available', available_today: true },
+    { id: 16, name: 'Rodeo bulius', icon: '\uD83D\uDC02', category: 'addon', current_status: 'Damaged', available_today: false },
+    { id: 17, name: 'Sald\u0117si\u0173 aparatai', icon: '\uD83C\uDF6C', category: 'addon', current_status: 'Available', available_today: true },
+    { id: 18, name: 'Banketo stalai ir k\u0117d\u0117s', icon: '\uD83E\uDE91', category: 'party-equipment', current_status: 'Available', available_today: true },
+    { id: 19, name: 'Disco paviljonas', icon: '\uD83E\uDEA9', category: 'party-equipment', current_status: 'Available', available_today: true },
+    { id: 20, name: 'Put\u0173 \u0161ou', icon: '\uD83E\uDEE7', category: 'party-equipment', current_status: 'Available', available_today: true }
   ];
 
   state.stats = {
@@ -1125,17 +1939,17 @@ function todayStr() { return fmtKey(new Date()); }
 function tomorrowStr() { var d = new Date(); d.setDate(d.getDate() + 1); return fmtKey(d); }
 function dayOffsetStr(offset) { var d = new Date(); d.setDate(d.getDate() + offset); return fmtKey(d); }
 
-// ── CALENDAR ──────────────────────────────────────────────
+// ================================================================
+// CALENDAR
+// ================================================================
 
 function renderCalendar() {
   var grid = document.getElementById('calGrid');
   grid.innerHTML = '';
 
-  // Update month title
   document.getElementById('monthTitle').textContent =
     LT_MONTHS[state.viewMonth] + ' ' + state.viewYear;
 
-  // Weekday headers (Mon-Sun)
   LT_WEEKDAYS.forEach(function(wd) {
     var hdr = document.createElement('div');
     hdr.className = 'cal-header';
@@ -1148,37 +1962,26 @@ function renderCalendar() {
   var firstDay = new Date(year, month, 1);
   var lastDay = new Date(year, month + 1, 0);
   var daysInMonth = lastDay.getDate();
-
-  // Monday-based: Mon=0 … Sun=6
   var startDow = (firstDay.getDay() + 6) % 7;
-
-  // Get bookings grouped by day
   var byDay = getBookingsForMonth(year, month);
   var todayKey = fmtKey(new Date());
 
-  // Previous month trailing days
   var prevMonthLast = new Date(year, month, 0).getDate();
   for (var i = startDow - 1; i >= 0; i--) {
-    var day = prevMonthLast - i;
-    var cell = createDayCell(day, null, [], true);
-    grid.appendChild(cell);
+    grid.appendChild(createDayCell(prevMonthLast - i, null, [], true));
   }
 
-  // Current month days
   for (var d = 1; d <= daysInMonth; d++) {
     var dateKey = year + '-' + pad(month + 1) + '-' + pad(d);
     var dayBookings = byDay[dateKey] || [];
     var isToday = dateKey === todayKey;
-    var cell = createDayCell(d, dateKey, dayBookings, false, isToday);
-    grid.appendChild(cell);
+    grid.appendChild(createDayCell(d, dateKey, dayBookings, false, isToday));
   }
 
-  // Next month leading days — fill to complete row
   var totalCells = startDow + daysInMonth;
   var remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
   for (var n = 1; n <= remaining; n++) {
-    var cell = createDayCell(n, null, [], true);
-    grid.appendChild(cell);
+    grid.appendChild(createDayCell(n, null, [], true));
   }
 }
 
@@ -1190,13 +1993,11 @@ function createDayCell(dayNum, dateKey, bookings, isOther, isToday) {
   if (dateKey && dateKey === state.selectedDate) cell.classList.add('selected');
   if (dateKey) cell.dataset.date = dateKey;
 
-  // Day number
   var num = document.createElement('div');
   num.className = 'cal-day-num';
   num.textContent = dayNum;
   cell.appendChild(num);
 
-  // Booking dots
   if (bookings.length > 0) {
     var dots = document.createElement('div');
     dots.className = 'cal-day-dots';
@@ -1207,7 +2008,6 @@ function createDayCell(dayNum, dateKey, bookings, isOther, isToday) {
     });
     cell.appendChild(dots);
 
-    // Count badge for 2+
     if (bookings.length >= 2) {
       var badge = document.createElement('div');
       badge.className = 'cal-day-count';
@@ -1216,59 +2016,40 @@ function createDayCell(dayNum, dateKey, bookings, isOther, isToday) {
     }
   }
 
-  // Click handler
   if (dateKey && !isOther) {
-    cell.addEventListener('click', function() {
-      selectDay(dateKey);
-    });
+    cell.addEventListener('click', function() { selectDay(dateKey); });
   }
 
   return cell;
 }
 
 function selectDay(dateKey) {
-  // Toggle selection
   if (state.selectedDate === dateKey) {
     state.selectedDate = null;
-    // Deselect visually
     var prev = document.querySelector('.cal-day.selected');
     if (prev) prev.classList.remove('selected');
-    if (isMobile()) {
-      closeDayAccordion();
-    } else {
-      clearDayPanel();
-    }
+    if (isMobile()) { closeDayAccordion(); } else { clearDayPanel(); }
     return;
   }
 
-  // Deselect previous
   var prevCell = document.querySelector('.cal-day.selected');
   if (prevCell) prevCell.classList.remove('selected');
 
   state.selectedDate = dateKey;
-
-  // Select new
   var newCell = document.querySelector('.cal-day[data-date="' + dateKey + '"]');
   if (newCell) newCell.classList.add('selected');
 
-  if (isMobile()) {
-    toggleDayAccordion(dateKey);
-  } else {
-    showDayPanel(dateKey);
-  }
+  if (isMobile()) { toggleDayAccordion(dateKey); } else { showDayPanel(dateKey); }
 }
 
-// ── NAVIGATION ────────────────────────────────────────────
+// ================================================================
+// NAVIGATION
+// ================================================================
 
 function changeMonth(dir) {
   state.viewMonth += dir;
-  if (state.viewMonth < 0) {
-    state.viewMonth = 11;
-    state.viewYear--;
-  } else if (state.viewMonth > 11) {
-    state.viewMonth = 0;
-    state.viewYear++;
-  }
+  if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
+  else if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
   state.selectedDate = null;
   closeDayAccordion();
   if (!isMobile()) clearDayPanel();
@@ -1280,22 +2061,13 @@ function goToday() {
   state.viewYear = now.getFullYear();
   state.viewMonth = now.getMonth();
   loadData();
-  // After data loads, select today
-  setTimeout(function() {
-    selectDay(fmtKey(now));
-  }, 500);
+  setTimeout(function() { selectDay(fmtKey(now)); }, 500);
 }
 
 function initNavigation() {
-  document.getElementById('prevMonth').addEventListener('click', function() {
-    changeMonth(-1);
-  });
-  document.getElementById('nextMonth').addEventListener('click', function() {
-    changeMonth(1);
-  });
-  document.getElementById('todayBtn').addEventListener('click', function() {
-    goToday();
-  });
+  document.getElementById('prevMonth').addEventListener('click', function() { changeMonth(-1); });
+  document.getElementById('nextMonth').addEventListener('click', function() { changeMonth(1); });
+  document.getElementById('todayBtn').addEventListener('click', function() { goToday(); });
   document.getElementById('refreshBtn').addEventListener('click', function() {
     var btn = document.getElementById('refreshBtn');
     btn.classList.add('refreshing');
@@ -1304,24 +2076,25 @@ function initNavigation() {
   });
 }
 
-// ── DAY PANEL ──────────────────────────────────────────────
+// ================================================================
+// DAY PANEL (DESKTOP)
+// ================================================================
 
 function showDayPanel(dateKey) {
-  var bookings = getBookingsByDate(dateKey);
+  var bookings = getFilteredBookingsByDate(dateKey);
   var d = new Date(dateKey + 'T00:00:00');
   var dayOfWeek = (d.getDay() + 6) % 7;
 
-  var panelDate = document.getElementById('panelDate');
-  panelDate.textContent = LT_WEEKDAYS_FULL[dayOfWeek] + ', ' +
-    d.getDate() + ' ' + LT_MONTHS_GEN[d.getMonth()];
+  document.getElementById('panelDate').textContent =
+    LT_WEEKDAYS_FULL[dayOfWeek] + ', ' + d.getDate() + ' ' + LT_MONTHS_GEN[d.getMonth()];
 
   var panelMeta = document.getElementById('panelMeta');
   if (bookings.length > 0) {
     var revenue = getDayRevenue(bookings);
-    panelMeta.textContent = bookings.length + ' užsakym' +
-      pluralLT(bookings.length) + ' · ' + formatPrice(revenue);
+    panelMeta.textContent = bookings.length + ' u\u017esakym' +
+      pluralLT(bookings.length) + ' \u00B7 ' + formatPrice(revenue);
   } else {
-    panelMeta.textContent = 'Nėra užsakymų';
+    panelMeta.textContent = 'N\u0117ra u\u017esakym\u0173';
   }
 
   var panelBody = document.getElementById('panelBody');
@@ -1334,8 +2107,8 @@ function showDayPanel(dateKey) {
     if (bookings.length === 0) {
       panelBody.innerHTML =
         '<div class="empty-state">' +
-        '<div class="empty-state-icon">📭</div>' +
-        '<div class="empty-state-text">Šią dieną užsakymų nėra</div>' +
+        '<div class="empty-state-icon">\uD83D\uDCED</div>' +
+        '<div class="empty-state-text">\u0160i\u0105 dien\u0105 u\u017esakym\u0173 n\u0117ra</div>' +
         '</div>';
     } else {
       bookings.forEach(function(b, idx) {
@@ -1347,21 +2120,23 @@ function showDayPanel(dateKey) {
 
     panelBody.classList.add('entering');
     setTimeout(function() { panelBody.classList.remove('entering'); }, 250);
-  }, 160);
+  }, 140);
 }
 
 function clearDayPanel() {
-  document.getElementById('panelDate').textContent = 'Pasirinkite dieną';
+  document.getElementById('panelDate').textContent = 'Pasirinkite dien\u0105';
   document.getElementById('panelMeta').textContent = '';
-  var panelBody = document.getElementById('panelBody');
-  panelBody.innerHTML =
+  document.getElementById('panelBody').innerHTML =
     '<div class="empty-state">' +
-    '<div class="empty-state-icon">📅</div>' +
-    '<div class="empty-state-text">Pasirinkite dieną kalendoriuje</div>' +
+    '<div class="empty-state-icon">\uD83D\uDCC5</div>' +
+    '<div class="empty-state-text">Pasirinkite dien\u0105 kalendoriuje</div>' +
     '</div>';
 }
 
+// ================================================================
 // MOBILE ACCORDION
+// ================================================================
+
 function toggleDayAccordion(dateKey) {
   var existing = document.getElementById('dayAccordion');
 
@@ -1372,7 +2147,7 @@ function toggleDayAccordion(dateKey) {
 
   if (existing) existing.remove();
 
-  var bookings = getBookingsByDate(dateKey);
+  var bookings = getFilteredBookingsByDate(dateKey);
   var d = new Date(dateKey + 'T00:00:00');
   var dayOfWeek = (d.getDay() + 6) % 7;
 
@@ -1383,16 +2158,15 @@ function toggleDayAccordion(dateKey) {
 
   var header = document.createElement('div');
   header.className = 'panel-header';
-  var dateStr = LT_WEEKDAYS_FULL[dayOfWeek] + ', ' +
-    d.getDate() + ' ' + LT_MONTHS_GEN[d.getMonth()];
+  var dateStr = LT_WEEKDAYS_FULL[dayOfWeek] + ', ' + d.getDate() + ' ' + LT_MONTHS_GEN[d.getMonth()];
   header.innerHTML = '<div class="panel-date">' + escHtml(dateStr) + '</div>';
   if (bookings.length > 0) {
     var revenue = getDayRevenue(bookings);
     header.innerHTML += '<div class="panel-meta">' +
-      bookings.length + ' užsakym' + pluralLT(bookings.length) +
-      ' · ' + formatPrice(revenue) + '</div>';
+      bookings.length + ' u\u017esakym' + pluralLT(bookings.length) +
+      ' \u00B7 ' + formatPrice(revenue) + '</div>';
   } else {
-    header.innerHTML += '<div class="panel-meta">Nėra užsakymų</div>';
+    header.innerHTML += '<div class="panel-meta">N\u0117ra u\u017esakym\u0173</div>';
   }
   acc.appendChild(header);
 
@@ -1400,13 +2174,11 @@ function toggleDayAccordion(dateKey) {
     var emptyDiv = document.createElement('div');
     emptyDiv.className = 'empty-state';
     emptyDiv.style.padding = '20px';
-    emptyDiv.innerHTML = '<div class="empty-state-icon">📭</div>' +
-      '<div class="empty-state-text">Šią dieną užsakymų nėra</div>';
+    emptyDiv.innerHTML = '<div class="empty-state-icon">\uD83D\uDCED</div>' +
+      '<div class="empty-state-text">\u0160i\u0105 dien\u0105 u\u017esakym\u0173 n\u0117ra</div>';
     acc.appendChild(emptyDiv);
   } else {
-    bookings.forEach(function(b) {
-      acc.appendChild(buildBookingCard(b));
-    });
+    bookings.forEach(function(b) { acc.appendChild(buildBookingCard(b)); });
   }
 
   var clickedCell = document.querySelector('.cal-day[data-date="' + dateKey + '"]');
@@ -1451,11 +2223,14 @@ function closeDayAccordion() {
   }
 }
 
-// ── BOOKING CARD ───────────────────────────────────────────
+// ================================================================
+// BOOKING CARD BUILDER
+// ================================================================
 
 function buildBookingCard(b) {
   var card = document.createElement('div');
   card.className = 'booking-card';
+  card.bookingData = b;
 
   var eventTime = getEventTime(b);
   var pickupTime = getPickupTime(b);
@@ -1466,40 +2241,85 @@ function buildBookingCard(b) {
   var phone = b.customer_phone || '';
   var address = b.delivery_address || '';
   var city = b.city || '';
-  var price = b.price != null ? formatPrice(parseFloat(b.price)) : '—';
+  var price = b.price != null ? formatPrice(parseFloat(b.price)) : '\u2014';
   var notes = b.notes || '';
 
   var timeStr = eventTime;
-  if (pickupTime) timeStr += ' → ' + pickupTime;
+  if (pickupTime) timeStr += ' \u2192 ' + pickupTime;
+
+  // Determine entry source icon
+  var sourceIcon = '';
+  var src = b.entry_source || '';
+  if (src === 'Telegram') {
+    sourceIcon = '\uD83D\uDCF1';
+  } else if (src === 'Chatwoot' || src === 'Chat') {
+    sourceIcon = '\uD83D\uDCAC';
+  } else if (src === 'Web' || src === 'Demo') {
+    sourceIcon = '\uD83C\uDF10';
+  }
+
+  // Format created_at date
+  var createdDate = '';
+  if (b.created_at) {
+    createdDate = String(b.created_at).slice(0, 10);
+  }
 
   var html = '';
 
+  // Header: name + source badge + time
   html += '<div class="booking-card-header">';
-  html += '<div class="booking-card-name">' + escHtml(b.customer_name || '—') + '</div>';
-  html += '<div class="booking-card-time">' + escHtml(timeStr) + '</div>';
+  html += '<div class="booking-card-name">';
+  html += escHtml(b.customer_name || '\u2014');
+  if (sourceIcon) {
+    html += ' <span class="booking-source-badge" title="' + escHtml(src) + '">' + sourceIcon + '</span>';
+  }
+  html += '</div>';
+  if (timeStr) html += '<div class="booking-card-time">' + escHtml(timeStr) + '</div>';
   html += '</div>';
 
+  // Phone row
   if (phone) {
     html += '<div class="booking-card-row">';
-    html += '<span class="icon">📞</span>';
+    html += '<span class="row-icon">\uD83D\uDCDE</span>';
     html += '<a href="tel:' + escHtml(phone) + '">' + escHtml(phone) + '</a>';
     html += '</div>';
   }
 
+  // Address row
   if (address) {
     html += '<div class="booking-card-row">';
-    html += '<span class="icon">📍</span>';
+    html += '<span class="row-icon">\uD83D\uDCCD</span>';
     html += '<span>' + escHtml(address) + (city ? ', ' + escHtml(city) : '') + '</span>';
     html += '</div>';
   }
 
+  // Notes row
   if (notes) {
     html += '<div class="booking-card-row">';
-    html += '<span class="icon">📝</span>';
+    html += '<span class="row-icon">\uD83D\uDCDD</span>';
     html += '<span>' + escHtml(notes) + '</span>';
     html += '</div>';
   }
 
+  // Deposit row
+  if (b.deposit_amount > 0) {
+    var depositStatus = b.deposit_paid ? 'sumok\u0117tas' : 'nesumok\u0117tas';
+    html += '<div class="booking-card-row">';
+    html += '<span class="row-icon">\uD83D\uDCB0</span>';
+    html += '<span>Depozitas: \u20AC' + escHtml(String(parseFloat(b.deposit_amount).toFixed(0))) +
+            ' (' + depositStatus + ')</span>';
+    html += '</div>';
+  }
+
+  // Created date row
+  if (createdDate) {
+    html += '<div class="booking-card-row booking-card-meta">';
+    html += '<span class="row-icon">\uD83D\uDCCB</span>';
+    html += '<span>Sukurta: ' + escHtml(createdDate) + '</span>';
+    html += '</div>';
+  }
+
+  // Equipment tags
   if (equipNames.length > 0) {
     html += '<div class="booking-card-equipment">';
     equipNames.forEach(function(name, idx) {
@@ -1510,40 +2330,49 @@ function buildBookingCard(b) {
     html += '</div>';
   }
 
+  // Footer: price + status/payment badges
   html += '<div class="booking-card-footer">';
   html += '<div class="booking-card-price">' + price + '</div>';
-  html += '<div>';
-  html += '<span class="status-badge ' + (STATUS_CLASS[statusKey] || '') + '">' +
+  html += '<div class="booking-card-badges">';
+  html += '<span class="badge ' + (STATUS_CLASS[statusKey] || '') + '">' +
     escHtml(STATUS_LT[statusKey] || statusKey) + '</span> ';
-  html += '<span class="payment-badge ' + (PAYMENT_CLASS[paymentKey] || '') + '">' +
+  html += '<span class="badge ' + (PAYMENT_CLASS[paymentKey] || '') + '">' +
     escHtml(PAYMENT_LT[paymentKey] || paymentKey) + '</span>';
   html += '</div>';
   html += '</div>';
 
+  // Action buttons row
+  html += '<div class="booking-card-actions">';
+  html += '<button class="booking-action-btn" data-action="edit" data-tooltip="Redaguoti">\u270F\uFE0F</button>';
+  html += '<button class="booking-action-btn" data-action="move" data-tooltip="Perkelti">\uD83D\uDCC5</button>';
+  html += '<button class="booking-action-btn booking-action-delete" data-action="delete" data-tooltip="I\u0161trinti">\uD83D\uDDD1\uFE0F</button>';
+  html += '</div>';
+
   card.innerHTML = html;
+
+  // Wire onclick handlers after innerHTML is set
+  var btns = card.querySelectorAll('.booking-action-btn');
+  btns.forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var action = btn.getAttribute('data-action');
+      var booking = card.bookingData;
+      if (action === 'edit') {
+        if (typeof openEditModal === 'function') openEditModal(booking);
+      } else if (action === 'move') {
+        if (typeof openDatePicker === 'function') openDatePicker(booking, btn);
+      } else if (action === 'delete') {
+        if (typeof openDeleteDialog === 'function') openDeleteDialog(booking);
+      }
+    });
+  });
+
   return card;
 }
 
-// ── HELPERS ────────────────────────────────────────────────
-
-function pluralLT(n) {
-  if (n % 10 === 1 && n % 100 !== 11) return 'as';
-  if (n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 10 || n % 100 >= 20)) return 'ai';
-  return 'ų';
-}
-
-function formatPrice(val) {
-  if (isNaN(val)) return '—';
-  return val.toFixed(0) + ' €';
-}
-
-function escHtml(str) {
-  var div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// ── EQUIPMENT STRIP ────────────────────────────────────────
+// ================================================================
+// EQUIPMENT STRIP
+// ================================================================
 
 function renderEquipment() {
   var strip = document.getElementById('equipStrip');
@@ -1557,7 +2386,7 @@ function renderEquipment() {
     pill.className = 'equip-pill ' + statusClass;
 
     pill.innerHTML =
-      '<span class="equip-icon">' + (eq.icon || '🎪') + '</span>' +
+      '<span class="equip-icon">' + (eq.icon || '\uD83C\uDFAA') + '</span>' +
       '<span class="equip-name">' + escHtml(eq.name) + '</span>' +
       '<span class="equip-status">' + (EQUIP_STATUS_LT[statusKey] || statusKey) + '</span>';
 
@@ -1565,11 +2394,12 @@ function renderEquipment() {
   });
 }
 
-// ── STATS ──────────────────────────────────────────────────
+// ================================================================
+// STATS
+// ================================================================
 
 function renderStats() {
   var s = state.stats;
-
   var todayCount = parseInt(s.today_count) || 0;
   var weekRevenue = parseFloat(s.week_revenue) || 0;
   var lastWeekRevenue = parseFloat(s.last_week_revenue) || 0;
@@ -1579,12 +2409,12 @@ function renderStats() {
 
   if (state.firstLoad) {
     animateNumber(document.getElementById('statTodayCount'), todayCount, 600, '');
-    animateNumber(document.getElementById('statWeekRevenue'), weekRevenue, 600, ' €');
+    animateNumber(document.getElementById('statWeekRevenue'), weekRevenue, 600, ' \u20AC');
     animateNumber(document.getElementById('statUnpaid'), unpaid, 600, '');
     animateNumber(document.getElementById('statAvailable'), available, 600, '');
   } else {
     document.getElementById('statTodayCount').textContent = todayCount;
-    document.getElementById('statWeekRevenue').textContent = weekRevenue.toFixed(0) + ' €';
+    document.getElementById('statWeekRevenue').textContent = weekRevenue.toFixed(0) + ' \u20AC';
     document.getElementById('statUnpaid').textContent = unpaid;
     document.getElementById('statAvailable').textContent = available;
   }
@@ -1593,15 +2423,15 @@ function renderStats() {
   if (lastWeekRevenue > 0) {
     var diff = weekRevenue - lastWeekRevenue;
     var pct = ((diff / lastWeekRevenue) * 100).toFixed(0);
-    var arrow = diff >= 0 ? '↑' : '↓';
+    var arrow = diff >= 0 ? '\u2191' : '\u2193';
     var color = diff >= 0 ? 'var(--green)' : 'var(--red)';
     weekSub.innerHTML = '<span style="color:' + color + '">' + arrow + ' ' +
-      Math.abs(pct) + '% nuo praėj. sav.</span>';
+      Math.abs(pct) + '% nuo pra\u0117j. sav.</span>';
   } else {
     weekSub.textContent = '';
   }
 
-  document.getElementById('statAvailableSub').textContent = 'iš ' + totalEquip;
+  document.getElementById('statAvailableSub').textContent = 'i\u0161 ' + totalEquip;
 
   if (state.lastFetched) {
     var h = pad(state.lastFetched.getHours());
@@ -1612,10 +2442,7 @@ function renderStats() {
 
 function animateNumber(el, target, duration, suffix) {
   if (!el) return;
-  if (target === 0) {
-    el.textContent = '0' + (suffix || '');
-    return;
-  }
+  if (target === 0) { el.textContent = '0' + (suffix || ''); return; }
 
   var start = performance.now();
   function frame(now) {
@@ -1628,19 +2455,826 @@ function animateNumber(el, target, duration, suffix) {
   requestAnimationFrame(frame);
 }
 
-// ── UTILS ──────────────────────────────────────────────────
+// ================================================================
+// FILTER BAR
+// ================================================================
 
-function pad(n) {
-  return n < 10 ? '0' + n : String(n);
+function getFilteredBookings() {
+  if (!state.activeFilter || state.activeFilter === 'all') {
+    return state.bookings;
+  }
+  return state.bookings.filter(function(b) {
+    var names = getEquipmentNames(b);
+    return names.indexOf(state.activeFilter) !== -1;
+  });
 }
+
+function getFilteredBookingsByDate(dateKey) {
+  return getFilteredBookings().filter(function(b) {
+    return getDateKey(b) === dateKey;
+  }).sort(function(a, b) {
+    return (a.event_time || '').localeCompare(b.event_time || '');
+  });
+}
+
+function renderFilterBar() {
+  var bar = document.getElementById('filterBar');
+  if (!bar) return;
+
+  var seen = {};
+  var uniqueNames = [];
+  var counts = {};
+
+  state.bookings.forEach(function(b) {
+    var names = getEquipmentNames(b);
+    names.forEach(function(name) {
+      if (!seen[name]) {
+        seen[name] = true;
+        uniqueNames.push(name);
+        counts[name] = 0;
+      }
+      counts[name]++;
+    });
+  });
+
+  uniqueNames.sort(function(a, b) {
+    return a.localeCompare(b, 'lt');
+  });
+
+  while (bar.firstChild) {
+    bar.removeChild(bar.firstChild);
+  }
+
+  function isActive(filterValue) {
+    if (filterValue === 'all') {
+      return state.activeFilter === null || state.activeFilter === 'all';
+    }
+    return state.activeFilter === filterValue;
+  }
+
+  function createPill(label, filterValue, count) {
+    var btn = document.createElement('button');
+    btn.className = 'filter-pill';
+    if (isActive(filterValue)) {
+      btn.classList.add('active');
+    }
+    btn.dataset.filter = filterValue;
+
+    var labelSpan = document.createElement('span');
+    labelSpan.textContent = label;
+    btn.appendChild(labelSpan);
+
+    if (count !== null && count !== undefined) {
+      var countSpan = document.createElement('span');
+      countSpan.textContent = ' (' + count + ')';
+      btn.appendChild(countSpan);
+    }
+
+    btn.addEventListener('click', function() {
+      var pills = bar.querySelectorAll('.filter-pill');
+      for (var i = 0; i < pills.length; i++) {
+        pills[i].classList.remove('active');
+      }
+      btn.classList.add('active');
+      state.activeFilter = (filterValue === 'all') ? null : filterValue;
+      renderCalendar();
+      if (state.selectedDate) {
+        if (isMobile()) {
+          closeDayAccordion();
+          toggleDayAccordion(state.selectedDate);
+        } else {
+          showDayPanel(state.selectedDate);
+        }
+      }
+    });
+
+    return btn;
+  }
+
+  bar.appendChild(createPill('Visi', 'all', state.bookings.length));
+
+  uniqueNames.forEach(function(name) {
+    bar.appendChild(createPill(name, name, counts[name]));
+  });
+}
+
+// ================================================================
+// EDIT MODAL
+// ================================================================
+
+var EDIT_STATUS_OPTIONS = [
+  { value: 'Inquiry',   label: 'U\u017eklausa' },
+  { value: 'Confirmed', label: 'Patvirtinta' },
+  { value: 'Delivered', label: 'Pristatyta' },
+  { value: 'Completed', label: 'Baigta' },
+  { value: 'Cancelled', label: 'At\u0161aukta' }
+];
+
+var EDIT_PAYMENT_OPTIONS = [
+  { value: 'Unpaid',       label: 'Neapmok\u0117ta' },
+  { value: 'Deposit Paid', label: 'Avansas' },
+  { value: 'Paid in Full', label: 'Apmok\u0117ta' }
+];
+
+function openEditModal(booking) {
+  var existing = document.getElementById('editModalBackdrop');
+  if (existing) existing.remove();
+
+  var bookingId = booking.booking_id || booking.id;
+
+  var backdrop = document.createElement('div');
+  backdrop.className = 'edit-modal-backdrop';
+  backdrop.id = 'editModalBackdrop';
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop) closeEditModal();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'edit-modal-content';
+  modal.id = 'editModalContent';
+
+  modal.addEventListener('scroll', function() {
+    if (modal.scrollTop > 0) {
+      modal.classList.add('is-scrolled');
+    } else {
+      modal.classList.remove('is-scrolled');
+    }
+  });
+
+  var header = document.createElement('div');
+  header.className = 'edit-modal-header';
+
+  var title = document.createElement('div');
+  title.className = 'edit-modal-title';
+  title.textContent = 'Redaguoti u\u017esakym\u0105 #' + bookingId;
+
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'edit-modal-close';
+  closeBtn.type = 'button';
+  closeBtn.setAttribute('aria-label', 'U\u017edaryti');
+  closeBtn.textContent = '\u00d7';
+  closeBtn.addEventListener('click', function() { closeEditModal(); });
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  var body = document.createElement('div');
+  body.className = 'edit-modal-body';
+  body.id = 'editModalBody';
+
+  function makeGroup(labelText, control, required) {
+    var group = document.createElement('div');
+    group.className = 'edit-form-group';
+    var lbl = document.createElement('label');
+    lbl.className = 'edit-label';
+    lbl.textContent = labelText;
+    if (required) {
+      var star = document.createElement('span');
+      star.className = 'required';
+      star.textContent = ' *';
+      lbl.appendChild(star);
+    }
+    group.appendChild(lbl);
+    group.appendChild(control);
+    return group;
+  }
+
+  function makeSelectWrapper(select) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'edit-select-wrapper';
+    wrapper.appendChild(select);
+    return wrapper;
+  }
+
+  function makeInput(type, name, value, placeholder) {
+    var inp = document.createElement('input');
+    inp.type = type || 'text';
+    inp.name = name;
+    inp.className = 'edit-input';
+    inp.value = value != null ? String(value) : '';
+    if (placeholder) inp.placeholder = placeholder;
+    return inp;
+  }
+
+  function makeSelect(name, options, selectedValue) {
+    var sel = document.createElement('select');
+    sel.name = name;
+    sel.className = 'edit-select';
+    options.forEach(function(opt) {
+      var o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      if (opt.value === selectedValue) o.selected = true;
+      sel.appendChild(o);
+    });
+    return sel;
+  }
+
+  function makeDivider() {
+    var div = document.createElement('div');
+    div.className = 'edit-form-divider';
+    return div;
+  }
+
+  // Row 1: Data + Pristatymo laikas
+  var row1 = document.createElement('div');
+  row1.className = 'edit-form-row';
+  var inpDate = makeInput('date', 'event_date', (booking.event_date || '').slice(0, 10));
+  row1.appendChild(makeGroup('Data', inpDate, true));
+  var inpEventTime = makeInput('time', 'event_time', (booking.event_time || '').slice(0, 5));
+  row1.appendChild(makeGroup('Pristatymo laikas', inpEventTime));
+  body.appendChild(row1);
+
+  // Row 2: Pasi\u0117mimo laikas + Miestas
+  var row2 = document.createElement('div');
+  row2.className = 'edit-form-row';
+  var inpPickupTime = makeInput('time', 'pickup_time', (booking.pickup_time || '').slice(0, 5));
+  row2.appendChild(makeGroup('Pasi\u0117mimo laikas', inpPickupTime));
+  var inpCity = makeInput('text', 'city', booking.city || '', 'pvz. Klaip\u0117da');
+  row2.appendChild(makeGroup('Miestas', inpCity));
+  body.appendChild(row2);
+
+  // Adresas (full width)
+  var inpAddress = makeInput('text', 'delivery_address', booking.delivery_address || '', 'pvz. Laisv\u0117s al. 32');
+  body.appendChild(makeGroup('Adresas', inpAddress));
+
+  body.appendChild(makeDivider());
+
+  // Row 3: B\u016bsena + Mok\u0117jimas
+  var row3 = document.createElement('div');
+  row3.className = 'edit-form-row';
+  var selStatus = makeSelect('status', EDIT_STATUS_OPTIONS, booking.status || 'Inquiry');
+  row3.appendChild(makeGroup('B\u016bsena', makeSelectWrapper(selStatus)));
+  var selPayment = makeSelect('payment_status', EDIT_PAYMENT_OPTIONS, booking.payment_status || 'Unpaid');
+  row3.appendChild(makeGroup('Mok\u0117jimas', makeSelectWrapper(selPayment)));
+  body.appendChild(row3);
+
+  // Row 4: Kaina + Depozitas
+  var row4 = document.createElement('div');
+  row4.className = 'edit-form-row';
+  var inpPrice = makeInput('number', 'price', booking.price != null ? booking.price : '', '0');
+  inpPrice.min = '0';
+  inpPrice.step = '1';
+  row4.appendChild(makeGroup('Kaina (\u20ac)', inpPrice));
+  var inpDeposit = makeInput('number', 'deposit_amount', booking.deposit_amount != null ? booking.deposit_amount : '', '0');
+  inpDeposit.min = '0';
+  inpDeposit.step = '1';
+  row4.appendChild(makeGroup('Depozitas (\u20ac)', inpDeposit));
+  body.appendChild(row4);
+
+  body.appendChild(makeDivider());
+
+  // Pastabos (textarea)
+  var textarea = document.createElement('textarea');
+  textarea.name = 'notes';
+  textarea.className = 'edit-textarea';
+  textarea.placeholder = 'Papildomos pastabos\u2026';
+  textarea.rows = 4;
+  textarea.value = booking.notes || '';
+  body.appendChild(makeGroup('Pastabos', textarea));
+
+  // Footer
+  var footer = document.createElement('div');
+  footer.className = 'edit-modal-footer';
+
+  var btnCancel = document.createElement('button');
+  btnCancel.type = 'button';
+  btnCancel.className = 'btn-cancel';
+  btnCancel.textContent = 'At\u0161aukti';
+  btnCancel.addEventListener('click', function() { closeEditModal(); });
+
+  var btnSave = document.createElement('button');
+  btnSave.type = 'button';
+  btnSave.className = 'btn-save';
+  btnSave.id = 'editModalSaveBtn';
+  btnSave.textContent = 'I\u0161saugoti';
+  btnSave.addEventListener('click', function() {
+    var formData = collectFormData();
+    btnSave.disabled = true;
+    btnSave.textContent = 'Saugoma\u2026';
+    saveBookingEdit(bookingId, formData, function() {
+      btnSave.disabled = false;
+      btnSave.textContent = 'I\u0161saugoti';
+    });
+  });
+
+  footer.appendChild(btnCancel);
+  footer.appendChild(btnSave);
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  modal.appendChild(footer);
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  document.addEventListener('keydown', handleEditModalKeydown);
+
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      backdrop.classList.add('is-open');
+    });
+  });
+
+  function collectFormData() {
+    var data = {};
+    data.event_date       = inpDate.value || null;
+    data.event_time       = inpEventTime.value || null;
+    data.pickup_time      = inpPickupTime.value || null;
+    data.delivery_address = inpAddress.value.trim() || null;
+    data.city             = inpCity.value.trim() || null;
+    data.status           = selStatus.value;
+    data.payment_status   = selPayment.value;
+    data.price            = inpPrice.value !== '' ? parseFloat(inpPrice.value) : null;
+    data.deposit_amount   = inpDeposit.value !== '' ? parseFloat(inpDeposit.value) : null;
+    data.notes            = textarea.value.trim() || null;
+    return data;
+  }
+}
+
+function handleEditModalKeydown(e) {
+  if (e.key === 'Escape') { closeEditModal(); }
+}
+
+function closeEditModal() {
+  var backdrop = document.getElementById('editModalBackdrop');
+  if (!backdrop) return;
+  document.removeEventListener('keydown', handleEditModalKeydown);
+  backdrop.classList.remove('is-open');
+  setTimeout(function() {
+    if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+  }, 250);
+}
+
+function saveBookingEdit(bookingId, formData, onComplete) {
+  var payload = { id: bookingId };
+  for (var key in formData) {
+    if (Object.prototype.hasOwnProperty.call(formData, key)) {
+      payload[key] = formData[key];
+    }
+  }
+
+  fetch(API_BASE + '-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json().catch(function() { return {}; });
+    })
+    .then(function() {
+      // Patch the matching booking in state.bookings in-place
+      for (var i = 0; i < state.bookings.length; i++) {
+        var b = state.bookings[i];
+        var bid = b.booking_id || b.id;
+        if (String(bid) === String(bookingId)) {
+          for (var field in formData) {
+            if (Object.prototype.hasOwnProperty.call(formData, field) &&
+                formData[field] !== null) {
+              b[field] = formData[field];
+            }
+          }
+          break;
+        }
+      }
+
+      renderCalendar();
+      if (state.selectedDate) {
+        if (isMobile()) {
+          var acc = document.getElementById('dayAccordion');
+          if (acc && acc.dataset.date === state.selectedDate) {
+            var accDate = state.selectedDate;
+            acc.remove();
+            toggleDayAccordion(accDate);
+          }
+        } else {
+          showDayPanel(state.selectedDate);
+        }
+      }
+
+      closeEditModal();
+      showToast('U\u017esakymas #' + bookingId + ' atnaujintas', 'success');
+      if (typeof onComplete === 'function') onComplete();
+    })
+    .catch(function(err) {
+      console.error('I\u0161saugoti nepavyko:', err);
+      showToast('Klaida i\u0161saugant u\u017esakym\u0105. Bandykite dar kart\u0105.', 'error');
+      if (typeof onComplete === 'function') onComplete();
+    });
+}
+
+// ================================================================
+// DELETE CONFIRMATION DIALOG
+// ================================================================
+
+var _deleteBackdrop     = null;
+var _deleteBookingId    = null;
+
+function openDeleteDialog(booking) {
+  closeDeleteDialog();
+  closeDatePicker();
+
+  _deleteBookingId = booking.id || booking.booking_id;
+
+  var backdrop = document.createElement('div');
+  backdrop.className = 'confirm-dialog-backdrop';
+  backdrop.id = 'deleteDialogBackdrop';
+
+  var dialog = document.createElement('div');
+  dialog.className = 'confirm-dialog';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-labelledby', 'deleteDlgTitle');
+
+  var iconEl = document.createElement('div');
+  iconEl.className = 'confirm-dialog-icon';
+  iconEl.setAttribute('aria-hidden', 'true');
+  iconEl.textContent = '\u26A0\uFE0F';
+  dialog.appendChild(iconEl);
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'confirm-dialog-title';
+  titleEl.id = 'deleteDlgTitle';
+  titleEl.textContent = booking.customer_name || '\u2014';
+  dialog.appendChild(titleEl);
+
+  var eventDate = (booking.event_date || '').slice(0, 10);
+  if (eventDate) {
+    var d = new Date(eventDate + 'T00:00:00');
+    if (!isNaN(d.getTime())) {
+      var dateLabel = d.getDate() + ' ' + LT_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+      var dateSub = document.createElement('div');
+      dateSub.style.cssText = 'font-size:0.8rem;color:var(--text-faint);margin-bottom:12px;';
+      dateSub.textContent = dateLabel;
+      dialog.appendChild(dateSub);
+    }
+  }
+
+  var msgEl = document.createElement('div');
+  msgEl.className = 'confirm-dialog-message';
+  msgEl.textContent = 'Ar tikrai norite i\u0161trinti \u0161\u012f u\u017esakym\u0105?';
+  dialog.appendChild(msgEl);
+
+  var actionsEl = document.createElement('div');
+  actionsEl.className = 'confirm-dialog-actions';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-dialog-cancel';
+  cancelBtn.id = 'deleteDlgCancel';
+  cancelBtn.type = 'button';
+  cancelBtn.textContent = 'At\u0161aukti';
+
+  var deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn-dialog-delete';
+  deleteBtn.id = 'deleteDlgConfirm';
+  deleteBtn.type = 'button';
+  deleteBtn.textContent = 'I\u0161trinti';
+
+  actionsEl.appendChild(cancelBtn);
+  actionsEl.appendChild(deleteBtn);
+  dialog.appendChild(actionsEl);
+
+  backdrop.appendChild(dialog);
+  document.body.appendChild(backdrop);
+  _deleteBackdrop = backdrop;
+
+  requestAnimationFrame(function() {
+    backdrop.classList.add('is-open');
+  });
+
+  cancelBtn.addEventListener('click', function() { closeDeleteDialog(); });
+  deleteBtn.addEventListener('click', function() { deleteBooking(_deleteBookingId); });
+
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop) { closeDeleteDialog(); }
+  });
+
+  document.addEventListener('keydown', _deleteEscListener);
+  setTimeout(function() { cancelBtn.focus(); }, 50);
+}
+
+function _deleteEscListener(e) {
+  if (e.key === 'Escape') { closeDeleteDialog(); }
+}
+
+function closeDeleteDialog() {
+  document.removeEventListener('keydown', _deleteEscListener);
+  if (!_deleteBackdrop) { return; }
+
+  var backdrop = _deleteBackdrop;
+  _deleteBackdrop   = null;
+  _deleteBookingId  = null;
+
+  backdrop.classList.remove('is-open');
+  setTimeout(function() {
+    if (backdrop.parentNode) { backdrop.parentNode.removeChild(backdrop); }
+  }, 220);
+}
+
+function deleteBooking(bookingId) {
+  if (!bookingId) { return; }
+
+  var confirmBtn = document.getElementById('deleteDlgConfirm');
+  var cancelBtn  = document.getElementById('deleteDlgCancel');
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Trinama\u2026'; }
+  if (cancelBtn)  { cancelBtn.disabled  = true; }
+
+  fetch(API_BASE + '-delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: bookingId })
+  })
+  .then(function(res) {
+    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+    return res.json().catch(function() { return {}; });
+  })
+  .then(function() {
+    state.bookings = state.bookings.filter(function(b) {
+      return String(b.id || b.booking_id) !== String(bookingId);
+    });
+
+    closeDeleteDialog();
+    renderCalendar();
+    _rerenderCurrentDay();
+    showToast('U\u017esakymas i\u0161trintas', 'success');
+  })
+  .catch(function(err) {
+    console.error('deleteBooking error:', err);
+    closeDeleteDialog();
+    showToast('Klaida trinant u\u017esakym\u0105', 'error');
+  });
+}
+
+// ================================================================
+// MINI DATE PICKER (MOVE TO DIFFERENT DAY)
+// ================================================================
+
+var _datePicker          = null;
+var _datePickerBookingId = null;
+var _dpYear              = 0;
+var _dpMonth             = 0;
+var _dpBookingRef        = null;
+
+function openDatePicker(booking, buttonEl) {
+  if (_datePicker && _datePickerBookingId === (booking.id || booking.booking_id)) {
+    closeDatePicker();
+    return;
+  }
+
+  closeDatePicker();
+  closeDeleteDialog();
+
+  _datePickerBookingId = booking.id || booking.booking_id;
+  _dpBookingRef        = booking;
+
+  var seedDate = booking.event_date
+    ? new Date((booking.event_date || '').slice(0, 10) + 'T00:00:00')
+    : new Date();
+  if (isNaN(seedDate.getTime())) { seedDate = new Date(); }
+
+  _dpYear  = seedDate.getFullYear();
+  _dpMonth = seedDate.getMonth();
+
+  var dropdown = document.createElement('div');
+  dropdown.className = 'date-picker-dropdown';
+  dropdown.id = 'dpDropdown';
+  document.body.appendChild(dropdown);
+  _datePicker = dropdown;
+
+  _dpRender(booking);
+  _dpPosition(buttonEl);
+
+  requestAnimationFrame(function() { dropdown.classList.add('is-open'); });
+
+  setTimeout(function() {
+    document.addEventListener('click', _dpOutsideListener, true);
+    document.addEventListener('keydown', _dpEscListener);
+  }, 0);
+}
+
+function _dpRender(booking) {
+  if (!_datePicker) { return; }
+
+  while (_datePicker.firstChild) { _datePicker.removeChild(_datePicker.firstChild); }
+
+  var bookingDateKey = (booking && booking.event_date)
+    ? (booking.event_date || '').slice(0, 10)
+    : null;
+
+  var todayKey = fmtKey(new Date());
+
+  var firstDay    = new Date(_dpYear, _dpMonth, 1);
+  var daysInMonth = new Date(_dpYear, _dpMonth + 1, 0).getDate();
+  var startDow    = (firstDay.getDay() + 6) % 7;
+
+  var nav = document.createElement('div');
+  nav.className = 'dp-nav';
+
+  var prevBtn = document.createElement('button');
+  prevBtn.className = 'dp-nav-btn';
+  prevBtn.type = 'button';
+  prevBtn.setAttribute('aria-label', 'Ankstesnis m\u0117nuo');
+  prevBtn.textContent = '\u2039';
+
+  var monthLabel = document.createElement('div');
+  monthLabel.className = 'dp-month-label';
+  monthLabel.textContent = LT_MONTHS[_dpMonth] + ' ' + _dpYear;
+
+  var nextBtn = document.createElement('button');
+  nextBtn.className = 'dp-nav-btn';
+  nextBtn.type = 'button';
+  nextBtn.setAttribute('aria-label', 'Kitas m\u0117nuo');
+  nextBtn.textContent = '\u203A';
+
+  nav.appendChild(prevBtn);
+  nav.appendChild(monthLabel);
+  nav.appendChild(nextBtn);
+  _datePicker.appendChild(nav);
+
+  prevBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    _dpMonth--;
+    if (_dpMonth < 0) { _dpMonth = 11; _dpYear--; }
+    _dpRender(booking);
+  });
+
+  nextBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    _dpMonth++;
+    if (_dpMonth > 11) { _dpMonth = 0; _dpYear++; }
+    _dpRender(booking);
+  });
+
+  var weekdaysRow = document.createElement('div');
+  weekdaysRow.className = 'dp-weekdays';
+  for (var wi = 0; wi < LT_WEEKDAYS.length; wi++) {
+    var wdCell = document.createElement('div');
+    wdCell.className = 'dp-weekday';
+    wdCell.textContent = LT_WEEKDAYS[wi];
+    weekdaysRow.appendChild(wdCell);
+  }
+  _datePicker.appendChild(weekdaysRow);
+
+  var daysGrid = document.createElement('div');
+  daysGrid.className = 'dp-days';
+
+  for (var e = 0; e < startDow; e++) {
+    var empty = document.createElement('div');
+    empty.className = 'dp-day is-outside';
+    empty.setAttribute('aria-hidden', 'true');
+    daysGrid.appendChild(empty);
+  }
+
+  for (var d = 1; d <= daysInMonth; d++) {
+    var mmStr  = pad(_dpMonth + 1);
+    var ddStr  = pad(d);
+    var dateKey = _dpYear + '-' + mmStr + '-' + ddStr;
+
+    var dayEl = document.createElement('div');
+    dayEl.className = 'dp-day';
+    if (dateKey === todayKey)       { dayEl.classList.add('is-today');    }
+    if (dateKey === bookingDateKey) { dayEl.classList.add('is-selected'); }
+    dayEl.setAttribute('data-dp-date', dateKey);
+    dayEl.setAttribute('aria-label', dateKey);
+    dayEl.textContent = String(d);
+
+    (function(key) {
+      dayEl.addEventListener('click', function(evt) {
+        evt.stopPropagation();
+        if (key !== bookingDateKey) {
+          moveBookingToDate(_datePickerBookingId, key);
+        } else {
+          closeDatePicker();
+        }
+      });
+    })(dateKey);
+
+    daysGrid.appendChild(dayEl);
+  }
+
+  var totalCells = startDow + daysInMonth;
+  var trailing   = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (var t = 0; t < trailing; t++) {
+    var trail = document.createElement('div');
+    trail.className = 'dp-day is-outside';
+    trail.setAttribute('aria-hidden', 'true');
+    daysGrid.appendChild(trail);
+  }
+
+  _datePicker.appendChild(daysGrid);
+}
+
+function _dpPosition(buttonEl) {
+  if (!_datePicker || !buttonEl) { return; }
+
+  var rect = buttonEl.getBoundingClientRect();
+  var dpW  = 248;
+  var dpH  = 290;
+
+  var top  = rect.bottom + window.scrollY + 6;
+  var left = rect.left   + window.scrollX;
+
+  if (left + dpW > window.innerWidth - 8) {
+    left = window.innerWidth - dpW - 8;
+  }
+  if (rect.bottom + dpH > window.innerHeight) {
+    top = rect.top + window.scrollY - dpH - 6;
+  }
+  if (left < 8) { left = 8; }
+
+  _datePicker.style.position = 'absolute';
+  _datePicker.style.top      = top  + 'px';
+  _datePicker.style.left     = left + 'px';
+}
+
+function _dpOutsideListener(e) {
+  if (_datePicker && !_datePicker.contains(e.target)) {
+    closeDatePicker();
+  }
+}
+
+function _dpEscListener(e) {
+  if (e.key === 'Escape') { closeDatePicker(); }
+}
+
+function closeDatePicker() {
+  document.removeEventListener('click', _dpOutsideListener, true);
+  document.removeEventListener('keydown', _dpEscListener);
+
+  if (!_datePicker) { return; }
+
+  var dp = _datePicker;
+  _datePicker          = null;
+  _datePickerBookingId = null;
+  _dpBookingRef        = null;
+
+  dp.classList.remove('is-open');
+  setTimeout(function() {
+    if (dp.parentNode) { dp.parentNode.removeChild(dp); }
+  }, 200);
+}
+
+function moveBookingToDate(bookingId, newDate) {
+  if (!bookingId || !newDate) { return; }
+
+  closeDatePicker();
+
+  fetch(API_BASE + '-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: bookingId, event_date: newDate })
+  })
+  .then(function(res) {
+    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+    return res.json().catch(function() { return {}; });
+  })
+  .then(function() {
+    state.bookings = state.bookings.map(function(b) {
+      if (String(b.id || b.booking_id) !== String(bookingId)) { return b; }
+      var updated   = {};
+      var key;
+      for (key in b) { if (b.hasOwnProperty(key)) { updated[key] = b[key]; } }
+      var timePart  = (b.event_date || '').slice(10);
+      updated.event_date = newDate + timePart;
+      return updated;
+    });
+
+    renderCalendar();
+    _rerenderCurrentDay();
+    showToast('U\u017esakymas perkeltas', 'success');
+  })
+  .catch(function(err) {
+    console.error('moveBookingToDate error:', err);
+    showToast('Klaida perkeliant u\u017esakym\u0105', 'error');
+  });
+}
+
+// Re-render whichever day view is currently open
+function _rerenderCurrentDay() {
+  if (!state.selectedDate) { return; }
+  if (isMobile()) {
+    var acc = document.getElementById('dayAccordion');
+    if (acc && acc.dataset.date === state.selectedDate) {
+      var dateToShow = state.selectedDate;
+      toggleDayAccordion(dateToShow);
+      setTimeout(function() { toggleDayAccordion(dateToShow); }, 10);
+    }
+  } else {
+    showDayPanel(state.selectedDate);
+  }
+}
+
+// ================================================================
+// UTILS
+// ================================================================
+
+function pad(n) { return n < 10 ? '0' + n : String(n); }
 
 function fmtKey(date) {
   return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
 }
 
-function isMobile() {
-  return window.innerWidth < 768;
-}
+function isMobile() { return window.innerWidth < 768; }
 
 function showLoading(on) {
   var overlay = document.getElementById('loadingOverlay');
@@ -1648,28 +3282,62 @@ function showLoading(on) {
 }
 
 function showToast(msg, type) {
-  var toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.className = 'toast ' + (type || 'info') + ' visible';
-  setTimeout(function() { toast.classList.remove('visible'); }, 3000);
+  var container = document.getElementById('toastContainer');
+  if (!container) {
+    // Fallback to old toast
+    var toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.className = 'toast ' + (type || 'info') + ' visible';
+    setTimeout(function() { toast.classList.remove('visible'); }, 3000);
+    return;
+  }
+
+  var icon = type === 'success' ? '\u2705' : type === 'error' ? '\u274C' : '\u2139\uFE0F';
+  var toastEl = document.createElement('div');
+  toastEl.className = 'toast-item toast-' + (type || 'info');
+  toastEl.innerHTML = '<span>' + icon + '</span> <span>' + escHtml(msg) + '</span>';
+  container.appendChild(toastEl);
+
+  setTimeout(function() {
+    toastEl.classList.add('is-exiting');
+    setTimeout(function() {
+      if (toastEl.parentNode) toastEl.parentNode.removeChild(toastEl);
+    }, 250);
+  }, 3000);
+}
+
+function pluralLT(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return 'as';
+  if (n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 10 || n % 100 >= 20)) return 'ai';
+  return '\u0173';
+}
+
+function formatPrice(val) {
+  if (isNaN(val)) return '\u2014';
+  return val.toFixed(0) + ' \u20AC';
+}
+
+function escHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function renderAll() {
   renderCalendar();
   renderStats();
   renderEquipment();
+  renderFilterBar();
 
   if (state.selectedDate) {
-    if (isMobile()) {
-      // Don't auto-reopen accordion on refresh
-    } else {
-      showDayPanel(state.selectedDate);
-    }
+    if (!isMobile()) { showDayPanel(state.selectedDate); }
   }
 }
 
-// ── INIT ───────────────────────────────────────────────────
+// ================================================================
+// INIT
+// ================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
   initNavigation();

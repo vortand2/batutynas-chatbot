@@ -3743,10 +3743,11 @@
         function esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/"/g, "'"); }
         var gt = _lastFlow === 'public' ? 'Viešas renginys' : (_lastFlow === 'party' ? 'Vakarėlis' : 'Gimtadienis');
         var bookingData = '{"group_type":"' + gt + '"';
+        bookingData += ',"event_type":"' + esc(_lastFlow || '') + '"';
         bookingData += ',"date":"' + esc(_selectedDate || 'Nenurodyta') + '"';
         bookingData += ',"location":"' + esc(_selectedLocation || 'Nenurodyta') + '"';
         bookingData += ',"guest_count":"' + esc(_selectedGuestCount || (_lastFlow === 'public' ? 'Apie 75 svečių' : 'Apie 8 vaikų')) + '"';
-        if (_selectedEquipment) bookingData += ',"trampoline":"' + esc(_selectedEquipment) + '"';
+        if (_selectedEquipment) bookingData += ',"trampoline_preference":"' + esc(_selectedEquipment) + '"';
         if (_selectedAddons) bookingData += ',"addons":"' + esc(_selectedAddons) + '"';
         bookingData += ',"contact_name":"' + esc(contactName) + '"';
         bookingData += ',"contact_phone":"' + esc(phone) + '"';
@@ -4008,12 +4009,20 @@
     var hash = JSON.stringify(bookingObj);
     if (hash === _lastBookingHash) { console.log('[Booking] Skipped duplicate submission'); return; }
     _lastBookingHash = hash;
-    var webhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
+    var webhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify';
     var payload = {
-      type: 'booking_submission',
-      booking_data: bookingObj,
-      session_id: (typeof BatutynasChat !== 'undefined' && BatutynasChat._getSessionId) ? BatutynasChat._getSessionId() : 'demo_' + Date.now(),
-      timestamp: new Date().toISOString()
+      group_type: bookingObj.group_type || 'rental',
+      date: bookingObj.date || '',
+      location: bookingObj.location || '',
+      address: bookingObj.address || '',
+      event_type: bookingObj.event_type || '',
+      guest_count: bookingObj.guest_count || '',
+      contact_name: bookingObj.contact_name || '',
+      contact_phone: bookingObj.contact_phone || '',
+      trampoline_preference: bookingObj.trampoline || bookingObj.trampoline_preference || '',
+      addons: bookingObj.addons || '',
+      notes: bookingObj.notes || '',
+      request_type: 'booking'
     };
     _realFetch(webhookUrl, {
       method: 'POST',

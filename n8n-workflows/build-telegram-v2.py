@@ -372,8 +372,16 @@ if (booking.event_date) msg += `\ud83d\udcc5 ${booking.event_date}\n`;
 if (booking.event_time) msg += `\u23f0 ${booking.event_time}`;
 if (booking.pickup_time) msg += ` \u2192 ${booking.pickup_time}`;
 msg += '\n';
-if (booking.delivery_address) msg += `\ud83d\udccd ${booking.delivery_address}`;
-if (booking.city) msg += `, ${booking.city}`;
+if (booking.delivery_address && booking.delivery_address.trim()) {
+  msg += `\n   \ud83d\udccd ${booking.delivery_address}`;
+  if (booking.city) msg += `, ${booking.city}`;
+  if (booking.delivery_address.includes('[nebaigtas]')) {
+    msg += ` \u26a0\ufe0f <i>Adresas nebaigtas!</i>`;
+  }
+} else {
+  msg += `\n   \ud83d\udccd \u26a0\ufe0f <b>Adresas nenurodytas!</b>`;
+  if (booking.city) msg += `, ${booking.city}`;
+}
 msg += '\n';
 if (booking.equipment) msg += `\ud83c\udfaa ${booking.equipment}\n`;
 if (booking.price) msg += `\ud83d\udcb0 \u20ac${booking.price}\n`;
@@ -447,6 +455,19 @@ if (data.startsWith('vb_ok:')) {
         'Telegram'
       FROM pending p, contact_upsert cu
       RETURNING id, event_date::text, city
+    ),
+    equip_link AS (
+      INSERT INTO batutynas.booking_equipment (booking_id, equipment_id)
+      SELECT nb.id, e.id
+      FROM new_booking nb, pending p
+      CROSS JOIN LATERAL (
+        SELECT id FROM batutynas.equipment
+        WHERE LOWER(name) = LOWER(TRIM(p.booking_data->>'equipment'))
+        LIMIT 1
+      ) e
+      WHERE p.booking_data->>'equipment' IS NOT NULL
+      ON CONFLICT DO NOTHING
+      RETURNING booking_id
     )
     SELECT COALESCE(
       (SELECT json_build_object(
@@ -584,6 +605,19 @@ new_booking AS (
     'Telegram'
   FROM contact_upsert cu
   RETURNING id, event_date::text, city
+),
+equip_link AS (
+  INSERT INTO batutynas.booking_equipment (booking_id, equipment_id)
+  SELECT nb.id, e.id
+  FROM new_booking nb
+  CROSS JOIN LATERAL (
+    SELECT id FROM batutynas.equipment
+    WHERE LOWER(name) = LOWER(TRIM('${equipment}'))
+    LIMIT 1
+  ) e
+  WHERE '${equipment}' != ''
+  ON CONFLICT DO NOTHING
+  RETURNING booking_id
 )
 SELECT json_build_object(
   'action', 'confirmed',
@@ -882,7 +916,7 @@ const prompt = `You are a booking data extractor for Batutynas, a Lithuanian inf
 - event_date: Date in YYYY-MM-DD format. 'rytoj' = tomorrow, 'poryt' = day after tomorrow, 'šiandien' = today. Use current year if not specified. (string)
 - event_time: Delivery/start time in HH:MM format (string)
 - pickup_time: Pickup/end time in HH:MM format (string)
-- delivery_address: Full delivery address. Fix garbled street names — common streets: Dariaus ir Girėno, Vytauto, Vilniaus, Klaipėdos, Respublikos, Stoties. (string)
+- delivery_address: Full delivery address with street name AND house number. Fix garbled street names. Common streets: Dariaus ir Girėno g., Vytauto g., Vilniaus g., Klaipėdos g., Respublikos g., Stoties g., Laisvės al., Žemaitės g., Gedimino g. Examples: "Vytauto g. 15", "Dariaus ir Girėno g. 42". If only a street name is mentioned without a number, include what was said and append " [nebaigtas]". NEVER return null for this field if any location info was mentioned. (string)
 - city: City name. Nearby cities: Tauragė, Klaipėda, Šilutė, Šilalė, Jurbarkas, Pagėgiai, Palanga, Kretinga, Gargždai. (string)
 - equipment: Equipment name EXACTLY as spoken. Known items — Big parks: Džiumandži parkas, Fantazijų parkas, Giga ruožas. Mega trampolines: Mega Rocket, Mega ruožas, Mega Ufonautai, Mega Waikiki. Standard: Chameleonas, Candy Pop, Vienaragiai, Pilis mažiesiems, Monstrai, Aštuonkojis. Addons: Milžiniškas Dart, Kamuolių medžioklė, Rodeo bulius, Saldėsių aparatai, Banketo stalai ir kėdės, Disco paviljonas, Putų šou. Use the EXACT name from this list that matches what was said. (string)
 - price: Price if mentioned, number only in EUR (number or null)
@@ -954,7 +988,7 @@ return [{
             "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
             "sendBody": True,
             "specifyBody": "json",
-            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [[\n      {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n    ]]\n  }\n}',
+            "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [\n      [\n        {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n      ],\n      [\n        {"text": "\\u270f\\ufe0f Redaguoti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n      ]\n    ]\n  }\n}',
             "options": {}
         },
         "id": "send-keyboard",
