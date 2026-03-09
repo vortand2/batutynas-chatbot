@@ -31,6 +31,16 @@ console-test.txt
 test-on-site.html
 package.json
 package-lock.json
+server.log
+server.pid
+__pycache__/
+tests/__pycache__/
+*.pyc
+crystal.png
+full-screen-image.html
+
+# Dashboard build parts (temp assembly files)
+dashboard/_parts/
 
 # n8n templates (not part of main workflows)
 n8n-workflows/template*.js
