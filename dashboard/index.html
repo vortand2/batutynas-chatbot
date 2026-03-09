@@ -1763,7 +1763,12 @@ var EQUIP_STATUS_CLASS = {
 // CONFIG
 // ================================================================
 
-var API_BASE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard';
+// v2: Calendar Bridge API (reads from Google Calendar)
+var API_BASE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2';
+var API_AVAILABILITY = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability';
+var API_CREATE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create';
+var API_UPDATE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-update';
+var API_DELETE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-delete';
 var REFRESH_INTERVAL_MS = 300000;
 
 // ================================================================
@@ -1789,8 +1794,9 @@ var state = {
 var _activeFetchController = null;
 
 // Consistent booking ID helper — use everywhere instead of ad-hoc resolution
+// v2: Calendar events use calendarEventId (string), DB uses numeric id
 function getBookingId(b) {
-  return b.id || b.booking_id;
+  return b.calendarEventId || b.id || b.booking_id;
 }
 
 // ================================================================
@@ -1831,7 +1837,14 @@ function getEquipmentIcons(b) {
 
 function getBookingsByDate(dateKey) {
   return state.bookings.filter(function(b) {
-    return getDateKey(b) === dateKey;
+    var start = getDateKey(b);
+    if (!start) return false;
+    // Multi-day support: check if dateKey falls within [start, end)
+    var endDate = (b.end_date || '').slice(0, 10);
+    if (endDate && endDate > start) {
+      return dateKey >= start && dateKey < endDate;
+    }
+    return start === dateKey;
   }).sort(function(a, b) {
     return (a.event_time || '').localeCompare(b.event_time || '');
   });
@@ -1841,12 +1854,24 @@ function getBookingsForMonth(year, month) {
   var byDay = {};
   var filtered = getFilteredBookings();
   filtered.forEach(function(b) {
-    var key = getDateKey(b);
-    if (!key) return;
-    var d = new Date(key + 'T00:00:00');
-    if (d.getFullYear() === year && d.getMonth() === month) {
-      if (!byDay[key]) byDay[key] = [];
-      byDay[key].push(b);
+    var startKey = getDateKey(b);
+    if (!startKey) return;
+    var endDate = (b.end_date || '').slice(0, 10);
+    // Multi-day: iterate through each day the booking spans
+    var current = new Date(startKey + 'T00:00:00');
+    var last = endDate ? new Date(endDate + 'T00:00:00') : new Date(current);
+    // For single-day events (or no end_date), just add the start day
+    if (!endDate || endDate <= startKey) {
+      last = new Date(current);
+      last.setDate(last.getDate() + 1);
+    }
+    while (current < last) {
+      if (current.getFullYear() === year && current.getMonth() === month) {
+        var key = current.toISOString().slice(0, 10);
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push(b);
+      }
+      current.setDate(current.getDate() + 1);
     }
   });
   return byDay;
@@ -2854,10 +2879,10 @@ function saveBookingEdit(bookingId, formData, onComplete) {
   var _saveCtrl = new AbortController();
   var _saveTimer = setTimeout(function() { _saveCtrl.abort(); }, 15000);
 
-  fetch(API_BASE + '-update', {
+  fetch(API_UPDATE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ event_id: bookingId, action: 'edit', fields: formData }),
     signal: _saveCtrl.signal
   })
     .then(function(res) {
@@ -3023,10 +3048,10 @@ function deleteBooking(bookingId) {
   var controller = new AbortController();
   var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
 
-  fetch(API_BASE + '-delete', {
+  fetch(API_DELETE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: bookingId }),
+    body: JSON.stringify({ event_id: bookingId }),
     signal: controller.signal
   })
   .then(function(res) {
@@ -3268,17 +3293,21 @@ function moveBookingToDate(bookingId, newDate) {
   var controller = new AbortController();
   var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
 
-  fetch(API_BASE + '-update', {
+  fetch(API_UPDATE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: bookingId, event_date: newDate }),
+    body: JSON.stringify({ event_id: bookingId, action: 'move', new_date: newDate }),
     signal: controller.signal
   })
   .then(function(res) {
     if (!res.ok) { throw new Error('HTTP ' + res.status); }
     return res.json().catch(function() { return {}; });
   })
-  .then(function() {
+  .then(function(data) {
+    if (data.success === false) {
+      showToast(data.error || 'Konfliktas \u2014 batutas jau u\u017eimtas t\u0105 dien\u0105', 'error');
+      return;
+    }
     state.bookings = state.bookings.map(function(b) {
       if (String(getBookingId(b)) !== String(bookingId)) { return b; }
       var updated   = {};

@@ -1,0 +1,129 @@
+{
+  "name": "Batutynas: Morning Briefing V2 (Calendar)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "88b3b50b1899467d9231",
+      "name": "Cron 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2?year={{ new Date().getFullYear() }}&month={{ new Date().getMonth()+1 }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "75bcbf1d23b74ff9a37b",
+      "name": "Fetch Today Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        400
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst bookings = data.bookings || [];\nconst stats = data.stats || {};\nconst now = new Date();\nconst today = now.toISOString().substring(0, 10);\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\nconst monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];\n\nconst dayName = dayNames[now.getDay()];\nconst todayBookings = bookings.filter(b => b.event_date === today);\n\n// Tomorrow\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\nconst tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);\n\nfunction fmtBooking(b) {\n  const equip = Array.isArray(b.equipment) && b.equipment.length > 0\n    ? b.equipment.map(e => `${e.icon || '🎪'} ${e.name}`).join(', ')\n    : (b.raw_summary || '?');\n  let line = `  📌 ${equip}`;\n  if (b.customer_name) line += `\\n     👤 ${b.customer_name}`;\n  if (b.customer_phone) line += ` | 📞 ${b.customer_phone}`;\n  if (b.delivery_address) line += `\\n     📍 ${b.delivery_address}`;\n  if (b.price) line += `\\n     💰 €${b.price}`;\n  return line;\n}\n\nlet msg = `☀️ <b>Ryto apžvalga — ${monthNames[now.getMonth()]} ${now.getDate()} (${dayName})</b>\\n\\n`;\n\n// Today's bookings\nif (todayBookings.length === 0) {\n  msg += `📅 <b>Šiandien:</b> Laisva diena! 🎉\\n`;\n} else {\n  msg += `📅 <b>Šiandien (${todayBookings.length} užs.):</b>\\n`;\n  todayBookings.forEach(b => { msg += fmtBooking(b) + '\\n\\n'; });\n}\n\n// Tomorrow preview\nif (tmrwBookings.length > 0) {\n  msg += `📅 <b>Rytoj (${tmrwBookings.length} užs.):</b>\\n`;\n  tmrwBookings.forEach(b => { msg += `  📌 ${b.raw_summary || '?'}\\n`; });\n  msg += '\\n';\n}\n\n// Month stats\nmsg += `📊 <b>Mėnesio suvestinė:</b>\\n`;\nmsg += `  📦 Užsakymai: ${stats.total_bookings || 0}\\n`;\nmsg += `  💰 Pajamos: €${stats.total_revenue || 0}\\n`;\n\nmsg += `\\n💬 Naudokite /help komandoms`;\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "8eae96105b0c4ab08b3b",
+      "name": "Format Morning Briefing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $vars.OWNER_CHAT_ID }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "dd389cb7cb154ddcbde3",
+      "name": "Send Morning Briefing",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron 07:00": {
+      "main": [
+        [
+          {
+            "node": "Fetch Today Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Today Data": {
+      "main": [
+        [
+          {
+            "node": "Format Morning Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Morning Briefing": {
+      "main": [
+        [
+          {
+            "node": "Send Morning Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "batutynas"
+    },
+    {
+      "name": "cron"
+    }
+  ]
+}

@@ -1,0 +1,925 @@
+#!/usr/bin/env python3
+"""
+Build the Batutynas Calendar Bridge n8n workflow.
+Generates calendar-bridge-workflow.json for deployment.
+
+This workflow bridges Google Calendar ↔ Dashboard/Telegram Bot:
+- GET  /batutynas-dashboard-v2    → fetch + parse events for month
+- GET  /batutynas-availability    → check equipment availability for date
+- POST /batutynas-calendar-create → create booking event
+- POST /batutynas-calendar-update → update/move/extend booking
+- POST /batutynas-calendar-delete → delete/cancel booking
+"""
+
+import json, os
+
+# ── Configuration ────────────────────────────────────────────────────────────
+
+CREDENTIAL_ID = "GOOGLE_CALENDAR_CRED"  # Replace after OAuth setup
+CREDENTIAL_NAME = "Google Calendar - Batutynas"
+CALENDAR_ID = "primary"  # Or client's specific calendar ID
+
+# ── Equipment Master List ────────────────────────────────────────────────────
+
+EQUIPMENT_JS = """
+const EQUIPMENT = [
+  { name: 'Fantazijų parkas', aliases: ['fantaziju', 'fantazijos', 'fantazij', 'fantaziju parkas'], icon: '🏰', category: 'park' },
+  { name: 'Džiumandži parkas', aliases: ['dziumandzi', 'dziumandziu', 'jumanji', 'dziumand', 'džiumandži'], icon: '🌴', category: 'park' },
+  { name: 'Giga ruožas', aliases: ['giga', 'giga ruozas', 'giga ruožas'], icon: '🏃', category: 'obstacle' },
+  { name: 'Mega ruožas', aliases: ['mega ruozas', 'mega ruož', 'mega ruožas'], icon: '🏃‍♂️', category: 'obstacle' },
+  { name: 'Mega Rocket', aliases: ['mega rocket', 'rocket', 'raketa'], icon: '🚀', category: 'mega' },
+  { name: 'Mega Ufonautai', aliases: ['mega ufonautai', 'ufonautai', 'ufo'], icon: '🛸', category: 'mega' },
+  { name: 'Mega Waikiki', aliases: ['mega waikiki', 'waikiki'], icon: '🏄', category: 'mega' },
+  { name: 'Monstrai', aliases: ['monstrai', 'monstr', 'monster', 'monstru'], icon: '👾', category: 'compact' },
+  { name: 'Chameleonas', aliases: ['chameleonas', 'chameleon', 'chameleono'], icon: '🦎', category: 'compact' },
+  { name: 'Candy Pop', aliases: ['candy', 'candy pop', 'candypop'], icon: '🍬', category: 'compact' },
+  { name: 'Aštuonkojis', aliases: ['astuonkojis', 'astuonkoj', 'octopus', 'aštuonkojis'], icon: '🐙', category: 'compact' },
+  { name: 'Vienaragiai', aliases: ['vienaragiai', 'vienaragi', 'unicorn', 'vienaragis', 'vienaragių'], icon: '🦄', category: 'compact' },
+  { name: 'Pilis mažiesiems', aliases: ['pilis', 'pilis maziesiems', 'castle', 'pilis mažiesiems'], icon: '🏯', category: 'toddler' },
+  { name: 'Milžiniškas Dart', aliases: ['dart', 'milziniskas dart', 'giant dart', 'milžiniškas'], icon: '🎯', category: 'interactive' },
+  { name: 'Kamuolių medžioklė', aliases: ['kamuoliu', 'kamuoliu medziokle', 'ball hunt', 'kamuolių'], icon: '⚽', category: 'interactive' },
+  { name: 'Rodeo bulius', aliases: ['rodeo', 'bulius', 'bull', 'rodeo bulius'], icon: '🐂', category: 'interactive' },
+];
+
+const ADDONS = [
+  { name: 'Cukraus vata', aliases: ['cukraus vata', 'vata', 'cotton candy'] },
+  { name: 'Popcorn', aliases: ['popcorn', 'popcornai', 'kukurūzai'] },
+  { name: 'Šerbetas', aliases: ['serbetas', 'serbet', 'sherbet', 'šerbetas'] },
+  { name: 'Putų šou', aliases: ['putu sou', 'putos', 'foam', 'putų šou', 'putu'] },
+  { name: 'Disco paviljonas', aliases: ['disco', 'paviljonas', 'disco paviljonas'] },
+  { name: 'JBL kolonėlė', aliases: ['jbl', 'kolonele', 'speaker', 'kolonėlė'] },
+  { name: 'VR sistema', aliases: ['vr', 'virtual reality', 'vr sistema'] },
+  { name: 'Burbulų mašina', aliases: ['burbulai', 'burbulu masina', 'bubbles', 'burbulų'] },
+  { name: 'Instax fotoaparatas', aliases: ['instax', 'fotoaparatas', 'fotikas', 'foto'] },
+  { name: 'Sumo kostiumai', aliases: ['sumo', 'kostiumai', 'sumo kostiumai'] },
+];
+"""
+
+# ── Parsing Logic (shared across nodes) ──────────────────────────────────────
+
+PARSE_EVENT_FN = EQUIPMENT_JS + """
+function removeDiacritics(str) {
+  return str.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+}
+
+function matchEquipment(text) {
+  const lower = removeDiacritics(text.toLowerCase());
+  let bestMatch = null;
+  let bestLen = 0;
+  for (const eq of EQUIPMENT) {
+    for (const alias of eq.aliases) {
+      const a = removeDiacritics(alias.toLowerCase());
+      if (lower.includes(a) && a.length > bestLen) {
+        bestMatch = eq;
+        bestLen = a.length;
+      }
+    }
+    // Also try the name itself
+    const n = removeDiacritics(eq.name.toLowerCase());
+    if (lower.includes(n) && n.length > bestLen) {
+      bestMatch = eq;
+      bestLen = n.length;
+    }
+  }
+  return bestMatch;
+}
+
+function matchAddons(text) {
+  const lower = removeDiacritics(text.toLowerCase());
+  const found = [];
+  for (const addon of ADDONS) {
+    for (const alias of addon.aliases) {
+      if (lower.includes(removeDiacritics(alias.toLowerCase()))) {
+        found.push(addon.name);
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+function extractPrice(text) {
+  // Match patterns: "185€", "185 eur", "uz 185", "185 €", "€185"
+  const patterns = [
+    /(\\d+)\\s*€/,
+    /€\\s*(\\d+)/,
+    /(\\d+)\\s*eur/i,
+    /uz\\s*(\\d+)/i,
+    /už\\s*(\\d+)/i,
+    /(\\d{2,4})\\s*$/  // trailing number as fallback
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+function extractPhone(text) {
+  const m = text.match(/\\+?\\d[\\d\\s-]{7,}/);
+  return m ? m[0].replace(/[\\s-]/g, '') : null;
+}
+
+function parseCalendarEvent(event) {
+  const summary = event.summary || '';
+  const description = event.description || '';
+  const allText = summary + ' ' + description;
+
+  // Equipment match from title primarily
+  const equipment = matchEquipment(summary);
+  const addons = matchAddons(allText);
+  const price = extractPrice(allText);
+  const phone = extractPhone(description);
+
+  // Parse description lines for customer info
+  const lines = description.split(/\\n/).map(l => l.trim()).filter(Boolean);
+  let customerName = null;
+  let location = null;
+
+  for (const line of lines) {
+    // Skip lines that are phone numbers
+    if (/^\\+?\\d[\\d\\s-]{7,}$/.test(line)) continue;
+    // Skip lines that look like prices
+    if (/^\\d+\\s*€/.test(line) || /^€/.test(line)) continue;
+    // First non-phone, non-price line could be location or name
+    // Heuristic: if it contains city-like words, it's location
+    if (!location && /[A-ZĄČĘĖĮŠŲŪŽ]/.test(line[0]) && line.length < 40) {
+      // Check if next unassigned slot is location or name
+      if (!customerName && lines.indexOf(line) > 0) {
+        // Lines after first are more likely to be names
+        customerName = line;
+      } else if (!location) {
+        location = line;
+      }
+    }
+  }
+
+  // If we found things in wrong order, try to fix:
+  // Location often comes first in client's format (from screenshots)
+  // "Pagramantis\\n+37060250071\\nRita Juskaite"
+  if (lines.length >= 1) {
+    const firstNonPhone = lines.find(l => !/^\\+?\\d/.test(l));
+    const lastNonPhone = [...lines].reverse().find(l => !/^\\+?\\d/.test(l));
+    if (firstNonPhone && lastNonPhone && firstNonPhone !== lastNonPhone) {
+      location = firstNonPhone;
+      customerName = lastNonPhone;
+    } else if (firstNonPhone) {
+      // Only one non-phone line — could be either
+      // If it looks like a place (short, one word), treat as location
+      if (firstNonPhone.split(/\\s+/).length <= 2) {
+        location = firstNonPhone;
+      } else {
+        customerName = firstNonPhone;
+      }
+    }
+  }
+
+  // Event dates
+  const startDate = event.start?.date || event.start?.dateTime?.substring(0, 10) || '';
+  const endDate = event.end?.date || event.end?.dateTime?.substring(0, 10) || '';
+
+  // Calculate duration in days
+  let durationDays = 1;
+  if (startDate && endDate) {
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+    durationDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+    // Google Calendar all-day events: end date is exclusive (June 6 all-day → end = June 7)
+    // So a 1-day event has end = start + 1 day, meaning durationDays = 1 is correct
+  }
+
+  return {
+    id: event.id,
+    calendarEventId: event.id,
+    event_date: startDate,
+    end_date: endDate,
+    duration_days: durationDays,
+    raw_summary: summary,
+    raw_description: description,
+    customer_name: customerName,
+    customer_phone: phone,
+    delivery_address: location,
+    city: location,
+    price: price,
+    status: 'Confirmed', // Calendar events are confirmed by default
+    payment_status: price ? 'Pending' : 'Unknown',
+    entry_source: 'google_calendar',
+    equipment: equipment ? [{
+      name: equipment.name,
+      icon: equipment.icon,
+      category: equipment.category
+    }] : [],
+    addons: addons,
+    htmlLink: event.htmlLink || '',
+    created_at: event.created || '',
+  };
+}
+"""
+
+# ── Node Builders ────────────────────────────────────────────────────────────
+
+def pos(x, y):
+    return [x, y]
+
+def google_cal_credential():
+    return {
+        "googleCalendarOAuth2Api": {
+            "id": CREDENTIAL_ID,
+            "name": CREDENTIAL_NAME
+        }
+    }
+
+def webhook_node(node_id, name, method, path, y_pos):
+    return {
+        "parameters": {
+            "httpMethod": method,
+            "path": path,
+            "responseMode": "responseNode",
+            "options": {}
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": pos(240, y_pos),
+        "webhookId": path
+    }
+
+def code_node(node_id, name, js_code, x_pos, y_pos):
+    return {
+        "parameters": {"jsCode": js_code},
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": pos(x_pos, y_pos)
+    }
+
+def respond_node(node_id, name, x_pos, y_pos):
+    return {
+        "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ JSON.stringify($json) }}",
+            "options": {
+                "responseHeaders": {
+                    "entries": [
+                        {"name": "Content-Type", "value": "application/json"},
+                        {"name": "Access-Control-Allow-Origin", "value": "*"},
+                        {"name": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS"},
+                        {"name": "Access-Control-Allow-Headers", "value": "Content-Type"}
+                    ]
+                }
+            }
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": pos(x_pos, y_pos)
+    }
+
+def google_cal_list_node(node_id, name, time_min_expr, time_max_expr, x_pos, y_pos):
+    """Google Calendar getAll (list events) node."""
+    return {
+        "parameters": {
+            "operation": "getAll",
+            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "returnAll": True,
+            "options": {
+                "timeMin": time_min_expr,
+                "timeMax": time_max_expr
+            }
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1.2,
+        "position": pos(x_pos, y_pos),
+        "credentials": google_cal_credential()
+    }
+
+def google_cal_create_node(node_id, name, x_pos, y_pos):
+    """Google Calendar create event node — uses expressions from previous node."""
+    return {
+        "parameters": {
+            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "summary": "={{ $json.eventTitle }}",
+            "description": "={{ $json.eventDescription }}",
+            "allday": True,
+            "start": "={{ $json.startDate }}",
+            "end": "={{ $json.endDate }}",
+            "options": {}
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1.2,
+        "position": pos(x_pos, y_pos),
+        "credentials": google_cal_credential()
+    }
+
+def google_cal_update_node(node_id, name, x_pos, y_pos):
+    """Google Calendar update event node."""
+    return {
+        "parameters": {
+            "operation": "update",
+            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "eventId": "={{ $json.eventId }}",
+            "updateFields": {
+                "allday": True,
+                "start": "={{ $json.newStart }}",
+                "end": "={{ $json.newEnd }}",
+                "summary": "={{ $json.newSummary || '' }}",
+                "description": "={{ $json.newDescription || '' }}"
+            }
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1.2,
+        "position": pos(x_pos, y_pos),
+        "credentials": google_cal_credential()
+    }
+
+def google_cal_delete_node(node_id, name, x_pos, y_pos):
+    """Google Calendar delete event node."""
+    return {
+        "parameters": {
+            "operation": "delete",
+            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "eventId": "={{ $json.eventId }}"
+        },
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1.2,
+        "position": pos(x_pos, y_pos),
+        "credentials": google_cal_credential()
+    }
+
+def connection(from_node, to_node):
+    return {"node": to_node, "type": "main", "index": 0}
+
+# ── Endpoint 1: GET Dashboard Data ──────────────────────────────────────────
+
+def build_dashboard_endpoint():
+    Y = 300
+    nodes = []
+    conns = {}
+
+    # 1. Webhook
+    nodes.append(webhook_node("dash-webhook", "Dashboard Webhook", "GET", "batutynas-dashboard-v2", Y))
+
+    # 2. Parse request → extract month
+    nodes.append(code_node("dash-parse", "Parse Month", """
+const query = $input.first().json.query || {};
+const now = new Date();
+const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+const month = query.month || defaultMonth;
+const monthRegex = /^\\d{4}-\\d{2}$/;
+if (!monthRegex.test(month)) {
+  throw new Error('Invalid month format. Expected YYYY-MM.');
+}
+const [year, mon] = month.split('-').map(Number);
+const timeMin = `${month}-01T00:00:00Z`;
+// Last day of month
+const lastDay = new Date(year, mon, 0).getDate();
+const timeMax = `${month}-${String(lastDay).padStart(2, '0')}T23:59:59Z`;
+return [{ json: { month, timeMin, timeMax } }];
+""", 460, Y))
+
+    # 3. Fetch events from Google Calendar
+    nodes.append(google_cal_list_node(
+        "dash-fetch", "Fetch Calendar Events",
+        "={{ $json.timeMin }}",
+        "={{ $json.timeMax }}",
+        700, Y
+    ))
+
+    # 4. Parse & transform all events
+    parse_code = PARSE_EVENT_FN + """
+const events = $input.all().map(item => item.json);
+const month = $('Parse Month').first().json.month;
+
+// Parse each event
+const bookings = events
+  .filter(e => e.summary) // skip empty events
+  .map(parseCalendarEvent)
+  .sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''));
+
+// Compute stats
+const today = new Date().toISOString().substring(0, 10);
+const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().substring(0, 10);
+const twoWeeksAgo = new Date(Date.now() - 13 * 86400000).toISOString().substring(0, 10);
+
+const todayBookings = bookings.filter(b => b.event_date === today);
+const weekBookings = bookings.filter(b => b.event_date >= weekAgo && b.event_date <= today);
+const lastWeekBookings = bookings.filter(b => b.event_date >= twoWeeksAgo && b.event_date < weekAgo);
+
+const weekRevenue = weekBookings.reduce((sum, b) => sum + (b.price || 0), 0);
+const lastWeekRevenue = lastWeekBookings.reduce((sum, b) => sum + (b.price || 0), 0);
+
+// Equipment availability for today
+const todayEquipmentNames = todayBookings
+  .flatMap(b => b.equipment.map(e => e.name));
+const availableCount = EQUIPMENT.filter(e => !todayEquipmentNames.includes(e.name)).length;
+
+// Equipment list with status
+const equipmentList = EQUIPMENT.map(eq => ({
+  id: eq.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+  name: eq.name,
+  icon: eq.icon,
+  category: eq.category,
+  status: todayEquipmentNames.includes(eq.name) ? 'Booked' : 'Available'
+}));
+
+return [{ json: {
+  bookings,
+  stats: {
+    today_count: todayBookings.length,
+    month_count: bookings.length,
+    week_revenue: weekRevenue,
+    last_week_revenue: lastWeekRevenue,
+    month_revenue: bookings.reduce((s, b) => s + (b.price || 0), 0),
+    available_equipment: availableCount,
+    total_equipment: EQUIPMENT.length
+  },
+  equipment: equipmentList
+}}];
+"""
+    nodes.append(code_node("dash-transform", "Parse & Transform", parse_code, 940, Y))
+
+    # 5. Respond
+    nodes.append(respond_node("dash-respond", "Respond Dashboard", 1180, Y))
+
+    conns["Dashboard Webhook"] = {"main": [[connection("dash-webhook", "Parse Month")]]}
+    conns["Parse Month"] = {"main": [[connection("dash-parse", "Fetch Calendar Events")]]}
+    conns["Fetch Calendar Events"] = {"main": [[connection("dash-fetch", "Parse & Transform")]]}
+    conns["Parse & Transform"] = {"main": [[connection("dash-transform", "Respond Dashboard")]]}
+
+    return nodes, conns
+
+# ── Endpoint 2: GET Availability ─────────────────────────────────────────────
+
+def build_availability_endpoint():
+    Y = 620
+    nodes = []
+    conns = {}
+
+    nodes.append(webhook_node("avail-webhook", "Availability Webhook", "GET", "batutynas-availability", Y))
+
+    nodes.append(code_node("avail-parse", "Parse Date", """
+const query = $input.first().json.query || {};
+const date = query.date;
+if (!date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
+  throw new Error('Missing or invalid date parameter. Expected YYYY-MM-DD.');
+}
+// For all-day events, timeMin = start of day, timeMax = end of day
+const timeMin = `${date}T00:00:00Z`;
+const timeMax = `${date}T23:59:59Z`;
+return [{ json: { date, timeMin, timeMax } }];
+""", 460, Y))
+
+    nodes.append(google_cal_list_node(
+        "avail-fetch", "Fetch Day Events",
+        "={{ $json.timeMin }}",
+        "={{ $json.timeMax }}",
+        700, Y
+    ))
+
+    avail_code = PARSE_EVENT_FN + """
+const events = $input.all().map(item => item.json);
+const date = $('Parse Date').first().json.date;
+
+const parsed = events.filter(e => e.summary).map(parseCalendarEvent);
+
+// Which equipment is booked on this date?
+// Need to check if the event spans this date (multi-day support)
+const bookedNames = new Set();
+for (const b of parsed) {
+  for (const eq of b.equipment) {
+    bookedNames.add(eq.name);
+  }
+}
+
+const booked = EQUIPMENT
+  .filter(eq => bookedNames.has(eq.name))
+  .map(eq => {
+    const booking = parsed.find(b => b.equipment.some(e => e.name === eq.name));
+    return {
+      ...eq,
+      booking_summary: booking?.raw_summary || '',
+      customer: booking?.customer_name || '',
+      end_date: booking?.end_date || '',
+    };
+  });
+
+const free = EQUIPMENT.filter(eq => !bookedNames.has(eq.name));
+
+return [{ json: {
+  date,
+  booked: booked,
+  free: free,
+  summary: `${date}: ${free.length}/${EQUIPMENT.length} laisvi`
+}}];
+"""
+    nodes.append(code_node("avail-transform", "Check Availability", avail_code, 940, Y))
+    nodes.append(respond_node("avail-respond", "Respond Availability", 1180, Y))
+
+    conns["Availability Webhook"] = {"main": [[connection("avail-webhook", "Parse Date")]]}
+    conns["Parse Date"] = {"main": [[connection("avail-parse", "Fetch Day Events")]]}
+    conns["Fetch Day Events"] = {"main": [[connection("avail-fetch", "Check Availability")]]}
+    conns["Check Availability"] = {"main": [[connection("avail-transform", "Respond Availability")]]}
+
+    return nodes, conns
+
+# ── Endpoint 3: POST Create Booking ─────────────────────────────────────────
+
+def build_create_endpoint():
+    Y = 940
+    nodes = []
+    conns = {}
+
+    nodes.append(webhook_node("create-webhook", "Create Booking Webhook", "POST", "batutynas-calendar-create", Y))
+
+    # Parse and format the event
+    nodes.append(code_node("create-parse", "Format Event", """
+const body = $input.first().json.body || $input.first().json;
+
+const equipment = body.equipment || body.trampoline || '';
+const price = body.price || '';
+const customerName = body.customer_name || body.name || '';
+const customerPhone = body.customer_phone || body.phone || '';
+const location = body.location || body.city || body.delivery_address || '';
+const date = body.date || body.event_date || '';
+const durationDays = parseInt(body.duration_days || '1', 10);
+const addons = body.addons || '';
+const notes = body.notes || '';
+
+if (!equipment || !date) {
+  throw new Error('Missing required fields: equipment and date');
+}
+
+// Build event title: "Equipment + addons | price"
+let title = equipment;
+if (addons) title += ' + ' + addons;
+if (price) title += ' | ' + price + '€';
+
+// Build description
+const descParts = [];
+if (location) descParts.push(location);
+if (customerPhone) descParts.push(customerPhone);
+if (customerName) descParts.push(customerName);
+if (notes) descParts.push(notes);
+const description = descParts.join('\\n');
+
+// Dates (all-day event, end date is exclusive in Google Calendar)
+const startDate = date;
+const endObj = new Date(date);
+endObj.setDate(endObj.getDate() + durationDays);
+const endDate = endObj.toISOString().substring(0, 10);
+
+return [{ json: {
+  eventTitle: title,
+  eventDescription: description,
+  startDate,
+  endDate,
+  equipment,
+  date,
+  durationDays
+}}];
+""", 460, Y))
+
+    # Conflict check: fetch events for the date range and check equipment
+    nodes.append(google_cal_list_node(
+        "create-conflict-check", "Check Conflicts",
+        "={{ $json.startDate + 'T00:00:00Z' }}",
+        "={{ $json.endDate + 'T00:00:00Z' }}",
+        700, Y
+    ))
+
+    conflict_code = PARSE_EVENT_FN + """
+const events = $input.all().map(item => item.json);
+const prev = $('Format Event').first().json;
+
+// Check if this equipment is already booked in the date range
+const parsed = events.filter(e => e.summary).map(parseCalendarEvent);
+const equipmentLower = prev.equipment.toLowerCase();
+
+const conflict = parsed.find(b =>
+  b.equipment.some(e => e.name.toLowerCase() === equipmentLower) ||
+  b.raw_summary.toLowerCase().includes(equipmentLower)
+);
+
+if (conflict) {
+  return [{ json: {
+    success: false,
+    error: `Konfliktas: ${prev.equipment} jau užsakytas ${conflict.event_date} (${conflict.customer_name || conflict.raw_summary})`,
+    conflict: conflict
+  }}];
+}
+
+// No conflict — pass through event data for creation
+return [{ json: {
+  ...prev,
+  hasConflict: false
+}}];
+"""
+    nodes.append(code_node("create-check-result", "Conflict Result", conflict_code, 940, Y))
+
+    # IF no conflict → create event
+    nodes.append({
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": ""},
+                "conditions": [{
+                    "id": "cond-no-conflict",
+                    "leftValue": "={{ $json.hasConflict }}",
+                    "rightValue": False,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                }],
+                "combinator": "and"
+            }
+        },
+        "id": "create-if-ok",
+        "name": "No Conflict?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": pos(1180, Y)
+    })
+
+    # Create the event
+    nodes.append(google_cal_create_node("create-event", "Create Calendar Event", 1420, Y - 80))
+
+    nodes.append(code_node("create-success", "Success Response", """
+const created = $input.first().json;
+return [{ json: {
+  success: true,
+  message: 'Užsakymas sukurtas kalendoriuje',
+  eventId: created.id,
+  htmlLink: created.htmlLink || ''
+}}];
+""", 1660, Y - 80))
+
+    nodes.append(respond_node("create-respond-ok", "Respond Created", 1900, Y - 80))
+
+    # Conflict response
+    nodes.append(respond_node("create-respond-conflict", "Respond Conflict", 1420, Y + 80))
+
+    conns["Create Booking Webhook"] = {"main": [[connection("create-webhook", "Format Event")]]}
+    conns["Format Event"] = {"main": [[connection("create-parse", "Check Conflicts")]]}
+    conns["Check Conflicts"] = {"main": [[connection("create-conflict-check", "Conflict Result")]]}
+    conns["Conflict Result"] = {"main": [[connection("create-check-result", "No Conflict?")]]}
+    conns["No Conflict?"] = {"main": [
+        [connection("create-if-ok", "Create Calendar Event")],  # true
+        [connection("create-if-ok", "Respond Conflict")]        # false
+    ]}
+    conns["Create Calendar Event"] = {"main": [[connection("create-event", "Success Response")]]}
+    conns["Success Response"] = {"main": [[connection("create-success", "Respond Created")]]}
+
+    return nodes, conns
+
+# ── Endpoint 4: POST Update/Move/Extend Booking ─────────────────────────────
+
+def build_update_endpoint():
+    Y = 1340
+    nodes = []
+    conns = {}
+
+    nodes.append(webhook_node("update-webhook", "Update Booking Webhook", "POST", "batutynas-calendar-update", Y))
+
+    nodes.append(code_node("update-parse", "Parse Update", """
+const body = $input.first().json.body || $input.first().json;
+
+const eventId = body.event_id || body.eventId;
+if (!eventId) throw new Error('Missing event_id');
+
+const action = body.action || 'move'; // 'move' | 'extend'
+const newDate = body.new_date || body.newDate || '';
+const extendDays = parseInt(body.extend_days || body.extendDays || '0', 10);
+
+// We need to fetch the current event first to know its details
+return [{ json: { eventId, action, newDate, extendDays } }];
+""", 460, Y))
+
+    # Fetch the specific event
+    nodes.append({
+        "parameters": {
+            "operation": "get",
+            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "eventId": "={{ $json.eventId }}"
+        },
+        "id": "update-get-event",
+        "name": "Get Current Event",
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1.2,
+        "position": pos(700, Y),
+        "credentials": google_cal_credential()
+    })
+
+    # Calculate new dates and check conflicts
+    update_calc = PARSE_EVENT_FN + """
+const event = $input.first().json;
+const params = $('Parse Update').first().json;
+const currentStart = event.start?.date || event.start?.dateTime?.substring(0, 10) || '';
+const currentEnd = event.end?.date || event.end?.dateTime?.substring(0, 10) || '';
+
+let newStart, newEnd;
+
+if (params.action === 'move' && params.newDate) {
+  // Move to new date, preserve duration
+  const origStart = new Date(currentStart);
+  const origEnd = new Date(currentEnd);
+  const duration = origEnd - origStart;
+  newStart = params.newDate;
+  const endObj = new Date(params.newDate);
+  endObj.setTime(endObj.getTime() + duration);
+  newEnd = endObj.toISOString().substring(0, 10);
+} else if (params.action === 'extend' && params.extendDays > 0) {
+  // Extend: keep start, push end by N days
+  newStart = currentStart;
+  const endObj = new Date(currentEnd);
+  endObj.setDate(endObj.getDate() + params.extendDays);
+  newEnd = endObj.toISOString().substring(0, 10);
+} else {
+  throw new Error('Invalid action or missing parameters');
+}
+
+// Parse equipment from current event for conflict checking
+const parsed = parseCalendarEvent(event);
+const equipmentName = parsed.equipment.length > 0 ? parsed.equipment[0].name : '';
+
+return [{ json: {
+  eventId: params.eventId,
+  newStart,
+  newEnd,
+  newSummary: event.summary || '',
+  newDescription: event.description || '',
+  equipmentName,
+  action: params.action,
+  checkConflictMin: newStart + 'T00:00:00Z',
+  checkConflictMax: newEnd + 'T00:00:00Z'
+}}];
+"""
+    nodes.append(code_node("update-calc", "Calculate New Dates", update_calc, 940, Y))
+
+    # Conflict check for new date range
+    nodes.append(google_cal_list_node(
+        "update-conflict", "Check Move Conflicts",
+        "={{ $json.checkConflictMin }}",
+        "={{ $json.checkConflictMax }}",
+        1180, Y
+    ))
+
+    conflict_code = PARSE_EVENT_FN + """
+const events = $input.all().map(item => item.json);
+const prev = $('Calculate New Dates').first().json;
+
+// Filter out the event being moved (don't conflict with itself)
+const otherEvents = events.filter(e => e.id !== prev.eventId && e.summary);
+const parsed = otherEvents.map(parseCalendarEvent);
+
+const equipLower = (prev.equipmentName || '').toLowerCase();
+const conflict = parsed.find(b =>
+  b.equipment.some(e => e.name.toLowerCase() === equipLower) ||
+  (equipLower && b.raw_summary.toLowerCase().includes(equipLower))
+);
+
+if (conflict) {
+  return [{ json: {
+    success: false,
+    error: `Konfliktas: ${prev.equipmentName} jau užsakytas ${conflict.event_date} (${conflict.customer_name || conflict.raw_summary})`
+  }}];
+}
+
+return [{ json: { ...prev, hasConflict: false } }];
+"""
+    nodes.append(code_node("update-conflict-check", "Move Conflict Result", conflict_code, 1420, Y))
+
+    nodes.append({
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": ""},
+                "conditions": [{
+                    "id": "cond-update-ok",
+                    "leftValue": "={{ $json.hasConflict }}",
+                    "rightValue": False,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                }],
+                "combinator": "and"
+            }
+        },
+        "id": "update-if-ok",
+        "name": "Move OK?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": pos(1660, Y)
+    })
+
+    nodes.append(google_cal_update_node("update-event", "Update Calendar Event", 1900, Y - 80))
+
+    nodes.append(code_node("update-success", "Update Success", """
+const updated = $input.first().json;
+const params = $('Calculate New Dates').first().json;
+return [{ json: {
+  success: true,
+  message: params.action === 'extend'
+    ? `Užsakymas pratęstas iki ${params.newEnd}`
+    : `Užsakymas perkeltas į ${params.newStart}`,
+  eventId: updated.id || params.eventId
+}}];
+""", 2140, Y - 80))
+
+    nodes.append(respond_node("update-respond-ok", "Respond Updated", 2380, Y - 80))
+    nodes.append(respond_node("update-respond-conflict", "Respond Move Conflict", 1900, Y + 80))
+
+    conns["Update Booking Webhook"] = {"main": [[connection("update-webhook", "Parse Update")]]}
+    conns["Parse Update"] = {"main": [[connection("update-parse", "Get Current Event")]]}
+    conns["Get Current Event"] = {"main": [[connection("update-get-event", "Calculate New Dates")]]}
+    conns["Calculate New Dates"] = {"main": [[connection("update-calc", "Check Move Conflicts")]]}
+    conns["Check Move Conflicts"] = {"main": [[connection("update-conflict", "Move Conflict Result")]]}
+    conns["Move Conflict Result"] = {"main": [[connection("update-conflict-check", "Move OK?")]]}
+    conns["Move OK?"] = {"main": [
+        [connection("update-if-ok", "Update Calendar Event")],
+        [connection("update-if-ok", "Respond Move Conflict")]
+    ]}
+    conns["Update Calendar Event"] = {"main": [[connection("update-event", "Update Success")]]}
+    conns["Update Success"] = {"main": [[connection("update-success", "Respond Updated")]]}
+
+    return nodes, conns
+
+# ── Endpoint 5: POST Delete Booking ──────────────────────────────────────────
+
+def build_delete_endpoint():
+    Y = 1740
+    nodes = []
+    conns = {}
+
+    nodes.append(webhook_node("delete-webhook", "Delete Booking Webhook", "POST", "batutynas-calendar-delete", Y))
+
+    nodes.append(code_node("delete-parse", "Parse Delete", """
+const body = $input.first().json.body || $input.first().json;
+const eventId = body.event_id || body.eventId;
+if (!eventId) throw new Error('Missing event_id');
+return [{ json: { eventId } }];
+""", 460, Y))
+
+    nodes.append(google_cal_delete_node("delete-event", "Delete Calendar Event", 700, Y))
+
+    nodes.append(code_node("delete-success", "Delete Success", """
+const eventId = $('Parse Delete').first().json.eventId;
+return [{ json: { success: true, message: 'Užsakymas atšauktas', deleted_id: eventId } }];
+""", 940, Y))
+
+    nodes.append(respond_node("delete-respond", "Respond Deleted", 1180, Y))
+
+    conns["Delete Booking Webhook"] = {"main": [[connection("delete-webhook", "Parse Delete")]]}
+    conns["Parse Delete"] = {"main": [[connection("delete-parse", "Delete Calendar Event")]]}
+    conns["Delete Calendar Event"] = {"main": [[connection("delete-event", "Delete Success")]]}
+    conns["Delete Success"] = {"main": [[connection("delete-success", "Respond Deleted")]]}
+
+    return nodes, conns
+
+# ── Assemble Full Workflow ───────────────────────────────────────────────────
+
+def build_workflow():
+    all_nodes = []
+    all_conns = {}
+
+    for builder in [
+        build_dashboard_endpoint,
+        build_availability_endpoint,
+        build_create_endpoint,
+        build_update_endpoint,
+        build_delete_endpoint
+    ]:
+        nodes, conns = builder()
+        all_nodes.extend(nodes)
+        all_conns.update(conns)
+
+    workflow = {
+        "name": "Batutynas Calendar Bridge",
+        "nodes": all_nodes,
+        "connections": all_conns,
+        "settings": {"executionOrder": "v1"}
+    }
+
+    return workflow
+
+# ── Main ─────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    workflow = build_workflow()
+    out_path = os.path.join(os.path.dirname(__file__), "calendar-bridge-workflow.json")
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(workflow, f, indent=2, ensure_ascii=False)
+
+    print(f"Generated: {out_path}")
+    print(f"  Nodes: {len(workflow['nodes'])}")
+    print(f"  Endpoints:")
+    print(f"    GET  /batutynas-dashboard-v2    — fetch & parse monthly events")
+    print(f"    GET  /batutynas-availability    — check equipment for date")
+    print(f"    POST /batutynas-calendar-create — create booking (with conflict check)")
+    print(f"    POST /batutynas-calendar-update — move/extend (with conflict check)")
+    print(f"    POST /batutynas-calendar-delete — cancel booking")
+    print(f"\n  ⚠️  Replace GOOGLE_CALENDAR_CRED with real credential ID after OAuth setup")
