@@ -1729,12 +1729,14 @@ var STATUS_CLASS = {
 
 var PAYMENT_LT = {
   'Paid in Full': 'Apmok\u0117ta',
+  'Paid':         'Apmok\u0117ta',
   'Deposit Paid': 'Avansas',
   'Unpaid':       'Neapmok\u0117ta'
 };
 
 var PAYMENT_CLASS = {
   'Paid in Full': 'pay-paid',
+  'Paid':         'pay-paid',
   'Deposit Paid': 'pay-deposit',
   'Unpaid':       'pay-unpaid'
 };
@@ -1779,8 +1781,17 @@ var state = {
   usingDemo: false,
   lastFetched: null,
   firstLoad: true,
-  activeFilter: null
+  activeFilter: null,
+  _pendingSelectDate: null
 };
+
+// Active fetch controller — used to cancel stale requests on rapid navigation
+var _activeFetchController = null;
+
+// Consistent booking ID helper — use everywhere instead of ad-hoc resolution
+function getBookingId(b) {
+  return b.id || b.booking_id;
+}
 
 // ================================================================
 // DATA ACCESS HELPERS
@@ -1861,10 +1872,22 @@ function buildApiUrl() {
 }
 
 function loadData() {
+  // Cancel any in-flight request to prevent race conditions on rapid navigation
+  if (_activeFetchController) {
+    _activeFetchController.abort();
+    _activeFetchController = null;
+  }
+
   state.loading = true;
   showLoading(true);
 
-  fetch(buildApiUrl())
+  var controller = new AbortController();
+  _activeFetchController = controller;
+
+  // 15-second timeout to prevent indefinite hangs if n8n is unresponsive
+  var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+
+  fetch(buildApiUrl(), { signal: controller.signal })
     .then(function(res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1875,16 +1898,30 @@ function loadData() {
       document.getElementById('demoBanner').style.display = 'none';
     })
     .catch(function(err) {
-      console.warn('API klaida, naudojami demo duomenys:', err);
+      if (err.name === 'AbortError') {
+        // Request was cancelled (rapid navigation or timeout) — skip demo fallback
+        // unless this was the timeout (controller still matches)
+        if (_activeFetchController !== controller) return; // superseded by newer request
+      }
       applyDemoData();
       state.usingDemo = true;
       document.getElementById('demoBanner').style.display = 'block';
     })
     .finally(function() {
+      clearTimeout(timeoutId);
+      if (_activeFetchController === controller) {
+        _activeFetchController = null;
+      }
       state.loading = false;
       state.lastFetched = new Date();
       showLoading(false);
       renderAll();
+      // After render, select pending day if goToday() requested it
+      if (state._pendingSelectDate) {
+        var dateToSelect = state._pendingSelectDate;
+        state._pendingSelectDate = null;
+        selectDay(dateToSelect);
+      }
       state.firstLoad = false;
     });
 }
@@ -1930,6 +1967,7 @@ function applyDemoData() {
   state.stats = {
     today_count: 2,
     week_revenue: 840,
+    last_week_revenue: 620,
     unpaid_deposits: 1,
     available_equipment: 15
   };
@@ -2060,8 +2098,8 @@ function goToday() {
   var now = new Date();
   state.viewYear = now.getFullYear();
   state.viewMonth = now.getMonth();
+  state._pendingSelectDate = fmtKey(now);
   loadData();
-  setTimeout(function() { selectDay(fmtKey(now)); }, 500);
 }
 
 function initNavigation() {
@@ -2580,7 +2618,7 @@ function openEditModal(booking) {
   var existing = document.getElementById('editModalBackdrop');
   if (existing) existing.remove();
 
-  var bookingId = booking.booking_id || booking.id;
+  var bookingId = getBookingId(booking);
 
   var backdrop = document.createElement('div');
   backdrop.className = 'edit-modal-backdrop';
@@ -2813,10 +2851,14 @@ function saveBookingEdit(bookingId, formData, onComplete) {
     }
   }
 
+  var _saveCtrl = new AbortController();
+  var _saveTimer = setTimeout(function() { _saveCtrl.abort(); }, 15000);
+
   fetch(API_BASE + '-update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: _saveCtrl.signal
   })
     .then(function(res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -2826,12 +2868,11 @@ function saveBookingEdit(bookingId, formData, onComplete) {
       // Patch the matching booking in state.bookings in-place
       for (var i = 0; i < state.bookings.length; i++) {
         var b = state.bookings[i];
-        var bid = b.booking_id || b.id;
+        var bid = getBookingId(b);
         if (String(bid) === String(bookingId)) {
           for (var field in formData) {
-            if (Object.prototype.hasOwnProperty.call(formData, field) &&
-                formData[field] !== null) {
-              b[field] = formData[field];
+            if (Object.prototype.hasOwnProperty.call(formData, field)) {
+              b[field] = formData[field]; // Apply null values too (cleared fields)
             }
           }
           break;
@@ -2874,7 +2915,7 @@ function openDeleteDialog(booking) {
   closeDeleteDialog();
   closeDatePicker();
 
-  _deleteBookingId = booking.id || booking.booking_id;
+  _deleteBookingId = getBookingId(booking);
 
   var backdrop = document.createElement('div');
   backdrop.className = 'confirm-dialog-backdrop';
@@ -2979,10 +3020,14 @@ function deleteBooking(bookingId) {
   if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Trinama\u2026'; }
   if (cancelBtn)  { cancelBtn.disabled  = true; }
 
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+
   fetch(API_BASE + '-delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: bookingId })
+    body: JSON.stringify({ id: bookingId }),
+    signal: controller.signal
   })
   .then(function(res) {
     if (!res.ok) { throw new Error('HTTP ' + res.status); }
@@ -2990,7 +3035,7 @@ function deleteBooking(bookingId) {
   })
   .then(function() {
     state.bookings = state.bookings.filter(function(b) {
-      return String(b.id || b.booking_id) !== String(bookingId);
+      return String(getBookingId(b)) !== String(bookingId);
     });
 
     closeDeleteDialog();
@@ -3001,8 +3046,9 @@ function deleteBooking(bookingId) {
   .catch(function(err) {
     console.error('deleteBooking error:', err);
     closeDeleteDialog();
-    showToast('Klaida trinant u\u017esakym\u0105', 'error');
-  });
+    showToast(err.name === 'AbortError' ? 'Serveris neatsako' : 'Klaida trinant u\u017esakym\u0105', 'error');
+  })
+  .finally(function() { clearTimeout(timeoutId); });
 }
 
 // ================================================================
@@ -3016,7 +3062,7 @@ var _dpMonth             = 0;
 var _dpBookingRef        = null;
 
 function openDatePicker(booking, buttonEl) {
-  if (_datePicker && _datePickerBookingId === (booking.id || booking.booking_id)) {
+  if (_datePicker && _datePickerBookingId === getBookingId(booking)) {
     closeDatePicker();
     return;
   }
@@ -3024,7 +3070,7 @@ function openDatePicker(booking, buttonEl) {
   closeDatePicker();
   closeDeleteDialog();
 
-  _datePickerBookingId = booking.id || booking.booking_id;
+  _datePickerBookingId = getBookingId(booking);
   _dpBookingRef        = booking;
 
   var seedDate = booking.event_date
@@ -3219,10 +3265,14 @@ function moveBookingToDate(bookingId, newDate) {
 
   closeDatePicker();
 
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
+
   fetch(API_BASE + '-update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: bookingId, event_date: newDate })
+    body: JSON.stringify({ id: bookingId, event_date: newDate }),
+    signal: controller.signal
   })
   .then(function(res) {
     if (!res.ok) { throw new Error('HTTP ' + res.status); }
@@ -3230,7 +3280,7 @@ function moveBookingToDate(bookingId, newDate) {
   })
   .then(function() {
     state.bookings = state.bookings.map(function(b) {
-      if (String(b.id || b.booking_id) !== String(bookingId)) { return b; }
+      if (String(getBookingId(b)) !== String(bookingId)) { return b; }
       var updated   = {};
       var key;
       for (key in b) { if (b.hasOwnProperty(key)) { updated[key] = b[key]; } }
@@ -3245,8 +3295,9 @@ function moveBookingToDate(bookingId, newDate) {
   })
   .catch(function(err) {
     console.error('moveBookingToDate error:', err);
-    showToast('Klaida perkeliant u\u017esakym\u0105', 'error');
-  });
+    showToast(err.name === 'AbortError' ? 'Serveris neatsako' : 'Klaida perkeliant u\u017esakym\u0105', 'error');
+  })
+  .finally(function() { clearTimeout(timeoutId); });
 }
 
 // Re-render whichever day view is currently open
@@ -3257,7 +3308,8 @@ function _rerenderCurrentDay() {
     if (acc && acc.dataset.date === state.selectedDate) {
       var dateToShow = state.selectedDate;
       toggleDayAccordion(dateToShow);
-      setTimeout(function() { toggleDayAccordion(dateToShow); }, 10);
+      // Wait for close animation (250ms) plus safety buffer before reopening
+      setTimeout(function() { toggleDayAccordion(dateToShow); }, 280);
     }
   } else {
     showDayPanel(state.selectedDate);
@@ -3343,7 +3395,12 @@ document.addEventListener('DOMContentLoaded', function() {
   initNavigation();
   loadData();
 
-  setInterval(function() { loadData(); }, REFRESH_INTERVAL_MS);
+  setInterval(function() {
+    // Skip auto-refresh if user has a modal or dialog open to prevent stale data conflicts
+    var isModalOpen = !!document.getElementById('editModalBackdrop') ||
+                      !!document.getElementById('deleteDialogBackdrop');
+    if (!isModalOpen) { loadData(); }
+  }, REFRESH_INTERVAL_MS);
 
   window.addEventListener('resize', function() {
     var acc = document.getElementById('dayAccordion');

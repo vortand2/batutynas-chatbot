@@ -216,7 +216,7 @@ switch(intent) {
     sql = `WITH updated AS (UPDATE batutynas.bookings SET status = 'Completed', updated_at = NOW() WHERE id = ${args.id} AND status = 'Delivered' RETURNING id, status, event_date, delivery_address, city) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'event_date', event_date::text, 'delivery_address', delivery_address, 'city', city) FROM updated), NULL) AS result`;
     break;
   case 'paid':
-    sql = `WITH updated AS (UPDATE batutynas.bookings SET payment_status = 'Paid', updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, payment_status, price) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'payment_status', payment_status, 'price', price) FROM updated), NULL) AS result`;
+    sql = `WITH updated AS (UPDATE batutynas.bookings SET payment_status = 'Paid in Full', updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, payment_status, price) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'payment_status', payment_status, 'price', price) FROM updated), NULL) AS result`;
     break;
   case 'deposit':
     sql = `WITH updated AS (UPDATE batutynas.bookings SET deposit_paid = TRUE, updated_at = NOW() WHERE id = ${args.id} RETURNING id, status, deposit_paid, deposit_amount) SELECT COALESCE((SELECT json_build_object('id', id, 'status', status, 'deposit_paid', deposit_paid, 'deposit_amount', deposit_amount) FROM updated), NULL) AS result`;
@@ -257,7 +257,7 @@ function formatDate(dateStr) {
 
 function formatBooking(b) {
   const statusIcons = { 'Confirmed': '\ud83d\udfe1', 'Delivered': '\ud83d\ude9b', 'Completed': '\u2705', 'Cancelled': '\u274c' };
-  const payIcon = b.payment_status === 'Paid' ? '\ud83d\udcb0' : (b.deposit_paid ? '\ud83d\udd35' : '\ud83d\udd34');
+  const payIcon = (b.payment_status === 'Paid' || b.payment_status === 'Paid in Full') ? '\ud83d\udcb0' : (b.deposit_paid ? '\ud83d\udd35' : '\ud83d\udd34');
   const icon = statusIcons[b.status] || '\u2b1c';
   let line = `${icon} <b>#${b.id}</b> ${(b.event_time||'?').substring(0,5)} \u2192 ${(b.pickup_time||'?').substring(0,5)}`;
   line += `\n   \ud83d\udccd ${b.delivery_address}, ${b.city}`;
@@ -341,7 +341,7 @@ switch(intent) {
     break;
 }
 
-return [{ json: { reply } }];
+return [{ json: { reply, shouldSend: reply.length > 0 } }];
 """.strip()
 
 # Extract booking data from OpenAI response and build Mini App URL
@@ -358,7 +358,9 @@ if (extractResp.choices && extractResp.choices[0]) {
 
 let booking;
 try {
-  booking = JSON.parse(content);
+  // Strip markdown code fences if LLM wraps JSON in ```json ... ```
+  const cleaned = content.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  booking = JSON.parse(cleaned);
 } catch(e) {
   booking = {};
 }

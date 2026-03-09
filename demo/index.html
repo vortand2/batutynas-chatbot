@@ -3653,7 +3653,7 @@
     if (data.guest_count) html += '<p><strong>Svečių:</strong> ' + escapeHtml(data.guest_count) + '</p>';
     if (data.contact_name) html += '<p><strong>Kontaktas:</strong> ' + escapeHtml(data.contact_name) + '</p>';
     if (data.contact_phone) html += '<p><strong>Telefonas:</strong> ' + escapeHtml(data.contact_phone) + '</p>';
-    if (data.trampoline) html += '<p><strong>Batutas:</strong> ' + escapeHtml(data.trampoline) + '</p>';
+    if (data.trampoline_preference || data.trampoline) html += '<p><strong>Batutas:</strong> ' + escapeHtml(data.trampoline_preference || data.trampoline) + '</p>';
     if (data.addons) html += '<p><strong>Papildomos pramogos:</strong> ' + escapeHtml(data.addons) + '</p>';
     if (data.dimensions) html += '<p><strong>Matmenys:</strong> ' + escapeHtml(data.dimensions) + '</p>';
     if (data.colors) html += '<p><strong>Spalvos:</strong> ' + escapeHtml(data.colors) + '</p>';
@@ -3739,8 +3739,8 @@
           nameRaw = nameRaw.replace(/^[,\-.\s]+/, '').trim();
         }
         var contactName = nameRaw || 'Klientas';
-        // Escape quotes to prevent JSON injection
-        function esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/"/g, "'"); }
+        // Escape special chars to prevent JSON injection
+        function esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t'); }
         var gt = _lastFlow === 'public' ? 'Viešas renginys' : (_lastFlow === 'party' ? 'Vakarėlis' : 'Gimtadienis');
         var bookingData = '{"group_type":"' + gt + '"';
         bookingData += ',"event_type":"' + esc(_lastFlow || '') + '"';
@@ -4003,12 +4003,13 @@
   }
 
   // 5b. Submit structured booking data to real webhook (bypasses mock interceptor)
-  var _lastBookingHash = '';
+  var _lastBookingHash = (function() { try { return sessionStorage.getItem('_bk_hash') || ''; } catch(e) { return ''; } })();
   function _submitBookingToWebhook(bookingObj) {
-    // Dedup: prevent multiple submissions of the same booking
+    // Dedup: prevent multiple submissions of the same booking (persists across page reload)
     var hash = JSON.stringify(bookingObj);
-    if (hash === _lastBookingHash) { console.log('[Booking] Skipped duplicate submission'); return; }
+    if (hash === _lastBookingHash) { return; }
     _lastBookingHash = hash;
+    try { sessionStorage.setItem('_bk_hash', hash); } catch(e) {}
     var webhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify';
     var payload = {
       group_type: bookingObj.group_type || 'rental',
@@ -4035,9 +4036,10 @@
     });
   }
 
-  // 6. Fetch interceptor
+  // 6. Fetch interceptor — only intercept the chat webhook, NOT booking-notify or other webhooks
+  var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
   window.fetch = function(url, opts) {
-    if (typeof url === 'string' && url.includes('webhook')) {
+    if (typeof url === 'string' && url === _mockWebhookUrl) {
       return new Promise(function(resolve) {
         var body = {};
         try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) {}
