@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "fe7f75333f1443e7b8f6",
+      "id": "42920db5e13c4df788a4",
       "name": "Sub-Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
@@ -16,7 +16,7 @@
       "parameters": {
         "jsCode": "const data = $input.first().json;\n\n// Only process actual bookings, not catalog/custom requests\nif (data.requestType && data.requestType !== 'booking') {\n  return [{ json: { skip: true, reason: 'Not a booking request' } }];\n}\n\n// Build Calendar Bridge create body\nconst body = {\n  equipment: data.trampolinePreference || '',\n  customer_name: data.contactName || '',\n  customer_phone: data.contactPhone || '',\n  date: data.date || '',\n  location: data.address || data.location || '',\n  price: 0,  // Chatbot doesn't collect price\n  addons: [],\n  notes: [\n    data.eventType && data.eventType !== 'Nenurodyta' ? `Renginys: ${data.eventType}` : '',\n    data.guestCount && data.guestCount !== 'Nenurodyta' ? `Svečiai: ${data.guestCount}` : '',\n    data.groupType && data.groupType !== 'Nenurodyta' ? `Grupė: ${data.groupType}` : '',\n    data.notes || ''\n  ].filter(Boolean).join('; ')\n};\n\n// Parse addons from comma-separated string\nif (data.addons && data.addons !== 'Nenurodyta') {\n  body.addons = data.addons.split(',').map(a => a.trim()).filter(Boolean);\n}\n\nreturn [{ json: { skip: false, calendarBody: body } }];"
       },
-      "id": "6f1ec44976b24906b267",
+      "id": "bd8efa62d8224fd4a975",
       "name": "Format for Calendar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -42,7 +42,7 @@
           "combinator": "and"
         }
       },
-      "id": "742c8b7d84474d45a608",
+      "id": "30c7c1d37d9b48b79369",
       "name": "IF Is Booking",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -62,7 +62,7 @@
           "timeout": 15000
         }
       },
-      "id": "ece50038283d4c128ec6",
+      "id": "b49477d6513b40dc9613",
       "name": "Create Calendar Event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -76,7 +76,7 @@
       "parameters": {
         "jsCode": "const resp = $input.first().json;\nif (resp.error) {\n  return [{ json: { success: false, error: resp.error } }];\n}\nreturn [{ json: { success: true, eventId: resp.id || resp.eventId || 'created' } }];"
       },
-      "id": "4bc8b6f6e3df45229ae8",
+      "id": "c13c7fd8925545bab942",
       "name": "Return Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

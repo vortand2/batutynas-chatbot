@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "85b65a20ea6b4265b87b",
+      "id": "c9692db90ff8452ebf57",
       "name": "Cron 21:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -29,7 +29,7 @@
           "timeout": 15000
         }
       },
-      "id": "547d70d6ca8846279108",
+      "id": "ce41faeee5b8407394a7",
       "name": "Fetch Data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -43,7 +43,7 @@
       "parameters": {
         "jsCode": "const data = $input.first().json;\nconst bookings = data.bookings || [];\nconst stats = data.stats || {};\nconst now = new Date();\nconst today = now.toISOString().substring(0, 10);\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\n\n// Today's recap\nconst todayBookings = bookings.filter(b => b.event_date === today);\nconst todayRevenue = todayBookings.reduce((sum, b) => sum + (b.price || 0), 0);\n\n// Tomorrow preview\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\nconst tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);\n\n// Next 3 days preview\nconst upcoming = [];\nfor (let i = 1; i <= 3; i++) {\n  const d = new Date(now); d.setDate(d.getDate() + i);\n  const dStr = d.toISOString().substring(0, 10);\n  const dayBks = bookings.filter(b => b.event_date === dStr);\n  if (dayBks.length > 0) {\n    upcoming.push({ date: dStr, day: dayNames[d.getDay()], count: dayBks.length, bookings: dayBks });\n  }\n}\n\nlet msg = `🌙 <b>Vakaro suvestinė</b>\\n\\n`;\n\n// Today recap\nmsg += `📅 <b>Šiandienos rezultatai:</b>\\n`;\nmsg += `  📦 Užsakymai: ${todayBookings.length}\\n`;\nmsg += `  💰 Pajamos: €${todayRevenue}\\n\\n`;\n\n// Upcoming days\nif (upcoming.length > 0) {\n  msg += `📆 <b>Artimiausi:</b>\\n`;\n  upcoming.forEach(u => {\n    msg += `  ${u.day}: ${u.count} užs.`;\n    const names = u.bookings.slice(0, 3).map(b => b.raw_summary || '?').join(', ');\n    msg += ` (${names})`;\n    msg += '\\n';\n  });\n  msg += '\\n';\n} else {\n  msg += `📆 Artimiausiomis dienomis užsakymų nėra\\n\\n`;\n}\n\n// Month progress\nmsg += `📊 <b>Mėnesio eiga:</b>\\n`;\nmsg += `  📦 Iš viso: ${stats.total_bookings || 0} užs.\\n`;\nmsg += `  💰 Pajamos: €${stats.total_revenue || 0}\\n`;\n\nmsg += `\\n😴 Geros nakties!`;\n\nreturn [{ json: { message: msg } }];"
       },
-      "id": "d5beb0faaf9b45cb8b06",
+      "id": "cd5ec589b3ea4edbac6b",
       "name": "Format Evening Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -63,7 +63,7 @@
           "disable_web_page_preview": true
         }
       },
-      "id": "3bb1e1ad2b7d4e67befc",
+      "id": "b7c32085aae74a519df2",
       "name": "Send Evening Check",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

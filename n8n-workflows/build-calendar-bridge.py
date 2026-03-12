@@ -15,8 +15,8 @@ import json, os
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
-CREDENTIAL_ID = "GOOGLE_CALENDAR_CRED"  # Replace after OAuth setup
-CREDENTIAL_NAME = "Google Calendar - Batutynas"
+CREDENTIAL_ID = "SaHw7JsRiy6wdVUp"
+CREDENTIAL_NAME = "Batutynas Google Calendar"
 CALENDAR_ID = "primary"  # Or client's specific calendar ID
 
 # ── Equipment Master List ────────────────────────────────────────────────────

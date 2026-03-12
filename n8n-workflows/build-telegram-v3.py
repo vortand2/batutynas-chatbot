@@ -865,26 +865,56 @@ add_node({
 })
 connect("Telegram Webhook", "Classify Message")
 
-# ── 3. Switch: Message Type ──────────────────────────────────────────────────
+# ── 3a. IF Is Text ───────────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
-        "rules": {
-            "rules": [
-                {"outputKey": "text", "conditions": {"conditions": [{"leftValue": "={{ $json.msgType }}", "rightValue": "text", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "voice", "conditions": {"conditions": [{"leftValue": "={{ $json.msgType }}", "rightValue": "voice", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "callback", "conditions": {"conditions": [{"leftValue": "={{ $json.msgType }}", "rightValue": "callback", "operator": {"type": "string", "operation": "equals"}}]}}
-            ]
-        },
-        "options": {}
+        "conditions": {
+            "conditions": [
+                {"id": "cond-text", "leftValue": "={{ $json.msgType }}", "rightValue": "text",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
     },
-    "id": uid(),
-    "name": "Switch Message Type",
-    "type": "n8n-nodes-base.switch",
-    "typeVersion": 3,
-    "position": pos(680, 400)
+    "id": uid(), "name": "IF Is Text",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(680, 300)
 })
-connect("Classify Message", "Switch Message Type")
+connect("Classify Message", "IF Is Text")
+
+# ── 3b. IF Is Voice ──────────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "conditions": [
+                {"id": "cond-voice", "leftValue": "={{ $json.msgType }}", "rightValue": "voice",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is Voice",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(680, 500)
+})
+connect("IF Is Text", "IF Is Voice", 1)  # false branch → check voice
+
+# ── 3c. IF Is Callback ──────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "conditions": [
+                {"id": "cond-callback", "leftValue": "={{ $json.msgType }}", "rightValue": "callback",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is Callback",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(680, 700)
+})
+connect("IF Is Voice", "IF Is Callback", 1)  # false branch → check callback
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TEXT PATH (output 0 of Switch)
@@ -900,29 +930,59 @@ add_node({
     "typeVersion": 2,
     "position": pos(920, 200)
 })
-connect("Switch Message Type", "Parse Intent", 0)
+connect("IF Is Text", "Parse Intent", 0)  # true branch of IF Is Text
 
-# ── 5. Switch: API Type ──────────────────────────────────────────────────────
+# ── 5a. IF Is Fetch ──────────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
-        "rules": {
-            "rules": [
-                {"outputKey": "fetch", "conditions": {"conditions": [{"leftValue": "={{ $json.apiType }}", "rightValue": "fetch_", "operator": {"type": "string", "operation": "startsWith"}}]}},
-                {"outputKey": "action_update", "conditions": {"conditions": [{"leftValue": "={{ $json.apiType }}", "rightValue": "action_update", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "action_delete", "conditions": {"conditions": [{"leftValue": "={{ $json.apiType }}", "rightValue": "action_delete", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "none", "conditions": {"conditions": [{"leftValue": "={{ $json.apiType }}", "rightValue": "none", "operator": {"type": "string", "operation": "equals"}}]}}
-            ]
-        },
-        "options": {}
+        "conditions": {
+            "conditions": [
+                {"id": "cond-fetch", "leftValue": "={{ $json.apiType }}", "rightValue": "fetch_",
+                 "operator": {"type": "string", "operation": "contains"}}
+            ], "combinator": "and"
+        }
     },
-    "id": uid(),
-    "name": "Switch API Type",
-    "type": "n8n-nodes-base.switch",
-    "typeVersion": 3,
+    "id": uid(), "name": "IF Is Fetch",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
     "position": pos(1140, 200)
 })
-connect("Parse Intent", "Switch API Type")
+connect("Parse Intent", "IF Is Fetch")
+
+# ── 5b. IF Is Update ────────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "conditions": [
+                {"id": "cond-update", "leftValue": "={{ $json.apiType }}", "rightValue": "action_update",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is Update",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1140, 400)
+})
+connect("IF Is Fetch", "IF Is Update", 1)  # false → check update
+
+# ── 5c. IF Is Delete ────────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "conditions": [
+                {"id": "cond-delete", "leftValue": "={{ $json.apiType }}", "rightValue": "action_delete",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is Delete",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1140, 600)
+})
+connect("IF Is Update", "IF Is Delete", 1)  # false → check delete
+# false branch of IF Is Delete = "none" type → goes to Format Response directly
 
 # ── 6. HTTP GET (for fetch intents) ──────────────────────────────────────────
 
@@ -939,7 +999,7 @@ add_node({
     "position": pos(1380, 100),
     "continueOnFail": True
 })
-connect("Switch API Type", "HTTP Request", 0)
+connect("IF Is Fetch", "HTTP Request", 0)  # true branch
 
 # ── 7. HTTP POST Update ─────────────────────────────────────────────────────
 
@@ -960,7 +1020,7 @@ add_node({
     "position": pos(1380, 250),
     "continueOnFail": True
 })
-connect("Switch API Type", "HTTP POST Update", 1)
+connect("IF Is Update", "HTTP POST Update", 0)  # true branch
 
 # ── 8. HTTP POST Delete ─────────────────────────────────────────────────────
 
@@ -980,7 +1040,7 @@ add_node({
     "position": pos(1380, 400),
     "continueOnFail": True
 })
-connect("Switch API Type", "HTTP POST Delete", 2)
+connect("IF Is Delete", "HTTP POST Delete", 0)  # true branch
 
 # ── 9. Merge all API results ─────────────────────────────────────────────────
 # All three HTTP paths + no_api path converge into Format Response
@@ -996,7 +1056,7 @@ add_node({
 connect("HTTP Request", "Format Response")
 connect("HTTP POST Update", "Format Response")
 connect("HTTP POST Delete", "Format Response")
-connect("Switch API Type", "Format Response", 3)  # 'none' path
+connect("IF Is Delete", "Format Response", 1)  # false branch = 'none' type
 
 # ── 10. Send Reply ───────────────────────────────────────────────────────────
 
@@ -1007,8 +1067,7 @@ add_node({
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.reply }}",
         "additionalFields": {
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True
+            "parse_mode": "HTML"
         }
     },
     "id": uid(),
@@ -1038,7 +1097,7 @@ add_node({
     "typeVersion": 4.2,
     "position": pos(920, 600)
 })
-connect("Switch Message Type", "Get File URL", 1)
+connect("IF Is Voice", "Get File URL", 0)  # true branch of IF Is Voice
 
 # ── 12. Transcribe Audio (Groq Whisper) ──────────────────────────────────────
 
@@ -1046,8 +1105,8 @@ add_node({
     "parameters": {
         "method": "POST",
         "url": "https://api.groq.com/openai/v1/audio/transcriptions",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "groqApi",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": True,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -1065,7 +1124,7 @@ add_node({
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.2,
     "position": pos(1140, 600),
-    "credentials": {"groqApi": GROQ_CRED}
+    "credentials": {"httpHeaderAuth": GROQ_CRED}
 })
 connect("Get File URL", "Transcribe Audio")
 
@@ -1075,8 +1134,8 @@ add_node({
     "parameters": {
         "method": "POST",
         "url": "https://api.x.ai/v1/chat/completions",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "xAiApi",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": True,
         "specifyBody": "json",
         "jsonBody": '={"model":"grok-3-mini","messages":[{"role":"system","content":' + json.dumps(VOICE_SYSTEM_PROMPT) + '},{"role":"user","content":"Transkripcija: \\"{{ $json.text }}\\""}],"temperature":0.1}',
@@ -1087,7 +1146,7 @@ add_node({
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.2,
     "position": pos(1380, 600),
-    "credentials": {"xAiApi": XAI_CRED}
+    "credentials": {"httpHeaderAuth": XAI_CRED}
 })
 connect("Transcribe Audio", "Extract Voice Intent")
 
@@ -1103,26 +1162,40 @@ add_node({
 })
 connect("Extract Voice Intent", "Route Voice Result")
 
-# ── 15. Switch: Voice Type ───────────────────────────────────────────────────
+# ── 15a. IF Voice Query ─────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
-        "rules": {
-            "rules": [
-                {"outputKey": "query", "conditions": {"conditions": [{"leftValue": "={{ $json.voiceType }}", "rightValue": "query", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "create", "conditions": {"conditions": [{"leftValue": "={{ $json.voiceType }}", "rightValue": "create", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "unknown", "conditions": {"conditions": [{"leftValue": "={{ $json.voiceType }}", "rightValue": "unknown", "operator": {"type": "string", "operation": "equals"}}]}}
-            ]
-        },
-        "options": {}
+        "conditions": {
+            "conditions": [
+                {"id": "cond-vquery", "leftValue": "={{ $json.voiceType }}", "rightValue": "query",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
     },
-    "id": uid(),
-    "name": "Switch Voice Type",
-    "type": "n8n-nodes-base.switch",
-    "typeVersion": 3,
-    "position": pos(1860, 600)
+    "id": uid(), "name": "IF Voice Query",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1860, 500)
 })
-connect("Route Voice Result", "Switch Voice Type")
+connect("Route Voice Result", "IF Voice Query")
+
+# ── 15b. IF Voice Create ────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "conditions": [
+                {"id": "cond-vcreate", "leftValue": "={{ $json.voiceType }}", "rightValue": "create",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Voice Create",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1860, 700)
+})
+connect("IF Voice Query", "IF Voice Create", 1)  # false → check create
+# false branch of IF Voice Create → unknown path
 
 # ── 16. Voice Query: HTTP Request ────────────────────────────────────────────
 
@@ -1139,7 +1212,7 @@ add_node({
     "position": pos(2100, 500),
     "continueOnFail": True
 })
-connect("Switch Voice Type", "Voice HTTP Request", 0)
+connect("IF Voice Query", "Voice HTTP Request", 0)  # true branch
 
 # ── 17. Format Voice Query Response ──────────────────────────────────────────
 
@@ -1162,8 +1235,7 @@ add_node({
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.reply }}",
         "additionalFields": {
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True
+            "parse_mode": "HTML"
         }
     },
     "id": uid(),
@@ -1185,27 +1257,24 @@ add_node({
     "typeVersion": 2,
     "position": pos(2100, 660)
 })
-connect("Switch Voice Type", "Format Voice Create", 1)
+connect("IF Voice Create", "Format Voice Create", 0)  # true branch
 
 # ── 20. Send Confirmation with Inline Keyboard ──────────────────────────────
 
 add_node({
     "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $json.chatId }}",
-        "text": "={{ $json.confirmMessage }}",
-        "additionalFields": {
-            "parse_mode": "HTML",
-            "reply_markup": "={{ JSON.stringify({ inline_keyboard: $json.inlineKeyboard }) }}"
-        }
+        "method": "POST",
+        "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        "sendBody": True,
+        "specifyBody": "json",
+        "jsonBody": '={{ JSON.stringify({ chat_id: $json.chatId, text: $json.confirmMessage, parse_mode: "HTML", reply_markup: { inline_keyboard: $json.inlineKeyboard } }) }}',
+        "options": {}
     },
     "id": uid(),
     "name": "Send Voice Confirm",
-    "type": "n8n-nodes-base.telegram",
-    "typeVersion": 1.2,
-    "position": pos(2340, 660),
-    "credentials": {"telegramApi": TELEGRAM_CRED}
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": pos(2340, 660)
 })
 connect("Format Voice Create", "Send Voice Confirm")
 
@@ -1219,7 +1288,7 @@ add_node({
     "typeVersion": 2,
     "position": pos(2100, 820)
 })
-connect("Switch Voice Type", "Format Voice Unknown", 2)
+connect("IF Voice Create", "Format Voice Unknown", 1)  # false branch = unknown
 
 add_node({
     "parameters": {
@@ -1252,7 +1321,7 @@ add_node({
     "typeVersion": 2,
     "position": pos(920, 900)
 })
-connect("Switch Message Type", "Process Callback", 2)
+connect("IF Is Callback", "Process Callback", 0)  # true branch of IF Is Callback
 
 # ── 23. Answer Callback Query ────────────────────────────────────────────────
 
@@ -1272,25 +1341,22 @@ add_node({
 })
 connect("Process Callback", "Answer Callback")
 
-# ── 24. Switch Callback Action ───────────────────────────────────────────────
+# ── 24. IF Is Confirm ────────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
-        "rules": {
-            "rules": [
-                {"outputKey": "confirm", "conditions": {"conditions": [{"leftValue": "={{ $('Process Callback').first().json.action }}", "rightValue": "voice_confirm", "operator": {"type": "string", "operation": "equals"}}]}},
-                {"outputKey": "cancel", "conditions": {"conditions": [{"leftValue": "={{ $('Process Callback').first().json.action }}", "rightValue": "voice_cancel", "operator": {"type": "string", "operation": "equals"}}]}}
-            ]
-        },
-        "options": {}
+        "conditions": {
+            "conditions": [
+                {"id": "cond-confirm", "leftValue": "={{ $('Process Callback').first().json.action }}", "rightValue": "voice_confirm",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
     },
-    "id": uid(),
-    "name": "Switch Callback Action",
-    "type": "n8n-nodes-base.switch",
-    "typeVersion": 3,
+    "id": uid(), "name": "IF Is Confirm",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
     "position": pos(1380, 900)
 })
-connect("Answer Callback", "Switch Callback Action")
+connect("Answer Callback", "IF Is Confirm")
 
 # ── 25. Create Calendar Event (on confirm) ───────────────────────────────────
 # NOTE: In a full implementation, the booking data would be retrieved from
@@ -1313,7 +1379,7 @@ add_node({
     "position": pos(1620, 840),
     "continueOnFail": True
 })
-connect("Switch Callback Action", "Create Calendar Event", 0)
+connect("IF Is Confirm", "Create Calendar Event", 0)  # true branch
 
 # ── 26. Send Create Confirmation ─────────────────────────────────────────────
 
@@ -1351,7 +1417,7 @@ add_node({
     "position": pos(1620, 980),
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
-connect("Switch Callback Action", "Send Cancel Message", 1)
+connect("IF Is Confirm", "Send Cancel Message", 1)  # false branch = cancel
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BUILD FINAL WORKFLOW JSON
