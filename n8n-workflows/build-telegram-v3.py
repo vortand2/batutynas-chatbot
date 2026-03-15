@@ -59,7 +59,9 @@ ADDON_NAMES = [
 # ══════════════════════════════════════════════════════════════════════════════
 
 CLASSIFY_CODE = r"""
-const update = $input.first().json;
+// Webhook wraps Telegram payload in body
+const raw = $input.first().json;
+const update = raw.body || raw;
 
 // Callback query (inline keyboard press)
 if (update.callback_query) {
@@ -278,7 +280,7 @@ if (cleanText.startsWith('/')) {
       const rawArgs = parts.slice(1);
       if (rawArgs.length < 3) {
         intent = 'error';
-        args.msg = '⚠️ Formatas: /nauja <įranga> <vardas> <data> [kaina] [tel] [vietovė]\nPvz: /nauja CandyPop Rita 06-15 185';
+        args.msg = '⚠️ Formatas: /nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; [kaina] [tel] [vietovė]\nPvz: /nauja CandyPop Rita 06-15 185';
         break;
       }
 
@@ -444,13 +446,13 @@ switch(intent) {
       `/week — Savaitės užsakymai\n` +
       `/available [data] — Laisva įranga\n` +
       `/stats — Mėnesio statistika\n` +
-      `/search <žodis> — Ieškoti užsakymo\n` +
-      `/kada <įranga> — Laisvos datos\n\n` +
+      `/search &lt;žodis&gt; — Ieškoti užsakymo\n` +
+      `/kada &lt;įranga&gt; — Laisvos datos\n\n` +
       `✏️ <b>Veiksmai:</b>\n` +
-      `/move <id> <data> — Perkelti\n` +
-      `/extend <id> <dienos> — Pratęsti\n` +
-      `/cancel <id> — Atšaukti\n` +
-      `/nauja <įranga> <vardas> <data> — Sukurti\n\n` +
+      `/move &lt;id&gt; &lt;data&gt; — Perkelti\n` +
+      `/extend &lt;id&gt; &lt;dienos&gt; — Pratęsti\n` +
+      `/cancel &lt;id&gt; — Atšaukti\n` +
+      `/nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; — Sukurti\n\n` +
       `🎙️ <b>Balsas:</b>\n` +
       `Atsiųskite balso žinutę!\n` +
       `• Klausimas → atsakys iškart\n` +
@@ -837,7 +839,7 @@ if (intent === 'today' || intent === 'tomorrow') {
   } else {
     reply += `${icon} <b>${eq}</b> — laisvos datos:\n\n`;
     freeDates.slice(0,8).forEach(fd => { reply += `📅 ${fd.date} (${fd.weekday})\n`; });
-    reply += `\n💡 Užsakyti: /nauja ${eq} <vardas> <data> [kaina]`;
+    reply += `\n💡 Užsakyti: /nauja ${eq} &lt;vardas&gt; &lt;data&gt; [kaina]`;
   }
 } else {
   reply += '🤔 Nesupratau klausimo. Bandykite dar kartą arba naudokite /help';
@@ -1331,7 +1333,33 @@ connect("HTTP POST Delete", "Format Response")
 connect("HTTP POST Create", "Format Response")
 connect("IF Is Create", "Format Response", 1)  # false branch = 'none' type
 
-# ── 10. Send Reply ───────────────────────────────────────────────────────────
+# ── 10. IF Should Send guard (skip empty/ignored replies) ────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+            "combinator": "and",
+            "conditions": [
+                {
+                    "id": uid(),
+                    "leftValue": "={{ $json.shouldSend }}",
+                    "rightValue": True,
+                    "operator": {"type": "boolean", "operation": "true"}
+                }
+            ]
+        },
+        "options": {}
+    },
+    "id": uid(),
+    "name": "IF Should Send",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": pos(1860, 200)
+})
+connect("Format Response", "IF Should Send")
+
+# ── 10b. Send Reply ──────────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
@@ -1347,10 +1375,10 @@ add_node({
     "name": "Send Reply",
     "type": "n8n-nodes-base.telegram",
     "typeVersion": 1.2,
-    "position": pos(1860, 200),
+    "position": pos(2100, 200),
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
-connect("Format Response", "Send Reply")
+connect("IF Should Send", "Send Reply", 0)  # true branch only
 
 # ══════════════════════════════════════════════════════════════════════════════
 # VOICE PATH (output 1 of Switch)
