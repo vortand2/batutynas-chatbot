@@ -26,7 +26,8 @@ TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 GROQ_CRED     = {"id": "yf0G3FBiIj8uxM4N", "name": "Groq Whisper API"}
 XAI_CRED      = {"id": "3o4JPVqz73RdiO0Q", "name": "xAI Grok API"}
 
-BOT_TOKEN = "__TELEGRAM_BOT_TOKEN__"
+# IMPORTANT: Set BATUTYNAS_BOT_TOKEN env var. Rotate token if repo goes public.
+BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '__TELEGRAM_BOT_TOKEN__')
 
 # ── Calendar Bridge API URLs ─────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ API_AVAILABILITY = f"{API_BASE}/batutynas-availability"
 API_CREATE      = f"{API_BASE}/batutynas-calendar-create"
 API_UPDATE      = f"{API_BASE}/batutynas-calendar-update"
 API_DELETE      = f"{API_BASE}/batutynas-calendar-delete"
+API_NEXT_FREE   = f"{API_BASE}/batutynas-next-free"
 
 # ── Equipment list (for voice extraction prompt) ─────────────────────────────
 
@@ -142,6 +144,20 @@ function parseDate(str) {
     return `${now.getFullYear()}-${mm}-${dd}`;
   }
 
+  // Lithuanian month names (genitive form)
+  const LT_MONTHS = {
+    'sausio':1,'vasario':2,'kovo':3,'balandzio':4,'balandžio':4,
+    'gegužės':5,'geguzes':5,'birželio':6,'birzelio':6,
+    'liepos':7,'rugpjūčio':8,'rugpjucio':8,'rugsėjo':9,'rugsejo':9,
+    'spalio':10,'lapkričio':11,'lapkricio':11,'gruodžio':12,'gruodzio':12
+  };
+  const ltMatch = s.match(/^([a-ząčęėįšųūž]+)\s+(\d{1,2})$/);
+  if (ltMatch && LT_MONTHS[ltMatch[1]]) {
+    const mm = String(LT_MONTHS[ltMatch[1]]).padStart(2,'0');
+    const dd = ltMatch[2].padStart(2,'0');
+    return `${now.getFullYear()}-${mm}-${dd}`;
+  }
+
   return null;
 }
 
@@ -175,10 +191,14 @@ if (cleanText.startsWith('/')) {
       intent = 'week';
       apiType = 'fetch_dashboard';
       apiUrl = '""" + API_DASHBOARD + r"""' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;
-      // Will filter client-side for this week
       const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 6);
       args.filterDateFrom = today;
       args.filterDateTo = weekEnd.toISOString().substring(0, 10);
+      // Cross-month detection: if week end is in different month, fetch both
+      if (weekEnd.getMonth() !== now.getMonth() || weekEnd.getFullYear() !== now.getFullYear()) {
+        args.crossMonth = true;
+        args.secondApiUrl = '""" + API_DASHBOARD + r"""' + `?year=${weekEnd.getFullYear()}&month=${weekEnd.getMonth() + 1}`;
+      }
       break;
     }
 
@@ -253,6 +273,63 @@ if (cleanText.startsWith('/')) {
       break;
     }
 
+    case '/nauja': case '/naujas': case '/new': {
+      // Format: /nauja <equipment> <name> <date> [price] [phone] [location]
+      const rawArgs = parts.slice(1);
+      if (rawArgs.length < 3) {
+        intent = 'error';
+        args.msg = '⚠️ Formatas: /nauja <įranga> <vardas> <data> [kaina] [tel] [vietovė]\nPvz: /nauja CandyPop Rita 06-15 185';
+        break;
+      }
+
+      // Parse arguments by pattern matching
+      let eqName = null, custName = null, dateStr = null, price = null, phone = null, location = null;
+
+      for (const a of rawArgs) {
+        const parsedDate = parseDate(a);
+        if (parsedDate && !dateStr) { dateStr = parsedDate; continue; }
+        if (/^\+?\d{8,}$/.test(a.replace(/[\s-]/g, '')) && !phone) { phone = a; continue; }
+        if (/^\d{2,4}$/.test(a) && parseInt(a) < 5000 && !price) { price = parseInt(a); continue; }
+        if (!eqName) { eqName = a; continue; }
+        if (!custName) { custName = a; continue; }
+        if (!location) { location = a; continue; }
+        // Extra words append to location
+        if (location) { location += ' ' + a; }
+      }
+
+      if (!eqName || !dateStr) {
+        intent = 'error';
+        args.msg = '⚠️ Neatpažinta įranga arba data.\nPvz: /nauja CandyPop Rita 06-15 185';
+        break;
+      }
+
+      intent = 'quick_create';
+      apiType = 'action_create';
+      apiUrl = '""" + API_CREATE + r"""';
+      apiBody = {
+        equipment: eqName,
+        date: dateStr,
+        customer_name: custName || 'Klientas',
+        customer_phone: phone || null,
+        delivery_address: location || null,
+        price: price || null
+      };
+      break;
+    }
+
+    case '/kada': case '/laisva': {
+      const equipQuery = parts.slice(1).join(' ');
+      if (!equipQuery) {
+        intent = 'error'; args.msg = '⚠️ Nurodykite įrangą: /kada Candy Pop';
+        break;
+      }
+      intent = 'next_free';
+      apiType = 'fetch_next_free';
+      apiUrl = '""" + API_NEXT_FREE + r"""' + `?equipment=${encodeURIComponent(equipQuery)}&days=30`;
+      args.equipQuery = equipQuery;
+      break;
+    }
+
     default:
       intent = 'unknown';
   }
@@ -276,6 +353,10 @@ if (cleanText.startsWith('/')) {
     const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 6);
     args.filterDateFrom = today;
     args.filterDateTo = weekEnd.toISOString().substring(0, 10);
+    if (weekEnd.getMonth() !== now.getMonth() || weekEnd.getFullYear() !== now.getFullYear()) {
+      args.crossMonth = true;
+      args.secondApiUrl = '""" + API_DASHBOARD + r"""' + `?year=${weekEnd.getFullYear()}&month=${weekEnd.getMonth() + 1}`;
+    }
   } else if (/(laisv|turimos|kiek laisv|kas laisva)/i.test(lowerText)) {
     intent = 'available';
     // Try to extract date from NL
@@ -363,11 +444,13 @@ switch(intent) {
       `/week — Savaitės užsakymai\n` +
       `/available [data] — Laisva įranga\n` +
       `/stats — Mėnesio statistika\n` +
-      `/search <žodis> — Ieškoti užsakymo\n\n` +
+      `/search <žodis> — Ieškoti užsakymo\n` +
+      `/kada <įranga> — Laisvos datos\n\n` +
       `✏️ <b>Veiksmai:</b>\n` +
       `/move <id> <data> — Perkelti\n` +
       `/extend <id> <dienos> — Pratęsti\n` +
-      `/cancel <id> — Atšaukti\n\n` +
+      `/cancel <id> — Atšaukti\n` +
+      `/nauja <įranga> <vardas> <data> — Sukurti\n\n` +
       `🎙️ <b>Balsas:</b>\n` +
       `Atsiųskite balso žinutę!\n` +
       `• Klausimas → atsakys iškart\n` +
@@ -510,6 +593,25 @@ switch(intent) {
       reply = `⚠️ ${data.error}`;
     } else {
       reply = `❌ <b>Atšaukta</b>\n📌 ${data.summary || 'Užsakymas pašalintas iš kalendoriaus'}`;
+    }
+    break;
+  }
+
+  case 'quick_create': {
+    if (data.conflict) {
+      reply = `⚠️ <b>Konfliktas!</b> ${data.conflict_equipment || parsed.apiBody?.equipment || 'Įranga'} jau užimta ${fmtDate(parsed.apiBody?.date || '')}.\n` +
+        `Naudokite /kada ${parsed.apiBody?.equipment || ''} rasti laisvą datą.`;
+    } else if (data.error) {
+      reply = `⚠️ ${data.error}`;
+    } else {
+      const b = parsed.apiBody || {};
+      reply = `✅ <b>Užsakymas sukurtas!</b>\n\n`;
+      if (b.equipment) reply += `🎪 ${b.equipment}\n`;
+      if (b.customer_name) reply += `👤 ${b.customer_name}\n`;
+      if (b.date) reply += `📅 ${fmtDate(b.date)}\n`;
+      if (b.delivery_address) reply += `📍 ${b.delivery_address}\n`;
+      if (b.price) reply += `💰 €${b.price}\n`;
+      if (data.eventId || data.event_id) reply += `\n🔑 ID: <code>${data.eventId || data.event_id}</code>`;
     }
     break;
   }
@@ -724,6 +826,19 @@ if (intent === 'today' || intent === 'tomorrow') {
     reply += `🔍 "${query}" — ${bookings.length} rez.:\n\n`;
     bookings.slice(0,5).forEach(b => { reply += `📆 ${fmtDate(b.event_date)}\n` + fmtBooking(b) + '\n'; });
   }
+} else if (intent === 'next_free') {
+  const freeDates = data.freeDates || [];
+  const eq = data.equipment || args.equipQuery;
+  const icon = data.equipmentIcon || '🎪';
+  if (data.message && !freeDates.length) {
+    reply += `${icon} <b>${eq}</b>: ${data.message}`;
+  } else if (!freeDates.length) {
+    reply += `${icon} <b>${eq}</b>: Artimiausiomis 30 dienų nėra laisvų datų`;
+  } else {
+    reply += `${icon} <b>${eq}</b> — laisvos datos:\n\n`;
+    freeDates.slice(0,8).forEach(fd => { reply += `📅 ${fd.date} (${fd.weekday})\n`; });
+    reply += `\n💡 Užsakyti: /nauja ${eq} <vardas> <data> [kaina]`;
+  }
 } else {
   reply += '🤔 Nesupratau klausimo. Bandykite dar kartą arba naudokite /help';
 }
@@ -750,17 +865,24 @@ if (booking.notes) msg += `📝 ${booking.notes}\n`;
 msg += `\n💬 <i>"${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}"</i>`;
 msg += `\n\n✏️ <b>Patvirtinti užsakymą?</b>`;
 
-// Store booking data as JSON in callback data (shortened)
-const bookingJson = JSON.stringify(voiceData.apiBody);
-// n8n callback data limit is 64 bytes, so we store in a temp approach
-// We'll use a simple confirm/cancel with the full data passed through
+// Persist booking data in n8n static data (survives between webhook executions)
 const confirmId = Date.now().toString(36);
+const store = $getWorkflowStaticData('global');
+store[confirmId] = voiceData.apiBody;
+
+// Prune entries older than 1 hour to prevent memory leaks
+const nowMs = Date.now();
+for (const key of Object.keys(store)) {
+  if (key.length >= 7 && key.length <= 10) {
+    const ts = parseInt(key, 36);
+    if (!isNaN(ts) && nowMs - ts > 3600000) delete store[key];
+  }
+}
 
 return [{ json: {
   chatId,
   confirmMessage: msg,
   confirmId,
-  bookingData: voiceData.apiBody,
   // Inline keyboard
   inlineKeyboard: [
     [
@@ -794,17 +916,27 @@ const chatId = item.chatId;
 const callbackQueryId = item.callbackQueryId;
 
 if (data.startsWith('vc_ok:')) {
-  // Voice booking confirmed — we need the booking data
-  // In a real flow, we'd retrieve it from a temp store
-  // For now, the booking data flows through the workflow state
+  // Retrieve booking data from n8n static data store
+  const confirmKey = data.split(':')[1];
+  const store = $getWorkflowStaticData('global');
+  const bookingData = (confirmKey && store[confirmKey]) ? store[confirmKey] : null;
+  // Clean up after retrieval
+  if (confirmKey && store[confirmKey]) delete store[confirmKey];
+
   return [{ json: {
     chatId, callbackQueryId,
     action: 'voice_confirm',
-    callbackAnswer: '✅ Kuriamas...'
+    callbackAnswer: bookingData ? '✅ Kuriamas...' : '⚠️ Pasibaigė galiojimas',
+    bookingData
   }}];
 }
 
 if (data.startsWith('vc_no:')) {
+  // Clean up stored data on cancel too
+  const confirmKey = data.split(':')[1];
+  const store = $getWorkflowStaticData('global');
+  if (confirmKey && store[confirmKey]) delete store[confirmKey];
+
   return [{ json: {
     chatId, callbackQueryId,
     action: 'voice_cancel',
@@ -1017,7 +1149,28 @@ add_node({
     "position": pos(1140, 600)
 })
 connect("IF Is Update", "IF Is Delete", 1)  # false → check delete
-# false branch of IF Is Delete = "none" type → goes to Format Response directly
+
+# ── 5d. IF Is Create ───────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
+            "conditions": [
+                {"id": "cond-create", "leftValue": "={{ $json.apiType }}", "rightValue": "action_create",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is Create",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1140, 750)
+})
+connect("IF Is Delete", "IF Is Create", 1)  # false → check create
+# false branch of IF Is Create = "none" type → goes to Format Response directly
 
 # ── 6. HTTP GET (for fetch intents) ──────────────────────────────────────────
 
@@ -1077,8 +1230,28 @@ add_node({
 })
 connect("IF Is Delete", "HTTP POST Delete", 0)  # true branch
 
+# ── 8b. HTTP POST Create ────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "method": "POST",
+        "url": "={{ $('Parse Intent').first().json.apiUrl }}",
+        "sendBody": True,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Parse Intent').first().json.apiBody) }}",
+        "options": {"timeout": 15000}
+    },
+    "id": uid(),
+    "name": "HTTP POST Create",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": pos(1380, 550),
+    "continueOnFail": True
+})
+connect("IF Is Create", "HTTP POST Create", 0)  # true branch
+
 # ── 9. Merge all API results ─────────────────────────────────────────────────
-# All three HTTP paths + no_api path converge into Format Response
+# All HTTP paths + no_api path converge into Format Response
 
 add_node({
     "parameters": {"jsCode": FORMAT_RESPONSE_CODE},
@@ -1088,10 +1261,75 @@ add_node({
     "typeVersion": 2,
     "position": pos(1620, 200)
 })
-connect("HTTP Request", "Format Response")
+# ── 6b. IF Cross Month (for week spanning two months) ──────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
+            "conditions": [
+                {"id": "cond-crossmonth", "leftValue": "={{ $('Parse Intent').first().json.args?.crossMonth }}", "rightValue": "true",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Cross Month",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1620, -30)
+})
+connect("HTTP Request", "IF Cross Month")
+
+# ── 6c. HTTP Request 2 (second month for cross-month week) ────────────────
+
+add_node({
+    "parameters": {
+        "method": "GET",
+        "url": "={{ $('Parse Intent').first().json.args?.secondApiUrl }}",
+        "options": {"timeout": 15000}
+    },
+    "id": uid(),
+    "name": "HTTP Request 2",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": pos(1860, -80),
+    "continueOnFail": True
+})
+connect("IF Cross Month", "HTTP Request 2", 0)  # true → fetch second month
+
+# ── 6d. Merge Month Data ──────────────────────────────────────────────────
+
+add_node({
+    "parameters": {"jsCode": r"""
+// Merge bookings from both month responses for cross-month queries
+const firstData = $('HTTP Request').first().json || {};
+const secondData = $input.first().json || {};
+const mergedBookings = [...(firstData.bookings || []), ...(secondData.bookings || [])];
+// Deduplicate by event ID
+const seen = new Set();
+const unique = mergedBookings.filter(b => {
+  const id = b.calendarEventId || b.id;
+  if (seen.has(id)) return false;
+  seen.add(id);
+  return true;
+});
+return [{ json: { ...firstData, bookings: unique } }];
+"""},
+    "id": uid(),
+    "name": "Merge Month Data",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": pos(2100, -80)
+})
+connect("HTTP Request 2", "Merge Month Data")
+connect("Merge Month Data", "Format Response")
+connect("IF Cross Month", "Format Response", 1)  # false → single month, proceed directly
 connect("HTTP POST Update", "Format Response")
 connect("HTTP POST Delete", "Format Response")
-connect("IF Is Delete", "Format Response", 1)  # false branch = 'none' type
+connect("HTTP POST Create", "Format Response")
+connect("IF Is Create", "Format Response", 1)  # false branch = 'none' type
 
 # ── 10. Send Reply ───────────────────────────────────────────────────────────
 
@@ -1405,10 +1643,47 @@ add_node({
 })
 connect("Answer Callback", "IF Is Confirm")
 
-# ── 25. Create Calendar Event (on confirm) ───────────────────────────────────
-# NOTE: In a full implementation, the booking data would be retrieved from
-# a temp store (Redis/n8n static data). For now, we send a placeholder
-# that the Calendar Bridge can handle.
+# ── 25a. IF Booking Data Exists (guard against expired confirmations) ────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
+            "conditions": [
+                {"id": "cond-bdata", "leftValue": "={{ $('Process Callback').first().json.bookingData }}", "rightValue": "",
+                 "operator": {"type": "string", "operation": "notEquals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Booking Data Exists",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1620, 900)
+})
+connect("IF Is Confirm", "IF Booking Data Exists", 0)  # true branch
+
+# ── 25b. Send Expired Message (when booking data was pruned) ─────────────────
+
+add_node({
+    "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Process Callback').first().json.chatId }}",
+        "text": "⚠️ <b>Pasibaigė galiojimas</b>\n\nUžsakymo duomenys nebegalioja. Pabandykite dar kartą — įrašykite naują balso žinutę.",
+        "additionalFields": {"parse_mode": "HTML"}
+    },
+    "id": uid(),
+    "name": "Send Expired Message",
+    "type": "n8n-nodes-base.telegram",
+    "typeVersion": 1.2,
+    "position": pos(1860, 980),
+    "credentials": {"telegramApi": TELEGRAM_CRED}
+})
+connect("IF Booking Data Exists", "Send Expired Message", 1)  # false branch = expired
+
+# ── 25c. Create Calendar Event (on confirm with valid data) ──────────────────
 
 add_node({
     "parameters": {
@@ -1416,17 +1691,17 @@ add_node({
         "url": API_CREATE,
         "sendBody": True,
         "specifyBody": "json",
-        "jsonBody": '={"equipment":"Voice booking","customer_name":"Voice","date":"{{ new Date().toISOString().substring(0,10) }}","notes":"Created via voice confirmation"}',
+        "jsonBody": "={{ JSON.stringify($('Process Callback').first().json.bookingData || {}) }}",
         "options": {"timeout": 15000}
     },
     "id": uid(),
     "name": "Create Calendar Event",
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.2,
-    "position": pos(1620, 840),
+    "position": pos(1860, 840),
     "continueOnFail": True
 })
-connect("IF Is Confirm", "Create Calendar Event", 0)  # true branch
+connect("IF Booking Data Exists", "Create Calendar Event", 0)  # true branch = data exists
 
 # ── 26. Send Create Confirmation ─────────────────────────────────────────────
 
@@ -1442,7 +1717,7 @@ add_node({
     "name": "Send Create Confirm",
     "type": "n8n-nodes-base.telegram",
     "typeVersion": 1.2,
-    "position": pos(1860, 840),
+    "position": pos(2100, 840),
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
 connect("Create Calendar Event", "Send Create Confirm")
@@ -1461,7 +1736,7 @@ add_node({
     "name": "Send Cancel Message",
     "type": "n8n-nodes-base.telegram",
     "typeVersion": 1.2,
-    "position": pos(1620, 980),
+    "position": pos(1620, 1100),
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
 connect("IF Is Confirm", "Send Cancel Message", 1)  # false branch = cancel

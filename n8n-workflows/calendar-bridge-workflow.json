@@ -878,6 +878,111 @@
         1660,
         1820
       ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "batutynas-next-free",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "nextfree-webhook",
+      "name": "Next Free Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        2140
+      ],
+      "webhookId": "batutynas-next-free"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst query = $input.first().json.query || {};\nconst equipment = (query.equipment || '').trim();\nif (!equipment) {\n  return [{ json: { error: true, message: 'Missing equipment parameter' } }];\n}\nlet days = parseInt(query.days || '30', 10);\nif (isNaN(days) || days < 1) days = 30;\nif (days > 90) days = 90;\n\nconst now = new Date();\nconst tzOffset = 3; // Europe/Vilnius approximate\nnow.setHours(now.getHours() + tzOffset - now.getTimezoneOffset() / 60);\nconst timeMin = now.toISOString().substring(0, 10) + 'T00:00:00+03:00';\nconst endDate = new Date(now);\nendDate.setDate(endDate.getDate() + days);\nconst timeMax = endDate.toISOString().substring(0, 10) + 'T23:59:59+03:00';\n\nreturn [{ json: { equipment, days, timeMin, timeMax, error: false } }];\n"
+      },
+      "id": "nextfree-parse",
+      "name": "Parse Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        2140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": "primary",
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $json.timeMin }}",
+          "timeMax": "={{ $json.timeMax }}"
+        }
+      },
+      "id": "nextfree-cal",
+      "name": "Fetch Range Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        700,
+        2140
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SaHw7JsRiy6wdVUp",
+          "name": "Batutynas Google Calendar"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst EQUIPMENT = [\n  { name: 'Fantazijų parkas', aliases: ['fantaziju', 'fantazijos', 'fantazij', 'fantaziju parkas'], icon: '🏰', category: 'park' },\n  { name: 'Džiumandži parkas', aliases: ['dziumandzi', 'dziumandziu', 'jumanji', 'dziumand', 'džiumandži'], icon: '🌴', category: 'park' },\n  { name: 'Giga ruožas', aliases: ['giga', 'giga ruozas', 'giga ruožas'], icon: '🏃', category: 'obstacle' },\n  { name: 'Mega ruožas', aliases: ['mega ruozas', 'mega ruož', 'mega ruožas'], icon: '🏃‍♂️', category: 'obstacle' },\n  { name: 'Mega Rocket', aliases: ['mega rocket', 'rocket', 'raketa'], icon: '🚀', category: 'mega' },\n  { name: 'Mega Ufonautai', aliases: ['mega ufonautai', 'ufonautai', 'ufo'], icon: '🛸', category: 'mega' },\n  { name: 'Mega Waikiki', aliases: ['mega waikiki', 'waikiki'], icon: '🏄', category: 'mega' },\n  { name: 'Monstrai', aliases: ['monstrai', 'monstr', 'monster', 'monstru'], icon: '👾', category: 'compact' },\n  { name: 'Chameleonas', aliases: ['chameleonas', 'chameleon', 'chameleono'], icon: '🦎', category: 'compact' },\n  { name: 'Candy Pop', aliases: ['candy', 'candy pop', 'candypop'], icon: '🍬', category: 'compact' },\n  { name: 'Aštuonkojis', aliases: ['astuonkojis', 'astuonkoj', 'octopus', 'aštuonkojis'], icon: '🐙', category: 'compact' },\n  { name: 'Vienaragiai', aliases: ['vienaragiai', 'vienaragi', 'unicorn', 'vienaragis', 'vienaragių'], icon: '🦄', category: 'compact' },\n  { name: 'Pilis mažiesiems', aliases: ['pilis', 'pilis maziesiems', 'castle', 'pilis mažiesiems'], icon: '🏯', category: 'toddler' },\n  { name: 'Milžiniškas Dart', aliases: ['dart', 'milziniskas dart', 'giant dart', 'milžiniškas'], icon: '🎯', category: 'interactive' },\n  { name: 'Kamuolių medžioklė', aliases: ['kamuoliu', 'kamuoliu medziokle', 'ball hunt', 'kamuolių'], icon: '⚽', category: 'interactive' },\n  { name: 'Rodeo bulius', aliases: ['rodeo', 'bulius', 'bull', 'rodeo bulius'], icon: '🐂', category: 'interactive' },\n];\n\nconst ADDONS = [\n  { name: 'Cukraus vata', aliases: ['cukraus vata', 'vata', 'cotton candy'] },\n  { name: 'Popcorn', aliases: ['popcorn', 'popcornai', 'kukurūzai'] },\n  { name: 'Šerbetas', aliases: ['serbetas', 'serbet', 'sherbet', 'šerbetas'] },\n  { name: 'Putų šou', aliases: ['putu sou', 'putos', 'foam', 'putų šou', 'putu'] },\n  { name: 'Disco paviljonas', aliases: ['disco', 'paviljonas', 'disco paviljonas'] },\n  { name: 'JBL kolonėlė', aliases: ['jbl', 'kolonele', 'speaker', 'kolonėlė'] },\n  { name: 'VR sistema', aliases: ['vr', 'virtual reality', 'vr sistema'] },\n  { name: 'Burbulų mašina', aliases: ['burbulai', 'burbulu masina', 'bubbles', 'burbulų'] },\n  { name: 'Instax fotoaparatas', aliases: ['instax', 'fotoaparatas', 'fotikas', 'foto'] },\n  { name: 'Sumo kostiumai', aliases: ['sumo', 'kostiumai', 'sumo kostiumai'] },\n];\n\nfunction removeDiacritics(str) {\n  return str.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n}\n\nfunction matchEquipment(text) {\n  const lower = removeDiacritics(text.toLowerCase());\n  let bestMatch = null;\n  let bestLen = 0;\n  for (const eq of EQUIPMENT) {\n    for (const alias of eq.aliases) {\n      const a = removeDiacritics(alias.toLowerCase());\n      if (lower.includes(a) && a.length > bestLen) {\n        bestMatch = eq;\n        bestLen = a.length;\n      }\n    }\n    // Also try the name itself\n    const n = removeDiacritics(eq.name.toLowerCase());\n    if (lower.includes(n) && n.length > bestLen) {\n      bestMatch = eq;\n      bestLen = n.length;\n    }\n  }\n  return bestMatch;\n}\n\nfunction matchAddons(text) {\n  const lower = removeDiacritics(text.toLowerCase());\n  const found = [];\n  for (const addon of ADDONS) {\n    for (const alias of addon.aliases) {\n      if (lower.includes(removeDiacritics(alias.toLowerCase()))) {\n        found.push(addon.name);\n        break;\n      }\n    }\n  }\n  return found;\n}\n\nfunction extractPrice(text) {\n  // Match patterns: \"185€\", \"185 eur\", \"uz 185\", \"185 €\", \"€185\"\n  const patterns = [\n    /(\\d+)\\s*€/,\n    /€\\s*(\\d+)/,\n    /(\\d+)\\s*eur/i,\n    /uz\\s*(\\d+)/i,\n    /už\\s*(\\d+)/i,\n    /(\\d{2,4})\\s*$/  // trailing number as fallback\n  ];\n  for (const p of patterns) {\n    const m = text.match(p);\n    if (m) return parseInt(m[1], 10);\n  }\n  return null;\n}\n\nfunction extractPhone(text) {\n  const m = text.match(/\\+?\\d[\\d\\s-]{7,}/);\n  return m ? m[0].replace(/[\\s-]/g, '') : null;\n}\n\n\nfunction isSystemEvent(summary) {\n  // System events always follow: \"Equipment [+ addons] | price€\"\n  return /\\|\\s*\\d+\\s*€\\s*$/.test((summary || '').trim());\n}\n\n\nfunction parseManualTitle(summary) {\n  // For freeform titles: extract customer name and location from remaining text\n  // after stripping equipment, price, and phone\n  let text = summary || '';\n\n  // Strip equipment name (try all aliases)\n  const eq = matchEquipment(text);\n  if (eq) {\n    const names = [eq.name, ...eq.aliases];\n    for (const alias of names) {\n      const escaped = alias.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n      const re = new RegExp(escaped, 'gi');\n      text = text.replace(re, ' ');\n    }\n  }\n\n  // Strip price patterns\n  text = text.replace(/\\d+\\s*€/g, ' ').replace(/€\\s*\\d+/g, ' ');\n  text = text.replace(/\\d+\\s*eur/gi, ' ');\n  text = text.replace(/uz\\s*\\d+/gi, ' ').replace(/už\\s*\\d+/gi, ' ');\n\n  // Strip phone numbers\n  text = text.replace(/\\+?\\d[\\d\\s-]{7,}/g, ' ');\n\n  // Strip pipe and surrounding whitespace\n  text = text.replace(/\\|/g, ' ');\n\n  // Collapse spaces\n  text = text.replace(/\\s+/g, ' ').trim();\n\n  // Extract capitalized word groups (proper nouns = names/locations)\n  const tokens = text.split(/\\s+/).filter(Boolean);\n  const groups = [];\n  let current = [];\n  for (const t of tokens) {\n    if (/^[A-ZĄČĘĖĮŠŲŪŽ]/.test(t)) {\n      current.push(t);\n    } else {\n      if (current.length) { groups.push([...current]); current = []; }\n    }\n  }\n  if (current.length) groups.push(current);\n\n  let customerName = null;\n  let location = null;\n\n  for (const group of groups) {\n    if (group.length >= 2 && !customerName) {\n      // Multi-word capitalized = likely customer name (First Last)\n      customerName = group.join(' ');\n    } else if (group.length === 1 && !location) {\n      // Single capitalized word = likely location (city name)\n      location = group[0];\n    } else if (group.length === 1 && location && !customerName) {\n      customerName = group[0];\n    } else if (group.length >= 2 && customerName && !location) {\n      location = group.join(' ');\n    }\n  }\n\n  return { customerName, location };\n}\n\nfunction parseCalendarEvent(event) {\n  const summary = event.summary || '';\n  const description = event.description || '';\n  const allText = summary + ' ' + description;\n\n  // Determine event source: system-created vs manually-created\n  const isSystem = isSystemEvent(summary);\n  const entry_source = isSystem ? 'system' : 'manual';\n\n  // Equipment match from title primarily\n  const equipment = matchEquipment(summary);\n  const addons = matchAddons(allText);\n  const price = extractPrice(allText);\n  // Try phone from description first, then title (manual events may have phone in title)\n  const phone = extractPhone(description) || extractPhone(summary);\n\n  // Parse description lines for customer info\n  const lines = description.split(/\\\\n/).map(l => l.trim()).filter(Boolean);\n  let customerName = null;\n  let location = null;\n\n  for (const line of lines) {\n    // Skip lines that are phone numbers\n    if (/^\\\\+?\\\\d[\\\\d\\\\s-]{7,}$/.test(line)) continue;\n    // Skip lines that look like prices\n    if (/^\\\\d+\\\\s*€/.test(line) || /^€/.test(line)) continue;\n    // First non-phone, non-price line could be location or name\n    // Heuristic: if it contains city-like words, it's location\n    if (!location && /[A-ZĄČĘĖĮŠŲŪŽ]/.test(line[0]) && line.length < 40) {\n      // Check if next unassigned slot is location or name\n      if (!customerName && lines.indexOf(line) > 0) {\n        // Lines after first are more likely to be names\n        customerName = line;\n      } else if (!location) {\n        location = line;\n      }\n    }\n  }\n\n  // If we found things in wrong order, try to fix:\n  // Location often comes first in client's format (from screenshots)\n  // \"Pagramantis\\\\n+37060250071\\\\nRita Juskaite\"\n  if (lines.length >= 1) {\n    const firstNonPhone = lines.find(l => !/^\\\\+?\\\\d/.test(l));\n    const lastNonPhone = [...lines].reverse().find(l => !/^\\\\+?\\\\d/.test(l));\n    if (firstNonPhone && lastNonPhone && firstNonPhone !== lastNonPhone) {\n      location = firstNonPhone;\n      customerName = lastNonPhone;\n    } else if (firstNonPhone) {\n      // Only one non-phone line — could be either\n      // If it looks like a place (short, one word), treat as location\n      if (firstNonPhone.split(/\\\\s+/).length <= 2) {\n        location = firstNonPhone;\n      } else {\n        customerName = firstNonPhone;\n      }\n    }\n  }\n\n  // For manual events: if description parsing didn't yield results,\n  // try extracting customer name and location from the freeform title\n  if (entry_source === 'manual' && (!customerName || !location)) {\n    const fromTitle = parseManualTitle(summary);\n    if (!customerName && fromTitle.customerName) customerName = fromTitle.customerName;\n    if (!location && fromTitle.location) location = fromTitle.location;\n  }\n\n  // Event dates\n  const startDate = event.start?.date || event.start?.dateTime?.substring(0, 10) || '';\n  const endDate = event.end?.date || event.end?.dateTime?.substring(0, 10) || '';\n\n  // Calculate duration in days\n  let durationDays = 1;\n  if (startDate && endDate) {\n    const s = new Date(startDate);\n    const e = new Date(endDate);\n    durationDays = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)));\n    // Google Calendar all-day events: end date is exclusive (June 6 all-day → end = June 7)\n    // So a 1-day event has end = start + 1 day, meaning durationDays = 1 is correct\n  }\n\n  return {\n    id: event.id,\n    calendarEventId: event.id,\n    event_date: startDate,\n    end_date: endDate,\n    duration_days: durationDays,\n    raw_summary: summary,\n    raw_description: description,\n    customer_name: customerName,\n    customer_phone: phone,\n    delivery_address: location,\n    city: location,\n    price: price,\n    status: 'Confirmed', // Calendar events are confirmed by default\n    payment_status: price ? 'Pending' : 'Unknown',\n    entry_source: entry_source,\n    equipment: equipment ? [{\n      name: equipment.name,\n      icon: equipment.icon,\n      category: equipment.category\n    }] : [],\n    addons: addons,\n    htmlLink: event.htmlLink || '',\n    created_at: event.created || '',\n  };\n}\n\nconst params = $('Parse Params').first().json;\nif (params.error) {\n  return [{ json: { error: true, message: params.message } }];\n}\n\nconst equipmentQuery = params.equipment;\nconst days = params.days;\n\n// Match the requested equipment\nconst eqMatch = matchEquipment(equipmentQuery);\nif (!eqMatch) {\n  return [{ json: {\n    error: false,\n    equipment: equipmentQuery,\n    equipmentIcon: '🎪',\n    freeDates: [],\n    searchedDays: days,\n    message: 'Įranga nerasta: ' + equipmentQuery\n  } }];\n}\n\n// Parse all events in range\nconst events = $input.all().map(i => i.json);\nconst parsedEvents = events.filter(e => e.summary).map(e => parseCalendarEvent(e));\n\n// Build set of booked dates for this equipment\nconst bookedDates = new Set();\nfor (const ev of parsedEvents) {\n  const evEquipment = ev.equipment && ev.equipment.length > 0 ? ev.equipment[0] : null;\n  if (!evEquipment) continue;\n\n  // Check if this event uses the same equipment\n  if (removeDiacritics(evEquipment.name.toLowerCase()) === removeDiacritics(eqMatch.name.toLowerCase())) {\n    // Handle multi-day events\n    const start = new Date(ev.event_date);\n    const durationDays = ev.duration_days || 1;\n    for (let d = 0; d < durationDays; d++) {\n      const dt = new Date(start);\n      dt.setDate(dt.getDate() + d);\n      bookedDates.add(dt.toISOString().substring(0, 10));\n    }\n  }\n}\n\n// Walk the date range and collect free dates\nconst LT_DAYS = ['Sekmadienis','Pirmadienis','Antradienis','Trečiadienis','Ketvirtadienis','Penktadienis','Šeštadienis'];\nconst freeDates = [];\nconst now = new Date();\nconst tzOffset = 3;\nnow.setHours(now.getHours() + tzOffset - now.getTimezoneOffset() / 60);\n\nfor (let d = 0; d < days && freeDates.length < 10; d++) {\n  const dt = new Date(now);\n  dt.setDate(dt.getDate() + d);\n  const dateStr = dt.toISOString().substring(0, 10);\n  if (!bookedDates.has(dateStr)) {\n    freeDates.push({\n      date: dateStr,\n      weekday: LT_DAYS[dt.getDay()]\n    });\n  }\n}\n\nreturn [{ json: {\n  error: false,\n  equipment: eqMatch.name,\n  equipmentIcon: eqMatch.icon,\n  freeDates,\n  searchedDays: days\n} }];\n"
+      },
+      "id": "nextfree-find",
+      "name": "Find Free Dates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        2140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "nextfree-respond",
+      "name": "Respond Next Free",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        2140
+      ]
     }
   ],
   "connections": {
@@ -1248,6 +1353,50 @@
         [
           {
             "node": "Respond Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Free Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Params": {
+      "main": [
+        [
+          {
+            "node": "Fetch Range Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Range Events": {
+      "main": [
+        [
+          {
+            "node": "Find Free Dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Free Dates": {
+      "main": [
+        [
+          {
+            "node": "Respond Next Free",
             "type": "main",
             "index": 0
           }

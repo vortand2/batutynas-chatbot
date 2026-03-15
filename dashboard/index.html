@@ -2,7 +2,7 @@
 <html lang="lt">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Batutynas — Valdymo panel&#279;</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -167,6 +167,21 @@ body {
 .header-btn:hover { background: var(--bg-inset); border-color: var(--border-strong); }
 .header-btn:active { transform: scale(.9); }
 .header-btn.refreshing { animation: spin .7s linear infinite; }
+.header-search {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 0.82rem;
+  background: var(--bg);
+  width: 150px;
+  transition: width 200ms;
+}
+.header-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  width: 200px;
+}
 
 /* ================================================================
    LAYOUT — STATS BAR
@@ -708,30 +723,6 @@ body {
 }
 
 /* ================================================================
-   TOAST
-   ================================================================ */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(12px);
-  padding: 10px 22px;
-  border-radius: var(--radius-pill);
-  font-size: 0.82rem;
-  font-weight: 600;
-  z-index: 1000;
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transition: opacity .3s, transform .3s var(--ease-out);
-  pointer-events: none;
-}
-
-.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.success { background: var(--green); color: #fff; }
-.toast.error   { background: var(--red); color: #fff; }
-.toast.info    { background: var(--text); color: #fff; }
-
-/* ================================================================
    LOADING OVERLAY
    ================================================================ */
 .loading-overlay {
@@ -1152,6 +1143,87 @@ body {
 .booking-card-meta {
   opacity: 0.7;
   font-size: 0.8rem;
+}
+
+/* Next Free Date Finder */
+.next-free-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.next-free-label {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.next-free-select {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 0.82rem;
+  background: var(--bg);
+  cursor: pointer;
+  max-width: 200px;
+}
+.next-free-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+.next-free-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 152, 0, 0.1);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 150ms;
+}
+.next-free-chip:hover {
+  background: rgba(255, 152, 0, 0.2);
+}
+.next-free-loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Create FAB */
+.create-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 300;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  z-index: 500;
+  transition: transform 150ms, background 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.create-fab:hover {
+  transform: scale(1.08);
+  background: var(--accent-dark, #e68900);
 }
 
 /* Filter bar */
@@ -1604,9 +1676,6 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
   <div class="loading-spinner"></div>
 </div>
 
-<!-- Toast -->
-<div id="toast" class="toast"></div>
-
 <!-- Demo Banner -->
 <div id="demoBanner" class="demo-banner" style="display:none;">
   &#9888;&#65039; Demo re&#382;imas &#8212; rodomi pavyzdiniai duomenys
@@ -1619,6 +1688,7 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
     <span class="header-title">Batutynas</span>
   </div>
   <div class="header-actions">
+    <input type="search" id="searchInput" class="header-search" placeholder="Iesokti kliento..." autocomplete="off" />
     <span class="header-updated" id="lastUpdated"></span>
     <button class="header-btn" id="refreshBtn" title="Atnaujinti">&#8635;</button>
   </div>
@@ -1645,6 +1715,15 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
     <div class="stat-sub" id="statAvailableSub"></div>
   </div>
 </section>
+
+<!-- Next Free Date Finder -->
+<div class="next-free-bar">
+  <div class="next-free-label">Laisvos datos:</div>
+  <select id="nextFreeSelect" class="next-free-select">
+    <option value="">Pasirinkite iranga...</option>
+  </select>
+  <div id="nextFreeResult" class="next-free-result"></div>
+</div>
 
 <!-- Filter Bar -->
 <div id="filterBar" class="filter-bar"></div>
@@ -1688,6 +1767,9 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
   </div>
   <div class="equipment-strip" id="equipStrip"></div>
 </section>
+
+<!-- Create Booking FAB -->
+<button class="create-fab" id="createFab" title="Naujas u\u017esakymas">+</button>
 
 <script>
 // ================================================================
@@ -1769,6 +1851,7 @@ var API_AVAILABILITY = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-
 var API_CREATE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create';
 var API_UPDATE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-update';
 var API_DELETE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-delete';
+var API_NEXT_FREE = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-next-free';
 var REFRESH_INTERVAL_MS = 300000;
 
 // ================================================================
@@ -1787,6 +1870,7 @@ var state = {
   lastFetched: null,
   firstLoad: true,
   activeFilter: null,
+  searchQuery: '',
   _pendingSelectDate: null
 };
 
@@ -1835,16 +1919,34 @@ function getEquipmentIcons(b) {
   return [];
 }
 
+function matchesSearchQuery(b) {
+  if (!state.searchQuery) return true;
+  var q = state.searchQuery.toLowerCase();
+  var text = [
+    b.customer_name || '',
+    b.customer_phone || '',
+    b.delivery_address || '',
+    b.city || '',
+    b.raw_summary || '',
+    getEquipmentNames(b).join(' ')
+  ].join(' ').toLowerCase();
+  return text.indexOf(q) !== -1;
+}
+
 function getBookingsByDate(dateKey) {
   return state.bookings.filter(function(b) {
     var start = getDateKey(b);
     if (!start) return false;
     // Multi-day support: check if dateKey falls within [start, end)
     var endDate = (b.end_date || '').slice(0, 10);
+    var dateMatch;
     if (endDate && endDate > start) {
-      return dateKey >= start && dateKey < endDate;
+      dateMatch = dateKey >= start && dateKey < endDate;
+    } else {
+      dateMatch = start === dateKey;
     }
-    return start === dateKey;
+    if (!dateMatch) return false;
+    return matchesSearchQuery(b);
   }).sort(function(a, b) {
     return (a.event_time || '').localeCompare(b.event_time || '');
   });
@@ -1894,6 +1996,74 @@ function buildApiUrl() {
   var mm = String(state.viewMonth + 1).padStart(2, '0');
   var month = state.viewYear + '-' + mm;
   return API_BASE + '?month=' + month + '&t=' + Date.now();
+}
+
+// ================================================================
+// NEXT FREE DATE FINDER
+// ================================================================
+
+function populateNextFreeSelect() {
+  var sel = document.getElementById('nextFreeSelect');
+  if (!sel || !state.equipment.length) return;
+  // Clear existing options
+  while (sel.options.length > 1) sel.remove(1);
+  state.equipment.forEach(function(eq) {
+    var opt = document.createElement('option');
+    opt.value = eq.name;
+    opt.textContent = (eq.icon || '') + ' ' + eq.name;
+    sel.appendChild(opt);
+  });
+}
+
+function fetchNextFree(equipmentName) {
+  var result = document.getElementById('nextFreeResult');
+  if (!result) return;
+  if (!equipmentName) { result.textContent = ''; return; }
+
+  result.textContent = 'Ieškoma...';
+  result.className = 'next-free-result';
+
+  fetch(API_NEXT_FREE + '?equipment=' + encodeURIComponent(equipmentName) + '&days=30')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // Clear previous results
+      while (result.firstChild) result.removeChild(result.firstChild);
+
+      if (data.error || !data.freeDates || !data.freeDates.length) {
+        var noResult = document.createElement('span');
+        noResult.style.color = 'var(--text-muted)';
+        noResult.textContent = 'Nera laisvu datu 30 d.';
+        result.appendChild(noResult);
+        return;
+      }
+
+      data.freeDates.slice(0, 3).forEach(function(fd) {
+        var chip = document.createElement('span');
+        chip.className = 'next-free-chip';
+        chip.setAttribute('data-date', fd.date);
+        chip.title = fd.weekday;
+        chip.textContent = fd.date.substring(5) + ' (' + fd.weekday.substring(0, 2) + ')';
+        chip.addEventListener('click', function() {
+          var parts = fd.date.split('-');
+          state.viewYear = parseInt(parts[0], 10);
+          state.viewMonth = parseInt(parts[1], 10) - 1;
+          state._pendingSelectDate = fd.date;
+          loadData();
+        });
+        result.appendChild(chip);
+      });
+
+      if (data.freeDates.length > 3) {
+        var more = document.createElement('span');
+        more.style.color = 'var(--text-muted)';
+        more.textContent = '+' + (data.freeDates.length - 3) + ' daugiau';
+        result.appendChild(more);
+      }
+    })
+    .catch(function() {
+      result.textContent = 'Klaida';
+      result.style.color = 'var(--red)';
+    });
 }
 
 function loadData() {
@@ -1955,6 +2125,7 @@ function applyData(data) {
   state.bookings = data.bookings || [];
   state.equipment = data.equipment || [];
   state.stats = data.stats || {};
+  populateNextFreeSelect();
 }
 
 function applyDemoData() {
@@ -2523,13 +2694,17 @@ function animateNumber(el, target, duration, suffix) {
 // ================================================================
 
 function getFilteredBookings() {
-  if (!state.activeFilter || state.activeFilter === 'all') {
-    return state.bookings;
+  var results = state.bookings;
+  if (state.activeFilter && state.activeFilter !== 'all') {
+    results = results.filter(function(b) {
+      var names = getEquipmentNames(b);
+      return names.indexOf(state.activeFilter) !== -1;
+    });
   }
-  return state.bookings.filter(function(b) {
-    var names = getEquipmentNames(b);
-    return names.indexOf(state.activeFilter) !== -1;
-  });
+  if (state.searchQuery) {
+    results = results.filter(matchesSearchQuery);
+  }
+  return results;
 }
 
 function getFilteredBookingsByDate(dateKey) {
@@ -2927,6 +3102,258 @@ function saveBookingEdit(bookingId, formData, onComplete) {
       showToast('Klaida i\u0161saugant u\u017esakym\u0105. Bandykite dar kart\u0105.', 'error');
       if (typeof onComplete === 'function') onComplete();
     });
+}
+
+// ================================================================
+// CREATE BOOKING MODAL
+// ================================================================
+
+function openCreateModal(prefilledDate) {
+  var existing = document.getElementById('createModalBackdrop');
+  if (existing) existing.remove();
+
+  var backdrop = document.createElement('div');
+  backdrop.className = 'edit-modal-backdrop';
+  backdrop.id = 'createModalBackdrop';
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop) closeCreateModal();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'edit-modal-content';
+  modal.addEventListener('scroll', function() {
+    modal.classList.toggle('is-scrolled', modal.scrollTop > 0);
+  });
+
+  // Header
+  var header = document.createElement('div');
+  header.className = 'edit-modal-header';
+  var titleEl = document.createElement('div');
+  titleEl.className = 'edit-modal-title';
+  titleEl.textContent = 'Naujas u\u017esakymas';
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'edit-modal-close';
+  closeBtn.type = 'button';
+  closeBtn.setAttribute('aria-label', 'U\u017edaryti');
+  closeBtn.textContent = '\u00d7';
+  closeBtn.addEventListener('click', function() { closeCreateModal(); });
+  header.appendChild(titleEl);
+  header.appendChild(closeBtn);
+
+  var body = document.createElement('div');
+  body.className = 'edit-modal-body';
+
+  // Helpers (reuse edit modal pattern)
+  function makeGroup(labelText, control, req) {
+    var g = document.createElement('div');
+    g.className = 'edit-form-group';
+    var l = document.createElement('label');
+    l.className = 'edit-label';
+    l.textContent = labelText;
+    if (req) { var s = document.createElement('span'); s.className = 'required'; s.textContent = ' *'; l.appendChild(s); }
+    g.appendChild(l);
+    g.appendChild(control);
+    return g;
+  }
+  function makeInput(type, name, value, placeholder) {
+    var inp = document.createElement('input');
+    inp.type = type || 'text';
+    inp.name = name;
+    inp.className = 'edit-input';
+    inp.value = value != null ? String(value) : '';
+    if (placeholder) inp.placeholder = placeholder;
+    return inp;
+  }
+  function makeSelectEl(name, options) {
+    var sel = document.createElement('select');
+    sel.name = name;
+    sel.className = 'edit-select';
+    options.forEach(function(opt) {
+      var o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      sel.appendChild(o);
+    });
+    return sel;
+  }
+  function makeSelectWrap(sel) {
+    var w = document.createElement('div');
+    w.className = 'edit-select-wrapper';
+    w.appendChild(sel);
+    return w;
+  }
+  function makeDivider() {
+    var d = document.createElement('div');
+    d.className = 'edit-form-divider';
+    return d;
+  }
+
+  // Equipment dropdown (required)
+  var equipOpts = [{ value: '', label: 'Pasirinkite...' }];
+  state.equipment.forEach(function(eq) {
+    equipOpts.push({ value: eq.name, label: (eq.icon || '') + ' ' + eq.name });
+  });
+  var selEquip = makeSelectEl('equipment', equipOpts);
+  body.appendChild(makeGroup('\u012eranga', makeSelectWrap(selEquip), true));
+
+  // Date + availability indicator
+  var row1 = document.createElement('div');
+  row1.className = 'edit-form-row';
+  var inpDate = makeInput('date', 'event_date', prefilledDate || '', '');
+  row1.appendChild(makeGroup('Data', inpDate, true));
+  var availBadge = document.createElement('div');
+  availBadge.className = 'edit-form-group';
+  availBadge.id = 'createAvailBadge';
+  availBadge.style.alignSelf = 'flex-end';
+  availBadge.style.paddingBottom = '6px';
+  row1.appendChild(availBadge);
+  body.appendChild(row1);
+
+  // Availability check on date/equipment change
+  function checkAvail() {
+    var eq = selEquip.value;
+    var dt = inpDate.value;
+    if (!eq || !dt) { availBadge.textContent = ''; return; }
+    availBadge.textContent = '...';
+    availBadge.style.color = 'var(--text-muted)';
+    fetch(API_AVAILABILITY + '?date=' + dt + '&equipment=' + encodeURIComponent(eq))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var available = d.available !== false;
+        availBadge.textContent = available ? '\u2705 Laisva' : '\u26a0\ufe0f U\u017eimta';
+        availBadge.style.color = available ? 'var(--green)' : 'var(--orange)';
+      })
+      .catch(function() { availBadge.textContent = ''; });
+  }
+  selEquip.addEventListener('change', checkAvail);
+  inpDate.addEventListener('change', checkAvail);
+
+  // Customer name + phone
+  var row2 = document.createElement('div');
+  row2.className = 'edit-form-row';
+  var inpName = makeInput('text', 'customer_name', '', 'Vardas Pavard\u0117');
+  row2.appendChild(makeGroup('Klientas', inpName, true));
+  var inpPhone = makeInput('tel', 'customer_phone', '', '+370...');
+  row2.appendChild(makeGroup('Telefonas', inpPhone));
+  body.appendChild(row2);
+
+  // City + Address
+  var row3 = document.createElement('div');
+  row3.className = 'edit-form-row';
+  var inpCity = makeInput('text', 'city', '', 'pvz. Klaip\u0117da');
+  row3.appendChild(makeGroup('Miestas', inpCity));
+  var inpAddr = makeInput('text', 'delivery_address', '', 'Gatv\u0117, namas');
+  row3.appendChild(makeGroup('Adresas', inpAddr));
+  body.appendChild(row3);
+
+  body.appendChild(makeDivider());
+
+  // Price + Notes
+  var row4 = document.createElement('div');
+  row4.className = 'edit-form-row';
+  var inpPrice = makeInput('number', 'price', '', '0');
+  inpPrice.min = '0';
+  inpPrice.step = '1';
+  row4.appendChild(makeGroup('Kaina (\u20ac)', inpPrice));
+  var inpNotes = makeInput('text', 'notes', '', 'Pastabos...');
+  row4.appendChild(makeGroup('Pastabos', inpNotes));
+  body.appendChild(row4);
+
+  // Footer
+  var footer = document.createElement('div');
+  footer.className = 'edit-modal-footer';
+  var btnCancel = document.createElement('button');
+  btnCancel.type = 'button';
+  btnCancel.className = 'btn-cancel';
+  btnCancel.textContent = 'At\u0161aukti';
+  btnCancel.addEventListener('click', function() { closeCreateModal(); });
+
+  var btnCreate = document.createElement('button');
+  btnCreate.type = 'button';
+  btnCreate.className = 'btn-save';
+  btnCreate.textContent = 'Sukurti';
+  btnCreate.addEventListener('click', function() {
+    var eq = selEquip.value;
+    var dt = inpDate.value;
+    var name = inpName.value.trim();
+    if (!eq || !dt || !name) {
+      showToast('\u012eveskite \u012frang\u0105, dat\u0105 ir kliento vard\u0105', 'error');
+      return;
+    }
+    btnCreate.disabled = true;
+    btnCreate.textContent = 'Kuriama...';
+
+    var payload = {
+      equipment: eq,
+      date: dt,
+      customer_name: name,
+      customer_phone: inpPhone.value.trim() || null,
+      city: inpCity.value.trim() || null,
+      delivery_address: inpAddr.value.trim() || null,
+      price: inpPrice.value !== '' ? parseFloat(inpPrice.value) : null,
+      notes: inpNotes.value.trim() || null
+    };
+
+    fetch(API_CREATE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json().catch(function() { return {}; });
+      })
+      .then(function(resp) {
+        if (resp.conflict) {
+          showToast('\u26a0\ufe0f Konfliktas: ' + (resp.message || '\u012eranga u\u017eimta'), 'error');
+          btnCreate.disabled = false;
+          btnCreate.textContent = 'Sukurti';
+          return;
+        }
+        closeCreateModal();
+        showToast('\u2705 U\u017esakymas sukurtas!', 'success');
+        loadData();
+      })
+      .catch(function(err) {
+        console.error('Create failed:', err);
+        showToast('Klaida kuriant u\u017esakym\u0105', 'error');
+        btnCreate.disabled = false;
+        btnCreate.textContent = 'Sukurti';
+      });
+  });
+
+  footer.appendChild(btnCancel);
+  footer.appendChild(btnCreate);
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  modal.appendChild(footer);
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  document.addEventListener('keydown', handleCreateModalKeydown);
+
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      backdrop.classList.add('is-open');
+    });
+  });
+
+  if (prefilledDate && selEquip.value) checkAvail();
+}
+
+function handleCreateModalKeydown(e) {
+  if (e.key === 'Escape') closeCreateModal();
+}
+
+function closeCreateModal() {
+  var backdrop = document.getElementById('createModalBackdrop');
+  if (!backdrop) return;
+  document.removeEventListener('keydown', handleCreateModalKeydown);
+  backdrop.classList.remove('is-open');
+  setTimeout(function() {
+    if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+  }, 250);
 }
 
 // ================================================================
@@ -3364,14 +3791,7 @@ function showLoading(on) {
 
 function showToast(msg, type) {
   var container = document.getElementById('toastContainer');
-  if (!container) {
-    // Fallback to old toast
-    var toast = document.getElementById('toast');
-    if (!toast) return;
-    toast.textContent = msg;
-    toast.className = 'toast ' + (type || 'info') + ' visible';
-    setTimeout(function() { toast.classList.remove('visible'); }, 3000);
-    return;
+  if (!container) return;
   }
 
   var icon = type === 'success' ? '\u2705' : type === 'error' ? '\u274C' : '\u2139\uFE0F';
@@ -3423,6 +3843,43 @@ function renderAll() {
 document.addEventListener('DOMContentLoaded', function() {
   initNavigation();
   loadData();
+
+  // Next Free Date finder
+  var nextFreeSel = document.getElementById('nextFreeSelect');
+  if (nextFreeSel) {
+    nextFreeSel.addEventListener('change', function() {
+      fetchNextFree(nextFreeSel.value);
+    });
+  }
+
+  // Create Booking FAB
+  var fab = document.getElementById('createFab');
+  if (fab) {
+    fab.addEventListener('click', function() {
+      openCreateModal(state.selectedDate || '');
+    });
+  }
+
+  // Customer Search
+  var searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    var _searchTimer = null;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(function() {
+        state.searchQuery = searchInput.value.trim();
+        renderCalendar();
+        if (state.selectedDate) {
+          if (isMobile()) {
+            var acc = document.getElementById('dayAccordion');
+            if (acc) { acc.remove(); toggleDayAccordion(state.selectedDate); }
+          } else {
+            showDayPanel(state.selectedDate);
+          }
+        }
+      }, 250);
+    });
+  }
 
   setInterval(function() {
     // Skip auto-refresh if user has a modal or dialog open to prevent stale data conflicts

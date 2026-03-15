@@ -1062,6 +1062,130 @@ return [{ json: {
 
     return nodes, conns
 
+# ── Endpoint 6: GET Next Free Dates ─────────────────────────────────────────
+
+def build_next_free_endpoint():
+    Y = 2140
+    nodes = []
+    conns = {}
+
+    # 1. Webhook
+    nodes.append(webhook_node("nextfree-webhook", "Next Free Webhook", "GET", "batutynas-next-free", Y))
+
+    # 2. Parse Params — validate equipment, parse days range
+    nodes.append(code_node("nextfree-parse", "Parse Params", """
+const query = $input.first().json.query || {};
+const equipment = (query.equipment || '').trim();
+if (!equipment) {
+  return [{ json: { error: true, message: 'Missing equipment parameter' } }];
+}
+let days = parseInt(query.days || '30', 10);
+if (isNaN(days) || days < 1) days = 30;
+if (days > 90) days = 90;
+
+const now = new Date();
+const tzOffset = 3; // Europe/Vilnius approximate
+now.setHours(now.getHours() + tzOffset - now.getTimezoneOffset() / 60);
+const timeMin = now.toISOString().substring(0, 10) + 'T00:00:00+03:00';
+const endDate = new Date(now);
+endDate.setDate(endDate.getDate() + days);
+const timeMax = endDate.toISOString().substring(0, 10) + 'T23:59:59+03:00';
+
+return [{ json: { equipment, days, timeMin, timeMax, error: false } }];
+""", 460, Y))
+
+    # 3. Fetch Range Events from Google Calendar
+    nodes.append(google_cal_list_node(
+        "nextfree-cal", "Fetch Range Events",
+        "={{ $json.timeMin }}", "={{ $json.timeMax }}",
+        700, Y, always_output=True
+    ))
+
+    # 4. Find Free Dates — parse events, find dates where requested equipment is free
+    nodes.append(code_node("nextfree-find", "Find Free Dates", PARSE_EVENT_FN + r"""
+const params = $('Parse Params').first().json;
+if (params.error) {
+  return [{ json: { error: true, message: params.message } }];
+}
+
+const equipmentQuery = params.equipment;
+const days = params.days;
+
+// Match the requested equipment
+const eqMatch = matchEquipment(equipmentQuery);
+if (!eqMatch) {
+  return [{ json: {
+    error: false,
+    equipment: equipmentQuery,
+    equipmentIcon: '🎪',
+    freeDates: [],
+    searchedDays: days,
+    message: 'Įranga nerasta: ' + equipmentQuery
+  } }];
+}
+
+// Parse all events in range
+const events = $input.all().map(i => i.json);
+const parsedEvents = events.filter(e => e.summary).map(e => parseCalendarEvent(e));
+
+// Build set of booked dates for this equipment
+const bookedDates = new Set();
+for (const ev of parsedEvents) {
+  const evEquipment = ev.equipment && ev.equipment.length > 0 ? ev.equipment[0] : null;
+  if (!evEquipment) continue;
+
+  // Check if this event uses the same equipment
+  if (removeDiacritics(evEquipment.name.toLowerCase()) === removeDiacritics(eqMatch.name.toLowerCase())) {
+    // Handle multi-day events
+    const start = new Date(ev.event_date);
+    const durationDays = ev.duration_days || 1;
+    for (let d = 0; d < durationDays; d++) {
+      const dt = new Date(start);
+      dt.setDate(dt.getDate() + d);
+      bookedDates.add(dt.toISOString().substring(0, 10));
+    }
+  }
+}
+
+// Walk the date range and collect free dates
+const LT_DAYS = ['Sekmadienis','Pirmadienis','Antradienis','Trečiadienis','Ketvirtadienis','Penktadienis','Šeštadienis'];
+const freeDates = [];
+const now = new Date();
+const tzOffset = 3;
+now.setHours(now.getHours() + tzOffset - now.getTimezoneOffset() / 60);
+
+for (let d = 0; d < days && freeDates.length < 10; d++) {
+  const dt = new Date(now);
+  dt.setDate(dt.getDate() + d);
+  const dateStr = dt.toISOString().substring(0, 10);
+  if (!bookedDates.has(dateStr)) {
+    freeDates.push({
+      date: dateStr,
+      weekday: LT_DAYS[dt.getDay()]
+    });
+  }
+}
+
+return [{ json: {
+  error: false,
+  equipment: eqMatch.name,
+  equipmentIcon: eqMatch.icon,
+  freeDates,
+  searchedDays: days
+} }];
+""", 940, Y))
+
+    # 5. Respond
+    nodes.append(respond_node("nextfree-respond", "Respond Next Free", 1180, Y))
+
+    # Connections
+    conns["Next Free Webhook"] = {"main": [[connection("nextfree-webhook", "Parse Params")]]}
+    conns["Parse Params"] = {"main": [[connection("nextfree-parse", "Fetch Range Events")]]}
+    conns["Fetch Range Events"] = {"main": [[connection("nextfree-cal", "Find Free Dates")]]}
+    conns["Find Free Dates"] = {"main": [[connection("nextfree-find", "Respond Next Free")]]}
+
+    return nodes, conns
+
 # ── Assemble Full Workflow ───────────────────────────────────────────────────
 
 def build_workflow():
@@ -1073,7 +1197,8 @@ def build_workflow():
         build_availability_endpoint,
         build_create_endpoint,
         build_update_endpoint,
-        build_delete_endpoint
+        build_delete_endpoint,
+        build_next_free_endpoint
     ]:
         nodes, conns = builder()
         all_nodes.extend(nodes)
@@ -1104,4 +1229,5 @@ if __name__ == "__main__":
     print(f"    POST /batutynas-calendar-create — create booking (with conflict check)")
     print(f"    POST /batutynas-calendar-update — move/extend (with conflict check)")
     print(f"    POST /batutynas-calendar-delete — cancel booking")
+    print(f"    GET  /batutynas-next-free       — find next free dates for equipment")
     print(f"\n  ⚠️  Replace GOOGLE_CALENDAR_CRED with real credential ID after OAuth setup")

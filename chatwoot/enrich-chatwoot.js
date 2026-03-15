@@ -604,8 +604,8 @@ function buildBookingConfirm(jsonStr) {
     var lt = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Vilnius' }));
     var dayOfWeek = lt.getDay();
     var hourOfDay = lt.getHours();
-    if (dayOfWeek === 0 || dayOfWeek === 6 || hourOfDay < 8 || hourOfDay >= 18) {
-      text += '\n\u23F0 U\u017eklausa bus apdorota artimiausi\u0105 darbo dien\u0105 (I\u2013V, 8:00\u201318:00)';
+    if (hourOfDay < 8 || hourOfDay >= 21) {
+      text += '\n\u23F0 U\u017eklausa bus apdorota artimiausiu metu (darbo laikas: 8:00\u201321:00 kasdien)';
     } else {
       text += '\nSusisieksime per 2 darbo valandas! \u{1F64F}';
     }
