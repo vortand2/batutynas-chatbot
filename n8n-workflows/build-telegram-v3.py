@@ -244,10 +244,12 @@ if (cleanText.startsWith('/')) {
         intent = 'error'; args.msg = '⚠️ Nurodykite event ID, pvz: /atsaukti abc123';
         break;
       }
+      // Support: /atsaukti <id> force — to force-delete manual events
+      const forceDelete = (arg2 || '').toLowerCase() === 'force';
       intent = 'cancel';
       apiType = 'action_delete';
       apiUrl = '""" + API_DELETE + r"""';
-      apiBody = { event_id: arg1 };
+      apiBody = { event_id: arg1, force: forceDelete };
       break;
     }
 
@@ -495,7 +497,16 @@ switch(intent) {
   }
 
   case 'cancel': {
-    if (data.error) {
+    if (data.blocked) {
+      // Manual event — blocked without force flag
+      const evId = parsed.apiBody?.event_id || '';
+      reply = `⚠️ <b>Negalima ištrinti</b>\n` +
+        `📌 Šis įvykis sukurtas rankiniu būdu:\n` +
+        `<i>${data.event_summary || '?'}</i>`;
+      if (data.event_date) reply += `\n📅 ${fmtDate(data.event_date)}`;
+      reply += `\n\n💡 Jei tikrai norite ištrinti:\n` +
+        `<code>/atsaukti ${evId} force</code>`;
+    } else if (data.error) {
       reply = `⚠️ ${data.error}`;
     } else {
       reply = `❌ <b>Atšaukta</b>\n📌 ${data.summary || 'Užsakymas pašalintas iš kalendoriaus'}`;

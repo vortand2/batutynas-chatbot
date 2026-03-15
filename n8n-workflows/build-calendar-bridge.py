@@ -19,6 +19,15 @@ CREDENTIAL_ID = "SaHw7JsRiy6wdVUp"
 CREDENTIAL_NAME = "Batutynas Google Calendar"
 CALENDAR_ID = "primary"  # Or client's specific calendar ID
 
+# ── Shared JS function: detect system-created events ────────────────────────
+# Extracted to Python constant so it can be embedded in multiple n8n code nodes
+IS_SYSTEM_EVENT_FN = r"""
+function isSystemEvent(summary) {
+  // System events always follow: "Equipment [+ addons] | price€"
+  return /\|\s*\d+\s*€\s*$/.test((summary || '').trim());
+}
+"""
+
 # ── Equipment Master List ────────────────────────────────────────────────────
 
 EQUIPMENT_JS = """
@@ -120,16 +129,86 @@ function extractPhone(text) {
   return m ? m[0].replace(/[\\s-]/g, '') : null;
 }
 
+""" + IS_SYSTEM_EVENT_FN + r"""
+
+function parseManualTitle(summary) {
+  // For freeform titles: extract customer name and location from remaining text
+  // after stripping equipment, price, and phone
+  let text = summary || '';
+
+  // Strip equipment name (try all aliases)
+  const eq = matchEquipment(text);
+  if (eq) {
+    const names = [eq.name, ...eq.aliases];
+    for (const alias of names) {
+      const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(escaped, 'gi');
+      text = text.replace(re, ' ');
+    }
+  }
+
+  // Strip price patterns
+  text = text.replace(/\d+\s*€/g, ' ').replace(/€\s*\d+/g, ' ');
+  text = text.replace(/\d+\s*eur/gi, ' ');
+  text = text.replace(/uz\s*\d+/gi, ' ').replace(/už\s*\d+/gi, ' ');
+
+  // Strip phone numbers
+  text = text.replace(/\+?\d[\d\s-]{7,}/g, ' ');
+
+  // Strip pipe and surrounding whitespace
+  text = text.replace(/\|/g, ' ');
+
+  // Collapse spaces
+  text = text.replace(/\s+/g, ' ').trim();
+
+  // Extract capitalized word groups (proper nouns = names/locations)
+  const tokens = text.split(/\s+/).filter(Boolean);
+  const groups = [];
+  let current = [];
+  for (const t of tokens) {
+    if (/^[A-ZĄČĘĖĮŠŲŪŽ]/.test(t)) {
+      current.push(t);
+    } else {
+      if (current.length) { groups.push([...current]); current = []; }
+    }
+  }
+  if (current.length) groups.push(current);
+
+  let customerName = null;
+  let location = null;
+
+  for (const group of groups) {
+    if (group.length >= 2 && !customerName) {
+      // Multi-word capitalized = likely customer name (First Last)
+      customerName = group.join(' ');
+    } else if (group.length === 1 && !location) {
+      // Single capitalized word = likely location (city name)
+      location = group[0];
+    } else if (group.length === 1 && location && !customerName) {
+      customerName = group[0];
+    } else if (group.length >= 2 && customerName && !location) {
+      location = group.join(' ');
+    }
+  }
+
+  return { customerName, location };
+}
+
 function parseCalendarEvent(event) {
   const summary = event.summary || '';
   const description = event.description || '';
   const allText = summary + ' ' + description;
 
+  // Determine event source: system-created vs manually-created
+  const isSystem = isSystemEvent(summary);
+  const entry_source = isSystem ? 'system' : 'manual';
+
   // Equipment match from title primarily
   const equipment = matchEquipment(summary);
   const addons = matchAddons(allText);
   const price = extractPrice(allText);
-  const phone = extractPhone(description);
+  // Try phone from description first, then title (manual events may have phone in title)
+  const phone = extractPhone(description) || extractPhone(summary);
 
   // Parse description lines for customer info
   const lines = description.split(/\\n/).map(l => l.trim()).filter(Boolean);
@@ -174,6 +253,14 @@ function parseCalendarEvent(event) {
     }
   }
 
+  // For manual events: if description parsing didn't yield results,
+  // try extracting customer name and location from the freeform title
+  if (entry_source === 'manual' && (!customerName || !location)) {
+    const fromTitle = parseManualTitle(summary);
+    if (!customerName && fromTitle.customerName) customerName = fromTitle.customerName;
+    if (!location && fromTitle.location) location = fromTitle.location;
+  }
+
   // Event dates
   const startDate = event.start?.date || event.start?.dateTime?.substring(0, 10) || '';
   const endDate = event.end?.date || event.end?.dateTime?.substring(0, 10) || '';
@@ -203,7 +290,7 @@ function parseCalendarEvent(event) {
     price: price,
     status: 'Confirmed', // Calendar events are confirmed by default
     payment_status: price ? 'Pending' : 'Unknown',
-    entry_source: 'google_calendar',
+    entry_source: entry_source,
     equipment: equipment ? [{
       name: equipment.name,
       icon: equipment.icon,
@@ -302,16 +389,19 @@ def google_cal_list_node(node_id, name, time_min_expr, time_max_expr, x_pos, y_p
     return node
 
 def google_cal_create_node(node_id, name, x_pos, y_pos):
-    """Google Calendar create event node — uses expressions from previous node."""
+    """Google Calendar create event node — uses expressions from previous node.
+    Note: n8n Google Calendar v1 create requires allday at top level,
+    and summary + description inside additionalFields."""
     return {
         "parameters": {
             "calendar": CALENDAR_ID,
-            "summary": "={{ $json.eventTitle }}",
-            "description": "={{ $json.eventDescription }}",
             "allday": True,
             "start": "={{ $json.startDate }}",
             "end": "={{ $json.endDate }}",
-            "options": {}
+            "additionalFields": {
+                "summary": "={{ $json.eventTitle }}",
+                "description": "={{ $json.eventDescription }}"
+            }
         },
         "id": node_id,
         "name": name,
@@ -861,28 +951,114 @@ def build_delete_endpoint():
     nodes = []
     conns = {}
 
+    # 1. Webhook
     nodes.append(webhook_node("delete-webhook", "Delete Booking Webhook", "POST", "batutynas-calendar-delete", Y))
 
+    # 2. Parse Delete — now also extracts force flag
     nodes.append(code_node("delete-parse", "Parse Delete", """
 const body = $input.first().json.body || $input.first().json;
 const eventId = body.event_id || body.eventId;
 if (!eventId) throw new Error('Missing event_id');
-return [{ json: { eventId } }];
+const force = body.force === true || body.force === 'true';
+return [{ json: { eventId, force } }];
 """, 460, Y))
 
-    nodes.append(google_cal_delete_node("delete-event", "Delete Calendar Event", 700, Y))
+    # 3. Get the event first (to check if it's system or manual)
+    nodes.append({
+        "parameters": {
+            "operation": "get",
+            "calendar": CALENDAR_ID,
+            "eventId": "={{ $json.eventId }}"
+        },
+        "id": "delete-get-event",
+        "name": "Get Event To Delete",
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1,
+        "position": pos(700, Y),
+        "credentials": google_cal_credential()
+    })
+
+    # 4. Check authorization — is it a system event OR force flag set?
+    check_auth_code = IS_SYSTEM_EVENT_FN + """
+const event = $input.first().json;
+const params = $('Parse Delete').first().json;
+
+const summary = event.summary || '';
+const isSystem = isSystemEvent(summary);
+const force = params.force === true;
+
+// Allow deletion if: event was created by system, or force flag is set
+const canDelete = isSystem || force;
+
+return [{ json: {
+  eventId: params.eventId,
+  canDelete,
+  isSystem,
+  force,
+  event_summary: summary,
+  event_date: event.start?.date || event.start?.dateTime?.substring(0, 10) || ''
+}}];
+"""
+    nodes.append(code_node("delete-auth", "Check Delete Authorization", check_auth_code, 940, Y))
+
+    # 5. IF Can Delete?
+    nodes.append({
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": ""},
+                "conditions": [{
+                    "id": "cond-can-delete",
+                    "leftValue": "={{ $json.canDelete }}",
+                    "rightValue": True,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                }],
+                "combinator": "and"
+            }
+        },
+        "id": "delete-if-ok",
+        "name": "Can Delete?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": pos(1180, Y)
+    })
+
+    # 6. TRUE branch: Delete Calendar Event → Success → Respond
+    nodes.append(google_cal_delete_node("delete-event", "Delete Calendar Event", 1420, Y - 80))
 
     nodes.append(code_node("delete-success", "Delete Success", """
 const eventId = $('Parse Delete').first().json.eventId;
 return [{ json: { success: true, message: 'Užsakymas atšauktas', deleted_id: eventId } }];
-""", 940, Y))
+""", 1660, Y - 80))
 
-    nodes.append(respond_node("delete-respond", "Respond Deleted", 1180, Y))
+    nodes.append(respond_node("delete-respond", "Respond Deleted", 1900, Y - 80))
 
+    # 7. FALSE branch: Block Delete Response → Respond Blocked
+    nodes.append(code_node("delete-block-resp", "Block Delete Response", """
+const check = $('Check Delete Authorization').first().json;
+return [{ json: {
+  success: false,
+  blocked: true,
+  reason: 'manual_event',
+  message: 'Šis įvykis sukurtas rankiniu būdu. Naudokite force: true jei tikrai norite ištrinti.',
+  event_summary: check.event_summary,
+  event_date: check.event_date
+}}];
+""", 1420, Y + 80))
+
+    nodes.append(respond_node("delete-respond-blocked", "Respond Blocked", 1660, Y + 80))
+
+    # Connections
     conns["Delete Booking Webhook"] = {"main": [[connection("delete-webhook", "Parse Delete")]]}
-    conns["Parse Delete"] = {"main": [[connection("delete-parse", "Delete Calendar Event")]]}
+    conns["Parse Delete"] = {"main": [[connection("delete-parse", "Get Event To Delete")]]}
+    conns["Get Event To Delete"] = {"main": [[connection("delete-get-event", "Check Delete Authorization")]]}
+    conns["Check Delete Authorization"] = {"main": [[connection("delete-auth", "Can Delete?")]]}
+    conns["Can Delete?"] = {"main": [
+        [connection("delete-if-ok", "Delete Calendar Event")],   # true
+        [connection("delete-if-ok", "Block Delete Response")]    # false
+    ]}
     conns["Delete Calendar Event"] = {"main": [[connection("delete-event", "Delete Success")]]}
     conns["Delete Success"] = {"main": [[connection("delete-success", "Respond Deleted")]]}
+    conns["Block Delete Response"] = {"main": [[connection("delete-block-resp", "Respond Blocked")]]}
 
     return nodes, conns
 
