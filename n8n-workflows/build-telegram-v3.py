@@ -232,35 +232,6 @@ if (cleanText.startsWith('/')) {
       break;
     }
 
-    case '/move': case '/perkelk': {
-      if (!arg1 || !arg2) {
-        intent = 'error'; args.msg = '⚠️ Formatas: /perkelk [event_id] [nauja_data]\nPvz: /perkelk abc123 06-20';
-        break;
-      }
-      const newDate = parseDate(arg2);
-      if (!newDate) {
-        intent = 'error'; args.msg = '⚠️ Neatpažinta data. Naudokite: 06-20, 2026-06-20, rytoj';
-        break;
-      }
-      intent = 'move';
-      apiType = 'action_update';
-      apiUrl = '""" + API_UPDATE + r"""';
-      apiBody = { event_id: arg1, action: 'move', new_date: newDate };
-      break;
-    }
-
-    case '/extend': case '/pratesek': {
-      if (!arg1 || !arg2 || isNaN(parseInt(arg2))) {
-        intent = 'error'; args.msg = '⚠️ Formatas: /pratesek [event_id] [dienos]\nPvz: /pratesek abc123 2';
-        break;
-      }
-      intent = 'extend';
-      apiType = 'action_update';
-      apiUrl = '""" + API_UPDATE + r"""';
-      apiBody = { event_id: arg1, action: 'extend', extra_days: parseInt(arg2) };
-      break;
-    }
-
     case '/cancel': case '/atsaukti': {
       if (!arg1) {
         intent = 'error'; args.msg = '⚠️ Nurodykite event ID, pvz: /atsaukti abc123';
@@ -394,12 +365,11 @@ const parsed = $('Parse Intent').first().json;
 const { intent, args, chatId, apiType } = parsed;
 let data = {};
 
-// Get API response if we made an API call
+// Get API response — $input has data from whichever HTTP node fed us
 if (apiType !== 'none') {
   try {
-    data = $('HTTP Request').first().json;
+    data = $input.first().json;
   } catch(e) {
-    // API might not have been called for 'none' routes
     data = {};
   }
 }
@@ -449,10 +419,8 @@ switch(intent) {
       `/search &lt;žodis&gt; — Ieškoti užsakymo\n` +
       `/kada &lt;įranga&gt; — Laisvos datos\n\n` +
       `✏️ <b>Veiksmai:</b>\n` +
-      `/move &lt;id&gt; &lt;data&gt; — Perkelti\n` +
-      `/extend &lt;id&gt; &lt;dienos&gt; — Pratęsti\n` +
-      `/cancel &lt;id&gt; — Atšaukti\n` +
-      `/nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; — Sukurti\n\n` +
+      `/nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; — Sukurti\n` +
+      `/cancel &lt;id&gt; — Atšaukti\n\n` +
       `🎙️ <b>Balsas:</b>\n` +
       `Atsiųskite balso žinutę!\n` +
       `• Klausimas → atsakys iškart\n` +
@@ -558,29 +526,6 @@ switch(intent) {
     break;
   }
 
-  case 'move': {
-    if (data.error) {
-      reply = `⚠️ ${data.error}`;
-    } else if (data.conflict) {
-      reply = `⚠️ <b>Konfliktas!</b> ${data.conflict_equipment || 'Įranga'} jau užimta ${fmtDate(data.requested_date)}.\nNaudokite /available ${data.requested_date} patikrinti.`;
-    } else {
-      reply = `✅ <b>Perkelta!</b>\n📅 Nauja data: ${fmtDate(data.new_date || '')}\n`;
-      if (data.summary) reply += `📌 ${data.summary}`;
-    }
-    break;
-  }
-
-  case 'extend': {
-    if (data.error) {
-      reply = `⚠️ ${data.error}`;
-    } else if (data.conflict) {
-      reply = `⚠️ <b>Konfliktas!</b> Negalima pratęsti — ${data.conflict_equipment || 'įranga'} užimta ${fmtDate(data.conflict_date || '')}.`;
-    } else {
-      reply = `✅ <b>Pratęsta!</b>\n📅 ${fmtDate(data.start_date || '')} → ${fmtDate(data.end_date || '')}\n📌 ${data.summary || ''}`;
-    }
-    break;
-  }
-
   case 'cancel': {
     if (data.blocked) {
       // Manual event — blocked without force flag
@@ -614,6 +559,24 @@ switch(intent) {
       if (b.delivery_address) reply += `📍 ${b.delivery_address}\n`;
       if (b.price) reply += `💰 €${b.price}\n`;
       if (data.eventId || data.event_id) reply += `\n🔑 ID: <code>${data.eventId || data.event_id}</code>`;
+    }
+    break;
+  }
+
+  case 'next_free': {
+    const freeDates = data.freeDates || [];
+    const eqName = data.equipment || args.equipQuery || '?';
+    const icon = data.equipmentIcon || '🎪';
+    if (data.error || data.message) {
+      reply = `${icon} <b>${eqName}</b>: ${data.message || data.error}`;
+    } else if (freeDates.length === 0) {
+      reply = `${icon} <b>${eqName}</b>: Artimiausiomis ${data.searchedDays || 30} dienų nėra laisvų datų`;
+    } else {
+      reply = `${icon} <b>${eqName}</b> — laisvos datos:\n\n`;
+      freeDates.forEach(d => {
+        reply += `  📅 ${d.date} (${d.weekday})\n`;
+      });
+      reply += `\n💡 Užsakyti: /nauja ${eqName} &lt;vardas&gt; &lt;data&gt; [kaina]`;
     }
     break;
   }
@@ -1110,28 +1073,7 @@ add_node({
 })
 connect("Parse Intent", "IF Is Fetch")
 
-# ── 5b. IF Is Update ────────────────────────────────────────────────────────
-
-add_node({
-    "parameters": {
-        "conditions": {
-            "options": {
-                "caseSensitive": True,
-                "leftValue": ""
-            },
-            "conditions": [
-                {"id": "cond-update", "leftValue": "={{ $json.apiType }}", "rightValue": "action_update",
-                 "operator": {"type": "string", "operation": "equals"}}
-            ], "combinator": "and"
-        }
-    },
-    "id": uid(), "name": "IF Is Update",
-    "type": "n8n-nodes-base.if", "typeVersion": 2,
-    "position": pos(1140, 400)
-})
-connect("IF Is Fetch", "IF Is Update", 1)  # false → check update
-
-# ── 5c. IF Is Delete ────────────────────────────────────────────────────────
+# ── 5b. IF Is Delete ────────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
@@ -1150,7 +1092,7 @@ add_node({
     "type": "n8n-nodes-base.if", "typeVersion": 2,
     "position": pos(1140, 600)
 })
-connect("IF Is Update", "IF Is Delete", 1)  # false → check delete
+connect("IF Is Fetch", "IF Is Delete", 1)  # false → check delete
 
 # ── 5d. IF Is Create ───────────────────────────────────────────────────────
 
@@ -1191,28 +1133,7 @@ add_node({
 })
 connect("IF Is Fetch", "HTTP Request", 0)  # true branch
 
-# ── 7. HTTP POST Update ─────────────────────────────────────────────────────
-
-add_node({
-    "parameters": {
-        "method": "POST",
-        "url": "={{ $('Parse Intent').first().json.apiUrl }}",
-        "sendBody": True,
-        "bodyParameters": {"parameters": []},
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($('Parse Intent').first().json.apiBody) }}",
-        "options": {"timeout": 15000}
-    },
-    "id": uid(),
-    "name": "HTTP POST Update",
-    "type": "n8n-nodes-base.httpRequest",
-    "typeVersion": 4.2,
-    "position": pos(1380, 250),
-    "continueOnFail": True
-})
-connect("IF Is Update", "HTTP POST Update", 0)  # true branch
-
-# ── 8. HTTP POST Delete ─────────────────────────────────────────────────────
+# ── 7. HTTP POST Delete ─────────────────────────────────────────────────────
 
 add_node({
     "parameters": {
@@ -1328,7 +1249,6 @@ return [{ json: { ...firstData, bookings: unique } }];
 connect("HTTP Request 2", "Merge Month Data")
 connect("Merge Month Data", "Format Response")
 connect("IF Cross Month", "Format Response", 1)  # false → single month, proceed directly
-connect("HTTP POST Update", "Format Response")
 connect("HTTP POST Delete", "Format Response")
 connect("HTTP POST Create", "Format Response")
 connect("IF Is Create", "Format Response", 1)  # false branch = 'none' type
