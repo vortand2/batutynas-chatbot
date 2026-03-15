@@ -870,6 +870,10 @@ connect("Telegram Webhook", "Classify Message")
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-text", "leftValue": "={{ $json.msgType }}", "rightValue": "text",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -887,6 +891,10 @@ connect("Classify Message", "IF Is Text")
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-voice", "leftValue": "={{ $json.msgType }}", "rightValue": "voice",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -904,6 +912,10 @@ connect("IF Is Text", "IF Is Voice", 1)  # false branch → check voice
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-callback", "leftValue": "={{ $json.msgType }}", "rightValue": "callback",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -937,6 +949,10 @@ connect("IF Is Text", "Parse Intent", 0)  # true branch of IF Is Text
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-fetch", "leftValue": "={{ $json.apiType }}", "rightValue": "fetch_",
                  "operator": {"type": "string", "operation": "contains"}}
@@ -954,6 +970,10 @@ connect("Parse Intent", "IF Is Fetch")
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-update", "leftValue": "={{ $json.apiType }}", "rightValue": "action_update",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -971,6 +991,10 @@ connect("IF Is Fetch", "IF Is Update", 1)  # false → check update
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-delete", "leftValue": "={{ $json.apiType }}", "rightValue": "action_delete",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -1167,6 +1191,10 @@ connect("Extract Voice Intent", "Route Voice Result")
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-vquery", "leftValue": "={{ $json.voiceType }}", "rightValue": "query",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -1184,6 +1212,10 @@ connect("Route Voice Result", "IF Voice Query")
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-vcreate", "leftValue": "={{ $json.voiceType }}", "rightValue": "create",
                  "operator": {"type": "string", "operation": "equals"}}
@@ -1346,6 +1378,10 @@ connect("Process Callback", "Answer Callback")
 add_node({
     "parameters": {
         "conditions": {
+            "options": {
+                "caseSensitive": True,
+                "leftValue": ""
+            },
             "conditions": [
                 {"id": "cond-confirm", "leftValue": "={{ $('Process Callback').first().json.action }}", "rightValue": "voice_confirm",
                  "operator": {"type": "string", "operation": "equals"}}

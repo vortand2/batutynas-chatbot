@@ -278,12 +278,12 @@ def respond_node(node_id, name, x_pos, y_pos):
         "position": pos(x_pos, y_pos)
     }
 
-def google_cal_list_node(node_id, name, time_min_expr, time_max_expr, x_pos, y_pos):
+def google_cal_list_node(node_id, name, time_min_expr, time_max_expr, x_pos, y_pos, always_output=False):
     """Google Calendar getAll (list events) node."""
-    return {
+    node = {
         "parameters": {
             "operation": "getAll",
-            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "calendar": CALENDAR_ID,
             "returnAll": True,
             "options": {
                 "timeMin": time_min_expr,
@@ -293,16 +293,19 @@ def google_cal_list_node(node_id, name, time_min_expr, time_max_expr, x_pos, y_p
         "id": node_id,
         "name": name,
         "type": "n8n-nodes-base.googleCalendar",
-        "typeVersion": 1.2,
+        "typeVersion": 1,
         "position": pos(x_pos, y_pos),
         "credentials": google_cal_credential()
     }
+    if always_output:
+        node["alwaysOutputData"] = True
+    return node
 
 def google_cal_create_node(node_id, name, x_pos, y_pos):
     """Google Calendar create event node — uses expressions from previous node."""
     return {
         "parameters": {
-            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "calendar": CALENDAR_ID,
             "summary": "={{ $json.eventTitle }}",
             "description": "={{ $json.eventDescription }}",
             "allday": True,
@@ -313,7 +316,7 @@ def google_cal_create_node(node_id, name, x_pos, y_pos):
         "id": node_id,
         "name": name,
         "type": "n8n-nodes-base.googleCalendar",
-        "typeVersion": 1.2,
+        "typeVersion": 1,
         "position": pos(x_pos, y_pos),
         "credentials": google_cal_credential()
     }
@@ -323,7 +326,7 @@ def google_cal_update_node(node_id, name, x_pos, y_pos):
     return {
         "parameters": {
             "operation": "update",
-            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "calendar": CALENDAR_ID,
             "eventId": "={{ $json.eventId }}",
             "updateFields": {
                 "allday": True,
@@ -336,7 +339,7 @@ def google_cal_update_node(node_id, name, x_pos, y_pos):
         "id": node_id,
         "name": name,
         "type": "n8n-nodes-base.googleCalendar",
-        "typeVersion": 1.2,
+        "typeVersion": 1,
         "position": pos(x_pos, y_pos),
         "credentials": google_cal_credential()
     }
@@ -346,13 +349,13 @@ def google_cal_delete_node(node_id, name, x_pos, y_pos):
     return {
         "parameters": {
             "operation": "delete",
-            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "calendar": CALENDAR_ID,
             "eventId": "={{ $json.eventId }}"
         },
         "id": node_id,
         "name": name,
         "type": "n8n-nodes-base.googleCalendar",
-        "typeVersion": 1.2,
+        "typeVersion": 1,
         "position": pos(x_pos, y_pos),
         "credentials": google_cal_credential()
     }
@@ -484,7 +487,8 @@ return [{ json: { date, timeMin, timeMax } }];
         "avail-fetch", "Fetch Day Events",
         "={{ $json.timeMin }}",
         "={{ $json.timeMax }}",
-        700, Y
+        700, Y,
+        always_output=True
     ))
 
     avail_code = PARSE_EVENT_FN + """
@@ -595,7 +599,8 @@ return [{ json: {
         "create-conflict-check", "Check Conflicts",
         "={{ $json.startDate + 'T00:00:00Z' }}",
         "={{ $json.endDate + 'T00:00:00Z' }}",
-        700, Y
+        700, Y,
+        always_output=True
     ))
 
     conflict_code = PARSE_EVENT_FN + """
@@ -706,13 +711,13 @@ return [{ json: { eventId, action, newDate, extendDays } }];
     nodes.append({
         "parameters": {
             "operation": "get",
-            "calendar": {"__rl": True, "mode": "id", "value": CALENDAR_ID},
+            "calendar": CALENDAR_ID,
             "eventId": "={{ $json.eventId }}"
         },
         "id": "update-get-event",
         "name": "Get Current Event",
         "type": "n8n-nodes-base.googleCalendar",
-        "typeVersion": 1.2,
+        "typeVersion": 1,
         "position": pos(700, Y),
         "credentials": google_cal_credential()
     })
@@ -768,7 +773,8 @@ return [{ json: {
         "update-conflict", "Check Move Conflicts",
         "={{ $json.checkConflictMin }}",
         "={{ $json.checkConflictMax }}",
-        1180, Y
+        1180, Y,
+        always_output=True
     ))
 
     conflict_code = PARSE_EVENT_FN + """

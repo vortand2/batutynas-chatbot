@@ -34,11 +34,7 @@
     {
       "parameters": {
         "operation": "getAll",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "returnAll": true,
         "options": {
           "timeMin": "={{ $json.timeMin }}",
@@ -48,7 +44,7 @@
       "id": "dash-fetch",
       "name": "Fetch Calendar Events",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         700,
         300
@@ -142,11 +138,7 @@
     {
       "parameters": {
         "operation": "getAll",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "returnAll": true,
         "options": {
           "timeMin": "={{ $json.timeMin }}",
@@ -156,7 +148,7 @@
       "id": "avail-fetch",
       "name": "Fetch Day Events",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         700,
         620
@@ -166,7 +158,8 @@
           "id": "SaHw7JsRiy6wdVUp",
           "name": "Batutynas Google Calendar"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -250,11 +243,7 @@
     {
       "parameters": {
         "operation": "getAll",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "returnAll": true,
         "options": {
           "timeMin": "={{ $json.startDate + 'T00:00:00Z' }}",
@@ -264,7 +253,7 @@
       "id": "create-conflict-check",
       "name": "Check Conflicts",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         700,
         940
@@ -274,7 +263,8 @@
           "id": "SaHw7JsRiy6wdVUp",
           "name": "Batutynas Google Calendar"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -321,11 +311,7 @@
     },
     {
       "parameters": {
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "summary": "={{ $json.eventTitle }}",
         "description": "={{ $json.eventDescription }}",
         "allday": true,
@@ -336,7 +322,7 @@
       "id": "create-event",
       "name": "Create Calendar Event",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         1420,
         860
@@ -466,17 +452,13 @@
     {
       "parameters": {
         "operation": "get",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "eventId": "={{ $json.eventId }}"
       },
       "id": "update-get-event",
       "name": "Get Current Event",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         700,
         1340
@@ -504,11 +486,7 @@
     {
       "parameters": {
         "operation": "getAll",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "returnAll": true,
         "options": {
           "timeMin": "={{ $json.checkConflictMin }}",
@@ -518,7 +496,7 @@
       "id": "update-conflict",
       "name": "Check Move Conflicts",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         1180,
         1340
@@ -528,7 +506,8 @@
           "id": "SaHw7JsRiy6wdVUp",
           "name": "Batutynas Google Calendar"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -576,11 +555,7 @@
     {
       "parameters": {
         "operation": "update",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "eventId": "={{ $json.eventId }}",
         "updateFields": {
           "allday": true,
@@ -593,7 +568,7 @@
       "id": "update-event",
       "name": "Update Calendar Event",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         1900,
         1260
@@ -723,17 +698,13 @@
     {
       "parameters": {
         "operation": "delete",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "primary"
-        },
+        "calendar": "primary",
         "eventId": "={{ $json.eventId }}"
       },
       "id": "delete-event",
       "name": "Delete Calendar Event",
       "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.2,
+      "typeVersion": 1,
       "position": [
         700,
         1740
