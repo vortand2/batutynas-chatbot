@@ -68,6 +68,10 @@ nodes = [
     {
         "parameters": {
             "conditions": {
+                "options": {
+                    "caseSensitive": True,
+                    "leftValue": ""
+                },
                 "conditions": [
                     {
                         "id": "cond-skip",
