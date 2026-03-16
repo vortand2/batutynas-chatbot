@@ -14,7 +14,7 @@ TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 
 # Client's Telegram chat ID — needs to be set after first interaction
 # The bot sends a message to this chat ID on schedule
-OWNER_CHAT_ID = ""  # Will be filled when client first messages the bot
+OWNER_CHAT_ID = "8258463322"
 
 API_DASHBOARD = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2"
 
