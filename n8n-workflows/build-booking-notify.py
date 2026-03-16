@@ -273,6 +273,51 @@ sql += `\nSELECT nb.id AS booking_id FROM new_booking nb;`;
 return [{ json: { hasSql: true, sql } }];
 """.strip()
 
+PREPARE_TELEGRAM_CODE = r"""
+const parsed = $('Parse Booking Data').first().json;
+const telegramMsg = parsed.telegramMsg;
+const requestType = parsed.requestType;
+
+// booking_id comes from Save to Database result, or null if IF was false / save failed
+const inputData = $input.first().json;
+const bookingId = inputData.booking_id || null;
+
+const OWNER = '__OWNER_CHAT_ID__';
+
+const chatBody = {
+  chat_id: OWNER,
+  text: telegramMsg,
+  parse_mode: 'HTML'
+};
+
+// Only add action buttons for booking requests with a valid DB booking_id
+if (bookingId && requestType === 'booking') {
+  const p = parsed;
+  const miniAppUrl = 'https://vortand2.github.io/batutynas-chatbot/mini-app/index.html' +
+    '?name=' + encodeURIComponent(p.contactName || '') +
+    '&phone=' + encodeURIComponent(p.contactPhone || '') +
+    '&date=' + encodeURIComponent(p.date || '') +
+    '&equipment=' + encodeURIComponent(p.trampolinePreference || '') +
+    '&city=' + encodeURIComponent(p.location || '') +
+    '&chatId=' + OWNER +
+    '&bk=' + bookingId;
+
+  chatBody.reply_markup = {
+    inline_keyboard: [
+      [
+        { text: '✏️ Redaguoti', web_app: { url: miniAppUrl } }
+      ],
+      [
+        { text: '✅ Patvirtinti', callback_data: 'bk_ok:' + bookingId },
+        { text: '❌ Atmesti', callback_data: 'bk_no:' + bookingId }
+      ]
+    ]
+  };
+}
+
+return [{ json: { chatBody: JSON.stringify(chatBody) } }];
+""".strip().replace('__OWNER_CHAT_ID__', OWNER_CHAT_ID)
+
 RETURN_CONFIRMATION_CODE = r"""
 return [{
   json: {
@@ -347,27 +392,7 @@ add_node({
 })
 connect("Parse Booking Data", "Send Email")
 
-# ── 3b. Send Telegram Notification ────────────────────────────────────────────
-
-add_node({
-    "parameters": {
-        "method": "POST",
-        "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        "sendBody": True,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: '" + OWNER_CHAT_ID + "', text: $json.telegramMsg, parse_mode: 'HTML' }) }}",
-        "options": {"timeout": 10000}
-    },
-    "id": uid(),
-    "name": "Send Telegram",
-    "type": "n8n-nodes-base.httpRequest",
-    "typeVersion": 4.2,
-    "position": pos(780, 320),
-    "continueOnFail": True
-})
-connect("Parse Booking Data", "Send Telegram")
-
-# ── 3c. Build DB Query (parallel) ────────────────────────────────────────────
+# ── 3b. Build DB Query → IF → Save → Prepare Telegram → Send Telegram ──────
 
 add_node({
     "parameters": {"jsCode": BUILD_DB_QUERY_CODE},
@@ -422,7 +447,38 @@ add_node({
 })
 connect("IF Should Save to DB", "Save to Database", 0)  # true branch
 
-# (Calendar event creation removed — owner creates manually after confirmation call)
+# ── 4c. Prepare Telegram (builds message body with or without action buttons) ─
+
+add_node({
+    "parameters": {"jsCode": PREPARE_TELEGRAM_CODE},
+    "id": uid(),
+    "name": "Prepare Telegram",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": pos(1500, 500)
+})
+connect("Save to Database", "Prepare Telegram")
+connect("IF Should Save to DB", "Prepare Telegram", 1)  # false branch → no DB save
+
+# ── 4d. Send Telegram Notification ────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "method": "POST",
+        "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        "sendBody": True,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.chatBody }}",
+        "options": {"timeout": 10000}
+    },
+    "id": uid(),
+    "name": "Send Telegram",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": pos(1740, 500),
+    "continueOnFail": True
+})
+connect("Prepare Telegram", "Send Telegram")
 
 # ── 5. Return Confirmation ────────────────────────────────────────────────────
 # This is the "last node" for both webhook (responseMode: lastNode) and sub-workflow
@@ -459,7 +515,7 @@ add_node({
     "name": "Respond OK",
     "type": "n8n-nodes-base.respondToWebhook",
     "typeVersion": 1,
-    "position": pos(1060, 320),
+    "position": pos(1980, 500),
     "continueOnFail": True  # Prevents crash when called as sub-workflow (no webhook context)
 })
 connect("Send Telegram", "Respond OK")

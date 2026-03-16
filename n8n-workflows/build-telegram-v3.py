@@ -25,6 +25,7 @@ import json, uuid, os
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 GROQ_CRED     = {"id": "yf0G3FBiIj8uxM4N", "name": "Groq Whisper API"}
 XAI_CRED      = {"id": "3o4JPVqz73RdiO0Q", "name": "xAI Grok API"}
+POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 
 # IMPORTANT: Set BATUTYNAS_BOT_TOKEN env var. Rotate token if repo goes public.
 BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '__TELEGRAM_BOT_TOKEN__')
@@ -909,11 +910,60 @@ if (data.startsWith('vc_no:')) {
   }}];
 }
 
+if (data.startsWith('bk_ok:')) {
+  const bookingId = parseInt(data.split(':')[1], 10) || null;
+  return [{ json: { chatId, callbackQueryId,
+    action: bookingId ? 'bk_confirm' : 'unknown',
+    bookingId,
+    callbackAnswer: bookingId ? '✅ Tvirtinama...' : '⚠️ Nežinomas užsakymas'
+  }}];
+}
+
+if (data.startsWith('bk_no:')) {
+  const bookingId = parseInt(data.split(':')[1], 10) || null;
+  return [{ json: { chatId, callbackQueryId,
+    action: bookingId ? 'bk_reject' : 'unknown',
+    bookingId,
+    callbackAnswer: bookingId ? '❌ Atmetama...' : '⚠️ Nežinomas užsakymas'
+  }}];
+}
+
 return [{ json: {
   chatId, callbackQueryId,
   action: 'unknown',
   callbackAnswer: '❓'
 }}];
+""".strip()
+
+# ── Booking callback: Format reply message ───────────────────────────────────
+
+FORMAT_BK_REPLY_CODE = r"""
+const cb = $('Process Callback').first().json;
+const action = cb.action;
+const chatId = cb.chatId;
+const bookingId = cb.bookingId;
+
+let reply;
+if (action === 'bk_confirm') {
+  let calendarLink = '';
+  try {
+    const calResult = $('Create Calendar Event BK').first().json;
+    if (calResult.success === false && calResult.conflict) {
+      return [{ json: {
+        reply: '⚠️ <b>Konfliktas!</b>\n\nĮranga jau užimta tą dieną.\nUžsakymo nr. ' + bookingId,
+        chatId
+      }}];
+    }
+    if (calResult.htmlLink) {
+      calendarLink = '\n🔗 <a href="' + calResult.htmlLink + '">Atidaryti kalendorių</a>';
+    }
+  } catch(e) {}
+  reply = '✅ <b>Patvirtinta!</b>\n\nKalendoriaus įvykis sukurtas.' + calendarLink + '\nUžsakymo nr. ' + bookingId;
+} else {
+  reply = '❌ <b>Atmesta.</b>\n\nKontakto duomenys išsaugoti sistemoje.\nUžsakymo nr. ' + bookingId;
+}
+
+return [{ json: { reply, chatId } }];
 """.strip()
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1581,7 +1631,8 @@ add_node({
     "name": "Answer Callback",
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.2,
-    "position": pos(1140, 900)
+    "position": pos(1140, 900),
+    "continueOnFail": True
 })
 connect("Process Callback", "Answer Callback")
 
@@ -1685,7 +1736,139 @@ add_node({
 })
 connect("Create Calendar Event", "Send Create Confirm")
 
-# ── 27. Send Cancel Message ──────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# BOOKING CALLBACK PATH (bk_ok / bk_no from booking notification buttons)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── 27. IF Is BK Confirm ────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": ""},
+            "conditions": [
+                {"id": "cond-bk-confirm",
+                 "leftValue": "={{ $('Process Callback').first().json.action }}",
+                 "rightValue": "bk_confirm",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is BK Confirm",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1620, 1100)
+})
+connect("IF Is Confirm", "IF Is BK Confirm", 1)  # false branch of voice confirm
+
+# ── 28. Fetch Booking (Postgres SELECT with equipment join) ─────────────────
+
+add_node({
+    "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT b.id, b.event_date, b.delivery_address, b.city, b.notes, b.status, c.name AS customer_name, c.phone AS customer_phone, STRING_AGG(e.name, ', ') AS equipment_names FROM batutynas.bookings b JOIN batutynas.contacts c ON b.contact_id = c.id LEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id LEFT JOIN batutynas.equipment e ON be.equipment_id = e.id WHERE b.id = {{ $('Process Callback').first().json.bookingId }} GROUP BY b.id, c.id",
+        "options": {}
+    },
+    "id": uid(),
+    "name": "Fetch Booking",
+    "type": "n8n-nodes-base.postgres",
+    "typeVersion": 2.5,
+    "position": pos(1860, 1040),
+    "credentials": {"postgres": POSTGRES_CRED},
+    "continueOnFail": True
+})
+connect("IF Is BK Confirm", "Fetch Booking", 0)  # true branch
+
+# ── 29. Create Calendar Event BK (POST to Calendar Bridge) ─────────────────
+
+add_node({
+    "parameters": {
+        "method": "POST",
+        "url": API_CREATE,
+        "sendBody": True,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, location: $json.city || $json.delivery_address || '', price: '' }) }}",
+        "options": {"timeout": 15000}
+    },
+    "id": uid(),
+    "name": "Create Calendar Event BK",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": pos(2100, 1040),
+    "continueOnFail": True
+})
+connect("Fetch Booking", "Create Calendar Event BK")
+
+# ── 30. IF Is BK Reject ────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": ""},
+            "conditions": [
+                {"id": "cond-bk-reject",
+                 "leftValue": "={{ $('Process Callback').first().json.action }}",
+                 "rightValue": "bk_reject",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Is BK Reject",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1620, 1260)
+})
+connect("IF Is BK Confirm", "IF Is BK Reject", 1)  # false branch
+
+# ── 31. Update BK Status (shared — Confirmed or Rejected based on action) ──
+
+add_node({
+    "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE batutynas.bookings SET status = '{{ $('Process Callback').first().json.action === \"bk_confirm\" ? \"Confirmed\" : \"Cancelled\" }}' WHERE id = {{ $('Process Callback').first().json.bookingId }}",
+        "options": {}
+    },
+    "id": uid(),
+    "name": "Update BK Status",
+    "type": "n8n-nodes-base.postgres",
+    "typeVersion": 2.5,
+    "position": pos(2340, 1100),
+    "credentials": {"postgres": POSTGRES_CRED},
+    "onError": "continueRegularOutput"
+})
+connect("Create Calendar Event BK", "Update BK Status")
+connect("IF Is BK Reject", "Update BK Status", 0)  # true branch (reject)
+
+# ── 32. Format BK Reply (dynamic message based on action + calendar result) ─
+
+add_node({
+    "parameters": {"jsCode": FORMAT_BK_REPLY_CODE},
+    "id": uid(),
+    "name": "Format BK Reply",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": pos(2580, 1100)
+})
+connect("Update BK Status", "Format BK Reply")
+
+# ── 33. Send BK Reply ──────────────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {"parse_mode": "HTML"}
+    },
+    "id": uid(),
+    "name": "Send BK Reply",
+    "type": "n8n-nodes-base.telegram",
+    "typeVersion": 1.2,
+    "position": pos(2820, 1100),
+    "credentials": {"telegramApi": TELEGRAM_CRED}
+})
+connect("Format BK Reply", "Send BK Reply")
+
+# ── 34. Send Cancel Message (voice_cancel + unknown fallback) ───────────────
 
 add_node({
     "parameters": {
@@ -1699,10 +1882,10 @@ add_node({
     "name": "Send Cancel Message",
     "type": "n8n-nodes-base.telegram",
     "typeVersion": 1.2,
-    "position": pos(1620, 1100),
+    "position": pos(1860, 1340),
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
-connect("IF Is Confirm", "Send Cancel Message", 1)  # false branch = cancel
+connect("IF Is BK Reject", "Send Cancel Message", 1)  # false branch = voice_cancel / unknown
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BUILD FINAL WORKFLOW JSON
