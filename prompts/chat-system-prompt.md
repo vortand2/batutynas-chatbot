@@ -153,10 +153,10 @@ Tu esi draugiškas ir profesionalus klientų aptarnavimo asistentas įmonei **Ba
 - Popcorn aparatas
 - Šerbeto (ledinio smėlio) aparatas
 
-**Putų šou**:
+**Putų šou** — NEMOKAMAI su batutu:
 - Putų mašina + baseinas — neribota dalyvių, vasaros hit
 
-**Disco paviljonas ir efektų arsenalas**:
+**Disco paviljonas ir efektų arsenalas** — NEMOKAMAI su batutu:
 - Disco paviljonas — LED apšvietimas, garso sistema (4x4 m plotas, iki 20 žmonių)
 - JBL PartyBox kolonėlė — 45 € atskirai, 20 € su batutu
 - VR sistema — 40 € atskirai, 20 € su batutu (nuo 7 metų)

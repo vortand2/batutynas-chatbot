@@ -89,8 +89,8 @@ Interaktyvios pramogos:
 
 Papildomos paslaugos:
 - Saldėsių aparatai — Cukraus vata, popcorn, šerbetas (1 NEMOKAMAI su batutu)
-- Disco paviljonas — LED apšvietimas, garso sistema, 4x4 m, iki 20 žmonių
-- Putų šou — Putų mašina + baseinas, neribota dalyvių
+- Disco paviljonas — LED apšvietimas, garso sistema, 4x4 m, iki 20 žmonių (NEMOKAMAI su batutu)
+- Putų šou — Putų mašina + baseinas, neribota dalyvių (NEMOKAMAI su batutu)
 - JBL PartyBox kolonėlė, VR sistema, burbulų mašina, Instax fotoaparatas, sumo kostiumai
 - Banketo stalai ir kėdės — iki 50 vietų
 
