@@ -67,9 +67,14 @@ const hasQuery = raw.query && Object.keys(raw.query).length > 0;
 const hasBody = raw.body && Object.keys(raw.body).length > 0;
 const input = hasQuery ? raw.query : hasBody ? raw.body : raw;
 
-// Sanitize: strip newlines/carriage returns to prevent email header injection
+// Sanitize: strip newlines/carriage returns/control chars to prevent email header injection
 function sanitize(val) {
-  return (val || 'Nenurodyta').replace(/[\r\n]/g, ' ').substring(0, 500);
+  return (val || 'Nenurodyta').replace(/[\r\n\x00-\x08\x0b\x0c\x0e-\x1f]/g, ' ').substring(0, 500);
+}
+
+// HTML-escape for Telegram parse_mode:HTML (prevents 400 errors from <, >, &)
+function escHtml(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // Format Lithuanian phone: 861234567, +37061234567, 61234567 → +370 612 34567
@@ -150,17 +155,17 @@ let telegramMsg;
 
 if (requestType === 'catalog') {
   telegramMsg = `📬 <b>Nauja katalogo užklausa</b>\n────────────────────\n` +
-    `👤 ${contactName}\n📞 ${contactPhone}\n✉️ ${email || 'Nenurodyta'}`;
+    `👤 ${escHtml(contactName)}\n📞 ${escHtml(contactPhone)}\n✉️ ${escHtml(email || 'Nenurodyta')}`;
 } else if (requestType === 'custom') {
   telegramMsg = `🔧 <b>Individuali gamyba</b>\n────────────────────\n` +
-    `👤 ${contactName}\n📞 ${contactPhone}\n` +
-    `📐 ${dimensions || '-'}\n🎨 ${colors || '-'}\n🎭 ${characters || '-'}`;
+    `👤 ${escHtml(contactName)}\n📞 ${escHtml(contactPhone)}\n` +
+    `📐 ${escHtml(dimensions || '-')}\n🎨 ${escHtml(colors || '-')}\n🎭 ${escHtml(characters || '-')}`;
 } else {
   telegramMsg = `🆕 <b>Nauja užklausa iš svetainės!</b>\n────────────────────\n` +
-    `👤 ${contactName}\n📞 ${contactPhone}\n` +
-    `📅 ${date}\n📍 ${location}${address && address !== location ? ' / ' + address : ''}\n` +
-    `🎪 ${trampolinePreference}\n🎉 ${eventType}\n👥 ${guestCount} svečių`;
-  if (addons && addons !== 'Nenurodyta') telegramMsg += `\n➕ ${addons}`;
+    `👤 ${escHtml(contactName)}\n📞 ${escHtml(contactPhone)}\n` +
+    `📅 ${escHtml(date)}\n📍 ${escHtml(location)}${address && address !== location ? ' / ' + escHtml(address) : ''}\n` +
+    `🎪 ${escHtml(trampolinePreference)}\n🎉 ${escHtml(eventType)}\n👥 ${escHtml(guestCount)} svečių`;
+  if (addons && addons !== 'Nenurodyta') telegramMsg += `\n➕ ${escHtml(addons)}`;
   telegramMsg += `\n\n💡 <i>Paskambinkite klientui patvirtinti datą</i>`;
 }
 
@@ -194,7 +199,7 @@ function normalizePhone(phone) {
 }
 
 const name = esc(data.contactName);
-const phone = normalizePhone(data.contactPhone);
+const phone = esc(normalizePhone(data.contactPhone));
 
 if (!phone || phone === 'Nenurodyta') {
   return [{ json: { hasSql: false } }];
@@ -432,7 +437,7 @@ connect("Send Email", "Return Confirmation")
 add_node({
     "parameters": {
         "respondWith": "json",
-        "responseBody": '={{ JSON.stringify({ success: true, message: "Užklausa priimta. El. laiškas ir Telegram pranešimas išsiųsti." }) }}',
+        "responseBody": '={{ JSON.stringify({ success: true, message: "Užklausa priimta." }) }}',
         "options": {
             "responseHeaders": {
                 "entries": [
@@ -446,7 +451,8 @@ add_node({
     "name": "Respond OK",
     "type": "n8n-nodes-base.respondToWebhook",
     "typeVersion": 1,
-    "position": pos(1060, 320)
+    "position": pos(1060, 320),
+    "continueOnFail": True  # Prevents crash when called as sub-workflow (no webhook context)
 })
 connect("Send Telegram", "Respond OK")
 

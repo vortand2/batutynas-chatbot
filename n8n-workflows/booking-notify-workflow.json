@@ -8,7 +8,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "7258a3fff34a4ba9807d",
+      "id": "06f4b7690a8c41fe8e80",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
@@ -20,7 +20,7 @@
     },
     {
       "parameters": {},
-      "id": "161eb388a4d24e20abfd",
+      "id": "99a8b0a78b1a41008054",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
@@ -31,9 +31,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Fields arrive from toolWorkflow (.query wrapper) or webhook POST (.body wrapper)\nconst raw = $input.first().json;\n// raw.query is {} (truthy but empty) from webhook — check for actual content\nconst hasQuery = raw.query && Object.keys(raw.query).length > 0;\nconst hasBody = raw.body && Object.keys(raw.body).length > 0;\nconst input = hasQuery ? raw.query : hasBody ? raw.body : raw;\n\n// Sanitize: strip newlines/carriage returns to prevent email header injection\nfunction sanitize(val) {\n  return (val || 'Nenurodyta').replace(/[\\r\\n]/g, ' ').substring(0, 500);\n}\n\n// Format Lithuanian phone: 861234567, +37061234567, 61234567 → +370 612 34567\nfunction formatPhone(phone) {\n  var raw = (phone || '').replace(/[^\\d+]/g, '');\n  var digits = raw.replace(/\\D/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) {\n    return '+' + digits.substring(0,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6);\n  }\n  if (digits.startsWith('8') && digits.length >= 9) {\n    digits = '370' + digits.substring(1);\n    return '+' + digits.substring(0,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6);\n  }\n  if (digits.length >= 8 && digits.startsWith('6')) {\n    digits = '370' + digits;\n    return '+' + digits.substring(0,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6);\n  }\n  return raw || 'Nenurodyta';\n}\n\nconst groupType = sanitize(input.group_type);\nconst date = sanitize(input.date);\nconst location = sanitize(input.location);\nconst address = input.address ? sanitize(input.address) : null;\nconst eventType = sanitize(input.event_type);\nconst guestCount = sanitize(input.guest_count);\nconst contactName = sanitize(input.contact_name);\nconst contactPhone = formatPhone(input.contact_phone);\nconst trampolinePreference = sanitize(input.trampoline_preference);\nconst addons = input.addons ? sanitize(input.addons) : null;\nconst dimensions = input.dimensions ? sanitize(input.dimensions) : null;\nconst colors = input.colors ? sanitize(input.colors) : null;\nconst characters = input.characters ? sanitize(input.characters) : null;\nconst notes = input.notes ? sanitize(input.notes) : null;\nconst email = input.email ? sanitize(input.email) : null;\nconst requestType = input.request_type || 'booking';\n\n// ── Build email subject + body ──\nlet emailSubject, emailBody;\n\nif (requestType === 'catalog') {\n  emailSubject = `Katalogo užklausa: ${email || contactName}`;\n  emailBody = `Nauja batutų katalogo užklausa iš pokalbių roboto:\\n\\n` +\n    `El. paštas: ${email || 'Nenurodyta'}\\n` +\n    `Kontaktas: ${contactName}\\n` +\n    `Telefonas: ${contactPhone}\\n\\n` +\n    `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`;\n} else if (requestType === 'custom') {\n  emailSubject = `Individuali gamyba: ${contactName}`;\n  emailBody = `Nauja individualaus batuto gamybos užklausa:\\n\\n` +\n    `Kontaktas: ${contactName}\\n` +\n    `Telefonas: ${contactPhone}\\n` +\n    `El. paštas: ${email || 'Nenurodyta'}\\n\\n` +\n    `GAMYBOS DETALĖS:\\n` +\n    `Matmenys: ${dimensions || 'Nenurodyta'}\\n` +\n    `Spalvos: ${colors || 'Nenurodyta'}\\n` +\n    `Personažai/tema: ${characters || 'Nenurodyta'}\\n` +\n    `Papildomi pageidavimai: ${notes || 'Nenurodyta'}\\n\\n` +\n    `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`;\n} else {\n  emailSubject = `Nauja užklausa: ${groupType} - ${date} (${contactName})`;\n  emailBody = `Nauja batuto užsakymo užklausa iš svetainės pokalbių roboto:\\n\\n` +\n    `Grupė: ${groupType}\\n` +\n    `Data: ${date}\\n` +\n    `Vieta: ${location}\\n` +\n    `Adresas: ${address || location}\\n` +\n    `Renginio tipas: ${eventType}\\n` +\n    `Svečių skaičius: ${guestCount}\\n` +\n    `Kontaktinis asmuo: ${contactName}\\n` +\n    `Telefonas: ${contactPhone}\\n` +\n    `Pageidaujamas batutas: ${trampolinePreference}\\n` +\n    `Papildomos pramogos: ${addons || 'Nenurodyta'}\\n\\n` +\n    `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`;\n}\n\n// ── Build Telegram message (HTML) ──\nlet telegramMsg;\n\nif (requestType === 'catalog') {\n  telegramMsg = `📬 <b>Nauja katalogo užklausa</b>\\n────────────────────\\n` +\n    `👤 ${contactName}\\n📞 ${contactPhone}\\n✉️ ${email || 'Nenurodyta'}`;\n} else if (requestType === 'custom') {\n  telegramMsg = `🔧 <b>Individuali gamyba</b>\\n────────────────────\\n` +\n    `👤 ${contactName}\\n📞 ${contactPhone}\\n` +\n    `📐 ${dimensions || '-'}\\n🎨 ${colors || '-'}\\n🎭 ${characters || '-'}`;\n} else {\n  telegramMsg = `🆕 <b>Nauja užklausa iš svetainės!</b>\\n────────────────────\\n` +\n    `👤 ${contactName}\\n📞 ${contactPhone}\\n` +\n    `📅 ${date}\\n📍 ${location}${address && address !== location ? ' / ' + address : ''}\\n` +\n    `🎪 ${trampolinePreference}\\n🎉 ${eventType}\\n👥 ${guestCount} svečių`;\n  if (addons && addons !== 'Nenurodyta') telegramMsg += `\\n➕ ${addons}`;\n  telegramMsg += `\\n\\n💡 <i>Paskambinkite klientui patvirtinti datą</i>`;\n}\n\n// No calendar event creation — owner confirms booking manually after calling the customer\n\nreturn [{\n  json: {\n    date, location, address, eventType, guestCount,\n    contactName, contactPhone, trampolinePreference, addons,\n    groupType, requestType, dimensions, colors, characters, notes, email,\n    emailSubject, emailBody, telegramMsg\n  }\n}];"
+        "jsCode": "// Fields arrive from toolWorkflow (.query wrapper) or webhook POST (.body wrapper)\nconst raw = $input.first().json;\n// raw.query is {} (truthy but empty) from webhook — check for actual content\nconst hasQuery = raw.query && Object.keys(raw.query).length > 0;\nconst hasBody = raw.body && Object.keys(raw.body).length > 0;\nconst input = hasQuery ? raw.query : hasBody ? raw.body : raw;\n\n// Sanitize: strip newlines/carriage returns/control chars to prevent email header injection\nfunction sanitize(val) {\n  return (val || 'Nenurodyta').replace(/[\\r\\n\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]/g, ' ').substring(0, 500);\n}\n\n// HTML-escape for Telegram parse_mode:HTML (prevents 400 errors from <, >, &)\nfunction escHtml(s) {\n  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\n// Format Lithuanian phone: 861234567, +37061234567, 61234567 → +370 612 34567\nfunction formatPhone(phone) {\n  var raw = (phone || '').replace(/[^\\d+]/g, '');\n  var digits = raw.replace(/\\D/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) {\n    return '+' + digits.substring(0,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6);\n  }\n  if (digits.startsWith('8') && digits.length >= 9) {\n    digits = '370' + digits.substring(1);\n    return '+' + digits.substring(0,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6);\n  }\n  if (digits.length >= 8 && digits.startsWith('6')) {\n    digits = '370' + digits;\n    return '+' + digits.substring(0,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6);\n  }\n  return raw || 'Nenurodyta';\n}\n\nconst groupType = sanitize(input.group_type);\nconst date = sanitize(input.date);\nconst location = sanitize(input.location);\nconst address = input.address ? sanitize(input.address) : null;\nconst eventType = sanitize(input.event_type);\nconst guestCount = sanitize(input.guest_count);\nconst contactName = sanitize(input.contact_name);\nconst contactPhone = formatPhone(input.contact_phone);\nconst trampolinePreference = sanitize(input.trampoline_preference);\nconst addons = input.addons ? sanitize(input.addons) : null;\nconst dimensions = input.dimensions ? sanitize(input.dimensions) : null;\nconst colors = input.colors ? sanitize(input.colors) : null;\nconst characters = input.characters ? sanitize(input.characters) : null;\nconst notes = input.notes ? sanitize(input.notes) : null;\nconst email = input.email ? sanitize(input.email) : null;\nconst requestType = input.request_type || 'booking';\n\n// ── Build email subject + body ──\nlet emailSubject, emailBody;\n\nif (requestType === 'catalog') {\n  emailSubject = `Katalogo užklausa: ${email || contactName}`;\n  emailBody = `Nauja batutų katalogo užklausa iš pokalbių roboto:\\n\\n` +\n    `El. paštas: ${email || 'Nenurodyta'}\\n` +\n    `Kontaktas: ${contactName}\\n` +\n    `Telefonas: ${contactPhone}\\n\\n` +\n    `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`;\n} else if (requestType === 'custom') {\n  emailSubject = `Individuali gamyba: ${contactName}`;\n  emailBody = `Nauja individualaus batuto gamybos užklausa:\\n\\n` +\n    `Kontaktas: ${contactName}\\n` +\n    `Telefonas: ${contactPhone}\\n` +\n    `El. paštas: ${email || 'Nenurodyta'}\\n\\n` +\n    `GAMYBOS DETALĖS:\\n` +\n    `Matmenys: ${dimensions || 'Nenurodyta'}\\n` +\n    `Spalvos: ${colors || 'Nenurodyta'}\\n` +\n    `Personažai/tema: ${characters || 'Nenurodyta'}\\n` +\n    `Papildomi pageidavimai: ${notes || 'Nenurodyta'}\\n\\n` +\n    `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`;\n} else {\n  emailSubject = `Nauja užklausa: ${groupType} - ${date} (${contactName})`;\n  emailBody = `Nauja batuto užsakymo užklausa iš svetainės pokalbių roboto:\\n\\n` +\n    `Grupė: ${groupType}\\n` +\n    `Data: ${date}\\n` +\n    `Vieta: ${location}\\n` +\n    `Adresas: ${address || location}\\n` +\n    `Renginio tipas: ${eventType}\\n` +\n    `Svečių skaičius: ${guestCount}\\n` +\n    `Kontaktinis asmuo: ${contactName}\\n` +\n    `Telefonas: ${contactPhone}\\n` +\n    `Pageidaujamas batutas: ${trampolinePreference}\\n` +\n    `Papildomos pramogos: ${addons || 'Nenurodyta'}\\n\\n` +\n    `--- Šis pranešimas sugeneruotas automatiškai iš Batutynas.lt pokalbių roboto ---`;\n}\n\n// ── Build Telegram message (HTML) ──\nlet telegramMsg;\n\nif (requestType === 'catalog') {\n  telegramMsg = `📬 <b>Nauja katalogo užklausa</b>\\n────────────────────\\n` +\n    `👤 ${escHtml(contactName)}\\n📞 ${escHtml(contactPhone)}\\n✉️ ${escHtml(email || 'Nenurodyta')}`;\n} else if (requestType === 'custom') {\n  telegramMsg = `🔧 <b>Individuali gamyba</b>\\n────────────────────\\n` +\n    `👤 ${escHtml(contactName)}\\n📞 ${escHtml(contactPhone)}\\n` +\n    `📐 ${escHtml(dimensions || '-')}\\n🎨 ${escHtml(colors || '-')}\\n🎭 ${escHtml(characters || '-')}`;\n} else {\n  telegramMsg = `🆕 <b>Nauja užklausa iš svetainės!</b>\\n────────────────────\\n` +\n    `👤 ${escHtml(contactName)}\\n📞 ${escHtml(contactPhone)}\\n` +\n    `📅 ${escHtml(date)}\\n📍 ${escHtml(location)}${address && address !== location ? ' / ' + escHtml(address) : ''}\\n` +\n    `🎪 ${escHtml(trampolinePreference)}\\n🎉 ${escHtml(eventType)}\\n👥 ${escHtml(guestCount)} svečių`;\n  if (addons && addons !== 'Nenurodyta') telegramMsg += `\\n➕ ${escHtml(addons)}`;\n  telegramMsg += `\\n\\n💡 <i>Paskambinkite klientui patvirtinti datą</i>`;\n}\n\n// No calendar event creation — owner confirms booking manually after calling the customer\n\nreturn [{\n  json: {\n    date, location, address, eventType, guestCount,\n    contactName, contactPhone, trampolinePreference, addons,\n    groupType, requestType, dimensions, colors, characters, notes, email,\n    emailSubject, emailBody, telegramMsg\n  }\n}];"
       },
-      "id": "1574de418a434309a3f5",
+      "id": "991f6335afec422fb973",
       "name": "Parse Booking Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -50,7 +50,7 @@
         "text": "={{ $json.emailBody }}",
         "options": {}
       },
-      "id": "04756045d5734329bffe",
+      "id": "153119fbc822487cb76b",
       "name": "Send Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -77,7 +77,7 @@
           "timeout": 10000
         }
       },
-      "id": "556174f8bba74103816b",
+      "id": "afbec806fbbf44559b35",
       "name": "Send Telegram",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -89,9 +89,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $input.first().json;\n\nif (data.requestType !== 'booking') {\n  return [{ json: { hasSql: false } }];\n}\n\nfunction esc(v) { return (v || '').replace(/'/g, \"''\"); }\n\nfunction normalizePhone(phone) {\n  const digits = (phone || '').replace(/[^\\d]/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) return '+' + digits;\n  if (digits.startsWith('8') && digits.length >= 9) return '+370' + digits.substring(1);\n  if (digits.startsWith('6') && digits.length >= 8) return '+370' + digits;\n  return phone || '';\n}\n\nconst name = esc(data.contactName);\nconst phone = normalizePhone(data.contactPhone);\n\nif (!phone || phone === 'Nenurodyta') {\n  return [{ json: { hasSql: false } }];\n}\n\nconst eventDate = (data.date && data.date !== 'Nenurodyta') ? esc(data.date) : null;\nconst address = esc(data.address || data.location || '');\nconst city = esc(data.location || '');\n\nconst notesParts = [];\nif (data.eventType && data.eventType !== 'Nenurodyta') notesParts.push('Renginys: ' + data.eventType);\nif (data.guestCount && data.guestCount !== 'Nenurodyta') notesParts.push('Svečiai: ' + data.guestCount);\nif (data.groupType && data.groupType !== 'Nenurodyta') notesParts.push('Grupė: ' + data.groupType);\nif (data.notes) notesParts.push(data.notes);\nconst notes = esc(notesParts.join('; '));\n\nconst equipmentNames = [];\nif (data.trampolinePreference && data.trampolinePreference !== 'Nenurodyta') {\n  equipmentNames.push(data.trampolinePreference.trim());\n}\nif (data.addons && data.addons !== 'Nenurodyta') {\n  data.addons.split(',').forEach(a => {\n    const trimmed = a.trim();\n    if (trimmed) equipmentNames.push(trimmed);\n  });\n}\n\nconst equipArraySql = equipmentNames.length > 0\n  ? 'ARRAY[' + equipmentNames.map(n => \"'\" + esc(n) + \"'\").join(',') + ']'\n  : \"ARRAY[]::text[]\";\n\nlet sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES ('${name}', '${phone}', 'Chatbot')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, delivery_address, city,\n    status, entry_source, notes\n  )\n  SELECT cu.id, ${eventDate ? \"'\" + eventDate + \"'::date\" : 'CURRENT_DATE'},\n    '${address}', '${city}', 'Inquiry', 'Chatbot', '${notes}'\n  FROM contact_upsert cu\n  RETURNING id\n)`;\n\nif (equipmentNames.length > 0) {\n  sql += `,\nequipment_link AS (\n  INSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\n  SELECT nb.id, e.id\n  FROM new_booking nb\n  CROSS JOIN batutynas.equipment e\n  WHERE e.name = ANY(${equipArraySql})\n  ON CONFLICT DO NOTHING\n)`;\n}\n\nsql += `\\nSELECT nb.id AS booking_id FROM new_booking nb;`;\n\nreturn [{ json: { hasSql: true, sql } }];"
+        "jsCode": "const data = $input.first().json;\n\nif (data.requestType !== 'booking') {\n  return [{ json: { hasSql: false } }];\n}\n\nfunction esc(v) { return (v || '').replace(/'/g, \"''\"); }\n\nfunction normalizePhone(phone) {\n  const digits = (phone || '').replace(/[^\\d]/g, '');\n  if (digits.startsWith('370') && digits.length >= 11) return '+' + digits;\n  if (digits.startsWith('8') && digits.length >= 9) return '+370' + digits.substring(1);\n  if (digits.startsWith('6') && digits.length >= 8) return '+370' + digits;\n  return phone || '';\n}\n\nconst name = esc(data.contactName);\nconst phone = esc(normalizePhone(data.contactPhone));\n\nif (!phone || phone === 'Nenurodyta') {\n  return [{ json: { hasSql: false } }];\n}\n\nconst eventDate = (data.date && data.date !== 'Nenurodyta') ? esc(data.date) : null;\nconst address = esc(data.address || data.location || '');\nconst city = esc(data.location || '');\n\nconst notesParts = [];\nif (data.eventType && data.eventType !== 'Nenurodyta') notesParts.push('Renginys: ' + data.eventType);\nif (data.guestCount && data.guestCount !== 'Nenurodyta') notesParts.push('Svečiai: ' + data.guestCount);\nif (data.groupType && data.groupType !== 'Nenurodyta') notesParts.push('Grupė: ' + data.groupType);\nif (data.notes) notesParts.push(data.notes);\nconst notes = esc(notesParts.join('; '));\n\nconst equipmentNames = [];\nif (data.trampolinePreference && data.trampolinePreference !== 'Nenurodyta') {\n  equipmentNames.push(data.trampolinePreference.trim());\n}\nif (data.addons && data.addons !== 'Nenurodyta') {\n  data.addons.split(',').forEach(a => {\n    const trimmed = a.trim();\n    if (trimmed) equipmentNames.push(trimmed);\n  });\n}\n\nconst equipArraySql = equipmentNames.length > 0\n  ? 'ARRAY[' + equipmentNames.map(n => \"'\" + esc(n) + \"'\").join(',') + ']'\n  : \"ARRAY[]::text[]\";\n\nlet sql = `\nWITH contact_upsert AS (\n  INSERT INTO batutynas.contacts (name, phone, source)\n  VALUES ('${name}', '${phone}', 'Chatbot')\n  ON CONFLICT (phone) DO UPDATE SET name = EXCLUDED.name\n  RETURNING id\n),\nnew_booking AS (\n  INSERT INTO batutynas.bookings (\n    contact_id, event_date, delivery_address, city,\n    status, entry_source, notes\n  )\n  SELECT cu.id, ${eventDate ? \"'\" + eventDate + \"'::date\" : 'CURRENT_DATE'},\n    '${address}', '${city}', 'Inquiry', 'Chatbot', '${notes}'\n  FROM contact_upsert cu\n  RETURNING id\n)`;\n\nif (equipmentNames.length > 0) {\n  sql += `,\nequipment_link AS (\n  INSERT INTO batutynas.booking_equipment (booking_id, equipment_id)\n  SELECT nb.id, e.id\n  FROM new_booking nb\n  CROSS JOIN batutynas.equipment e\n  WHERE e.name = ANY(${equipArraySql})\n  ON CONFLICT DO NOTHING\n)`;\n}\n\nsql += `\\nSELECT nb.id AS booking_id FROM new_booking nb;`;\n\nreturn [{ json: { hasSql: true, sql } }];"
       },
-      "id": "dc7407e9eb63452ea6fd",
+      "id": "c4a3a832d3824cde8d76",
       "name": "Build DB Query",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -111,7 +111,7 @@
           "combinator": "and",
           "conditions": [
             {
-              "id": "404e9fdeaebb422b9d2e",
+              "id": "981ee82251b34ecab404",
               "leftValue": "={{ $json.hasSql }}",
               "rightValue": true,
               "operator": {
@@ -122,7 +122,7 @@
           ]
         }
       },
-      "id": "0a3947fce4344e53a53c",
+      "id": "29272dfe457c43b48c61",
       "name": "IF Should Save to DB",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -137,7 +137,7 @@
         "query": "={{ $json.sql }}",
         "options": {}
       },
-      "id": "57d764e7291b4b09950e",
+      "id": "aa4836f842154ea68e75",
       "name": "Save to Database",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -157,7 +157,7 @@
       "parameters": {
         "jsCode": "return [{\n  json: {\n    result: 'Užklausa sėkmingai išsiųsta administratoriui ir išsaugota sistemoje. El. laiškas ir Telegram pranešimas išsiųsti. Klientui pasakykite, kad susisieksime per 2 darbo valandas. Booking inquiry sent successfully — email and Telegram notification delivered.'\n  }\n}];"
       },
-      "id": "21c32098eea04ac6bec2",
+      "id": "a4892e0291684cf5896d",
       "name": "Return Confirmation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -169,7 +169,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, message: \"Užklausa priimta. El. laiškas ir Telegram pranešimas išsiųsti.\" }) }}",
+        "responseBody": "={{ JSON.stringify({ success: true, message: \"Užklausa priimta.\" }) }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -185,14 +185,15 @@
           }
         }
       },
-      "id": "f5036edd78ed4ebfa92a",
+      "id": "a5c49f51112843e1bc92",
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
         1060,
         320
-      ]
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
