@@ -103,18 +103,7 @@ var TRAMPOLINES = [
   { name: 'Banketo stalai ir kėdės', messengerName: 'Stalai ir kėdės', icon: '\u{1FA91}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Iki 50 vietų \u00b7 Papildomas mokestis' }
 ];
 
-// --- Helper: format item for text (Messenger fallback) ---
-function formatItemText(t) {
-  var pop = t.popular ? ' \u{1F525}' : '';
-  // Messenger renders asterisks literally — use plain text there
-  var line = isMessenger
-    ? t.icon + ' ' + t.name + pop + '\n'
-    : t.icon + ' *' + t.name + '*' + pop + '\n';
-  line += t.shortDesc || (t.type + ' \u00b7 ' + t.capacity);
-  return line;
-}
-
-// --- Build trampoline cards for Chatwoot web widget ---
+// --- Build trampoline cards for Chatwoot (works on web widget + Messenger via Generic Template) ---
 // Items without images → input_select fallback (no broken card placeholders)
 function buildTrampolineCards(items, buttonText) {
   var btn = buttonText || '\u2713 Noriu šio';
@@ -147,26 +136,6 @@ function buildTrampolineSelectItems(items) {
   });
 }
 
-// --- Build trampoline text list for Messenger ---
-function buildTrampolineTextList(items) {
-  return items.map(formatItemText).join('\n\n');
-}
-
-// --- Build image messages for Messenger ---
-function buildImageMessages(items, maxImages) {
-  var withImages = items.filter(function(t) { return t.img; });
-  var limited = withImages.slice(0, maxImages || 5);
-  return limited.map(function(t) {
-    var pop = t.popular ? ' \u{1F525}' : '';
-    return {
-      content: t.icon + ' ' + t.name + pop + ' \u2014 ' + t.type,
-      content_type: '_image',
-      message_type: 'outgoing',
-      _imageUrl: t.img
-    };
-  });
-}
-
 // --- Group builders: return array of Chatwoot messages ---
 
 function buildGroupEquipment(items, headerText, guestCount, btnText) {
@@ -188,56 +157,35 @@ function buildGroupEquipment(items, headerText, guestCount, btnText) {
     headerText = '\u{1F3AA} Dideliam renginiui geriausiai tinka';
   }
 
-  if (isMessenger) {
-    if (recommended.length > 0) {
-      messages.push.apply(messages, buildImageMessages(recommended, 5));
-    }
-    var text = '';
-    if (recommended.length > 0) {
-      text += headerText + ':\n\n' + buildTrampolineTextList(recommended);
-    }
-    if (others.length > 0) {
-      text += '\n\n\u2014\nKiti batutai:\n\n' + buildTrampolineTextList(others);
-    }
-    messages.push({ content: text, content_type: 'text', message_type: 'outgoing' });
-    var allSelectItems = buildTrampolineSelectItems(recommended.concat(others));
-    messages.push({
-      content: 'Pasirinkite batutą:',
-      content_type: 'input_select',
-      content_attributes: { items: allSelectItems },
-      message_type: 'outgoing'
-    });
-  } else {
-    // Web widget: cards + single dropdown for everything else
-    if (recommended.length > 0) {
-      var result = buildTrampolineCards(recommended, btnText || '\u2713 Noriu šio');
-      if (result.cards.length > 0) {
-        messages.push({
-          content: headerText + ':',
-          content_type: 'cards',
-          content_attributes: { items: result.cards },
-          message_type: 'outgoing'
-        });
-      }
-      // Merge no-image recommended items + others into one dropdown
-      var extraItems = buildTrampolineSelectItems(result.noImgItems.concat(others));
-      if (extraItems.length > 0) {
-        messages.push({
-          content: result.noImgItems.length > 0 ? 'Ir dar:' : 'Turime ir daugiau:',
-          content_type: 'input_select',
-          content_attributes: { items: extraItems },
-          message_type: 'outgoing'
-        });
-      }
-    } else if (others.length > 0) {
-      // No recommended — show all as dropdown
+  // Cards work on both web widget and Messenger (Chatwoot translates to Generic Template)
+  if (recommended.length > 0) {
+    var result = buildTrampolineCards(recommended, btnText || '\u2713 Noriu šio');
+    if (result.cards.length > 0) {
       messages.push({
         content: headerText + ':',
-        content_type: 'input_select',
-        content_attributes: { items: buildTrampolineSelectItems(others) },
+        content_type: 'cards',
+        content_attributes: { items: result.cards },
         message_type: 'outgoing'
       });
     }
+    // Merge no-image recommended items + others into one dropdown
+    var extraItems = buildTrampolineSelectItems(result.noImgItems.concat(others));
+    if (extraItems.length > 0) {
+      messages.push({
+        content: result.noImgItems.length > 0 ? 'Ir dar:' : 'Turime ir daugiau:',
+        content_type: 'input_select',
+        content_attributes: { items: extraItems },
+        message_type: 'outgoing'
+      });
+    }
+  } else if (others.length > 0) {
+    // No recommended — show all as dropdown
+    messages.push({
+      content: headerText + ':',
+      content_type: 'input_select',
+      content_attributes: { items: buildTrampolineSelectItems(others) },
+      message_type: 'outgoing'
+    });
   }
 
   return messages;
@@ -293,19 +241,7 @@ function buildGroupPublicEquipment(guestCount) {
 function buildGroupPartyEquipment() {
   var party = TRAMPOLINES.filter(function(t) { return t.cat === 'party-equipment'; });
 
-  if (isMessenger) {
-    return [
-      { content: 'Vakarėlio įranga:\n\n' + buildTrampolineTextList(party), content_type: 'text', message_type: 'outgoing' },
-      {
-        content: 'Pasirinkite įrangą:',
-        content_type: 'input_select',
-        content_attributes: { items: buildTrampolineSelectItems(party) },
-        message_type: 'outgoing'
-      }
-    ];
-  }
-
-  // Party items mostly have no images — use input_select with descriptions
+  // Cards work on both web widget and Messenger
   var result = buildTrampolineCards(party, '\u2713 Noriu');
   var messages = [];
   if (result.cards.length > 0) {
@@ -434,19 +370,7 @@ function buildGuestCountOptionsPublic() {
 function buildAddonUpsell() {
   var addons = TRAMPOLINES.filter(function(t) { return t.cat === 'addon'; });
 
-  if (isMessenger) {
-    var selectItems = addons.map(function(t) {
-      return { title: t.icon + ' ' + t.name, value: t.name };
-    });
-    selectItems.push({ title: '\u27A1\uFE0F Tęsti toliau', value: 'Tęsti be papildomų pramogų' });
-    return [{
-      content: 'Gal dar kažko pridėti?',
-      content_type: 'input_select',
-      content_attributes: { items: selectItems },
-      message_type: 'outgoing'
-    }];
-  }
-
+  // Cards work on both web widget and Messenger
   var result = buildTrampolineCards(addons, '\u2713 Pridėti');
   var messages = [];
 
