@@ -333,8 +333,8 @@ add_node({
         "fromEmail": OWNER_EMAIL,
         "toEmail": OWNER_EMAIL,
         "subject": "={{ $json.emailSubject }}",
-        "emailType": "html",
-        "message": "={{ $json.emailHtml }}",
+        "emailFormat": "html",
+        "html": "={{ $json.emailHtml }}",
         "options": {}
     },
     "id": uid(),
