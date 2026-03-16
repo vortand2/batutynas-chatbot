@@ -171,12 +171,19 @@ if (requestType === 'catalog') {
 
 // No calendar event creation — owner confirms booking manually after calling the customer
 
+// Build HTML email for better formatting
+const emailHtml = emailBody
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/\n/g, '<br>')
+  .replace(/---/g, '<hr>')
+  .replace(/(Grupė|Data|Vieta|Adresas|Renginio tipas|Svečių skaičius|Kontaktinis asmuo|Telefonas|Pageidaujamas batutas|Papildomos pramogos|El\. paštas|Kontaktas|Matmenys|Spalvos|Personažai\/tema|Papildomi pageidavimai|GAMYBOS DETALĖS):/g, '<b>$1:</b>');
+
 return [{
   json: {
     date, location, address, eventType, guestCount,
     contactName, contactPhone, trampolinePreference, addons,
     groupType, requestType, dimensions, colors, characters, notes, email,
-    emailSubject, emailBody, telegramMsg
+    emailSubject, emailBody, emailHtml, telegramMsg
   }
 }];
 """.strip()
@@ -326,7 +333,8 @@ add_node({
         "fromEmail": OWNER_EMAIL,
         "toEmail": OWNER_EMAIL,
         "subject": "={{ $json.emailSubject }}",
-        "text": "={{ $json.emailBody }}",
+        "emailType": "html",
+        "message": "={{ $json.emailHtml }}",
         "options": {}
     },
     "id": uid(),
