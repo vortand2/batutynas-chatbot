@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Build Morning Briefing + Evening Check workflows (v2 — Calendar Bridge API).
+Build Morning Briefing + Evening Check workflows (v2 — Calendar Bridge API + Gemini).
 Generates: morning-briefing-v2-workflow.json, evening-check-v2-workflow.json
 
 These are cron-triggered workflows that send daily summaries via Telegram.
+Gemini generates intelligent narrative summaries from booking + weather data.
 """
 
 import json, uuid, os
@@ -11,6 +12,9 @@ import json, uuid, os
 # IMPORTANT: Set BATUTYNAS_BOT_TOKEN env var. Rotate token if repo goes public.
 BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '__TELEGRAM_BOT_TOKEN__')
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
+GEMINI_CRED = {"id": "V0fvCRokUIPzfmGC", "name": "Google Gemini(PaLM) Api account"}
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '__GEMINI_API_KEY__')
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
 
 # Client's Telegram chat ID — needs to be set after first interaction
 # The bot sends a message to this chat ID on schedule
@@ -102,7 +106,7 @@ return [{ json: { ...data, weatherUrl, weatherCities: matched.map(m => m.city) }
 # MORNING BRIEFING (07:00 daily)
 # ══════════════════════════════════════════════════════════════════════════════
 
-MORNING_FORMAT_CODE = r"""
+BUILD_MORNING_PROMPT_CODE = r"""
 const data = $('Prepare Weather').first().json;
 const bookings = data.bookings || [];
 const stats = data.stats || {};
@@ -114,79 +118,98 @@ const monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Bir
 const dayName = dayNames[now.getDay()];
 const todayBookings = bookings.filter(b => b.event_date === today);
 
-// Tomorrow
 const tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);
 const tmrwStr = tmrw.toISOString().substring(0, 10);
 const tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);
 
 function fmtBooking(b) {
   const equip = Array.isArray(b.equipment) && b.equipment.length > 0
-    ? b.equipment.map(e => `${e.icon || '🎪'} ${e.name}`).join(', ')
+    ? b.equipment.map(e => `${e.icon || ''} ${e.name}`).join(', ')
     : (b.raw_summary || '?');
-  let line = `  📌 ${equip}`;
-  if (b.customer_name) line += `\n     👤 ${b.customer_name}`;
-  if (b.customer_phone) line += ` | 📞 ${b.customer_phone}`;
-  if (b.delivery_address) line += `\n     📍 ${b.delivery_address}`;
-  if (b.price) line += `\n     💰 €${b.price}`;
+  let line = `- ${equip}`;
+  if (b.customer_name) line += ` | ${b.customer_name}`;
+  if (b.customer_phone) line += ` | ${b.customer_phone}`;
+  if (b.delivery_address) line += ` | ${b.delivery_address}`;
+  if (b.price) line += ` | ${b.price}€`;
   return line;
 }
 
-let msg = `☀️ <b>Ryto apžvalga — ${monthNames[now.getMonth()]} ${now.getDate()} (${dayName})</b>\n\n`;
+const todayList = todayBookings.length > 0
+  ? todayBookings.map(fmtBooking).join('\n')
+  : 'Nėra užsakymų šiandien';
 
-// Today's bookings
-if (todayBookings.length === 0) {
-  msg += `📅 <b>Šiandien:</b> Laisva diena! 🎉\n`;
-} else {
-  msg += `📅 <b>Šiandien (${todayBookings.length} užs.):</b>\n`;
-  todayBookings.forEach(b => { msg += fmtBooking(b) + '\n\n'; });
-}
+const tmrwList = tmrwBookings.length > 0
+  ? tmrwBookings.map(fmtBooking).join('\n')
+  : 'Nėra užsakymų rytoj';
 
-// Tomorrow preview
-if (tmrwBookings.length > 0) {
-  msg += `📅 <b>Rytoj (${tmrwBookings.length} užs.):</b>\n`;
-  tmrwBookings.forEach(b => { msg += `  📌 ${b.raw_summary || '?'}\n`; });
-  msg += '\n';
-}
-
-// Weather section
+// Weather data
+let weatherSection = '';
 try {
   const weatherData = $('Fetch Weather').first().json;
   const prepData = $('Prepare Weather').first().json;
   const cities = prepData.weatherCities || [];
   if (weatherData && weatherData.daily) {
     const daily = weatherData.daily;
-    // Index 1 = tomorrow (index 0 = today)
     const idx = daily.time && daily.time.length > 1 ? 1 : 0;
     const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;
     const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;
     const tempMin = daily.temperature_2m_min ? daily.temperature_2m_min[idx] : null;
+    const city = cities.length > 0 ? cities[0] : 'Klaipėda';
 
-    msg += `\n🌤️ <b>Rytojaus orai`;
-    if (cities.length > 0) msg += ` (${cities[0]})`;
-    msg += `:</b>\n`;
-    if (tempMax !== null) msg += `  🌡️ ${tempMin !== null ? tempMin + '°' + '–' : ''}${tempMax}°C\n`;
-    if (rainProb !== null) {
-      if (rainProb >= 60) {
-        msg += `  ⛈️ <b>Dėmesio! Lietus tikėtinas (${rainProb}%)</b>\n`;
-        if (tmrwBookings.length > 0) {
-          msg += `  ⚠️ Patikrinkite ${tmrwBookings.length} rytojaus užsakymą(-us)\n`;
-        }
-      } else if (rainProb >= 30) {
-        msg += `  🌦️ Galimas lietus (${rainProb}%)\n`;
-      } else {
-        msg += `  ☀️ Lietus mažai tikėtinas (${rainProb}%)\n`;
+    if (rainProb !== null && rainProb >= 30) {
+      weatherSection = `\nORAI RYTOJ (${city}): ${tempMin || '?'}–${tempMax || '?'}°C, lietaus tikimybė ${rainProb}%`;
+      if (rainProb >= 60 && tmrwBookings.length > 0) {
+        weatherSection += `\n⚠️ SVARBU: Yra ${tmrwBookings.length} užsakymas(-ai) rytoj — gali reikėti perkelti!`;
       }
+    } else if (rainProb !== null) {
+      weatherSection = `\nORAI RYTOJ (${city}): ${tempMin || '?'}–${tempMax || '?'}°C, giedra (lietaus ${rainProb}%)`;
     }
   }
-} catch(e) { /* weather fetch failed — skip silently */ }
+} catch(e) { weatherSection = ''; }
 
-// Month stats
-msg += `\n📊 <b>Mėnesio suvestinė:</b>\n`;
-msg += `  📦 Užsakymai: ${stats.month_count || 0}\n`;
-msg += `  💰 Pajamos: €${stats.month_revenue || 0}\n`;
+const prompt = `Tu esi Batutynas.lt batutų nuomos verslo asistentas. Parašyk TRUMPĄ ryto apžvalgą kaip Telegram žinutę.
 
-msg += `\n💬 Naudokite /help komandoms`;
+DATA: ${monthNames[now.getMonth()]} ${now.getDate()} d. (${dayName})
 
+ŠIANDIENOS UŽSAKYMAI (${todayBookings.length}):
+${todayList}
+
+RYTOJAUS UŽSAKYMAI (${tmrwBookings.length}):
+${tmrwList}
+${weatherSection}
+
+MĖNESIO STATISTIKA:
+- Užsakymai: ${stats.month_count || 0}
+- Pajamos: ${stats.month_revenue || 0}€
+
+TAISYKLĖS:
+- Rašyk TIKTAI lietuviškai
+- Naudok Telegram HTML: <b>bold</b>, <i>italic</i>
+- Pradėk nuo emoji ir pasisveikinimo
+- Jei orai blogi (lietus >50%) — aiškiai perspėk ir pasiūlyk susisiekti su klientais dėl perkėlimo
+- Jei orai geri arba nėra duomenų — NEMINĖK orų, sutelk dėmesį į užsakymus
+- Jei nėra užsakymų šiandien — padrąsink (pvz. "gera diena pasiruošti savaitgaliui" arba "puikus laikas paskelbti akciją socialiniuose tinkluose")
+- Paminėk kiekvieno užsakymo klientą, įrangą ir vietą
+- Pabaigoje — trumpa mėnesio statistika viena eilute
+- Maksimum 400 žodžių
+- NENAUDOK markdown (**, ##) — TIK HTML (<b>, <i>)
+- Nerašyk "Gemini" ar "AI" — tu esi verslo asistentas`;
+
+return [{ json: { prompt } }];
+""".strip()
+
+FORMAT_GEMINI_REPLY_CODE = r"""
+const input = $input.first().json;
+// Gemini REST API response format: candidates[0].content.parts[0].text
+const text = input?.candidates?.[0]?.content?.parts?.[0]?.text
+  || input?.response?.text || input?.text || input?.output || '';
+if (!text) {
+  return [{ json: { message: '⚠️ Nepavyko sugeneruoti apžvalgos. Patikrinkite Gemini API.' } }];
+}
+// Convert any accidental markdown to HTML
+let msg = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/__(.*?)__/g, '<i>$1</i>');
+// Remove markdown headers
+msg = msg.replace(/^#{1,3}\s+/gm, '');
 return [{ json: { message: msg } }];
 """.strip()
 
@@ -224,11 +247,33 @@ morning_nodes = [
         "continueOnFail": True
     },
     {
-        "parameters": {"jsCode": MORNING_FORMAT_CODE},
-        "id": uid(), "name": "Format Morning Briefing",
+        "parameters": {"jsCode": BUILD_MORNING_PROMPT_CODE},
+        "id": uid(), "name": "Build Morning Prompt",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [1120, 400]
+    },
+    {
+        "parameters": {
+            "method": "POST",
+            "url": GEMINI_URL,
+            "sendBody": True,
+            "specifyBody": "json",
+            "jsonBody": '={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }], generationConfig: { maxOutputTokens: 1024, temperature: 0.3 } }) }}',
+            "options": {"timeout": 30000}
+        },
+        "id": uid(), "name": "Call Gemini",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1340, 400],
+        "continueOnFail": True
+    },
+    {
+        "parameters": {"jsCode": FORMAT_GEMINI_REPLY_CODE},
+        "id": uid(), "name": "Format Reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1560, 400]
     },
     {
         "parameters": {
@@ -240,7 +285,7 @@ morning_nodes = [
         "id": uid(), "name": "Send Morning Briefing",
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
-        "position": [1340, 400],
+        "position": [1780, 400],
         "credentials": {"telegramApi": TELEGRAM_CRED}
     }
 ]
@@ -249,8 +294,10 @@ morning_connections = {
     "Cron 07:00": {"main": [[{"node": "Fetch Today Data", "type": "main", "index": 0}]]},
     "Fetch Today Data": {"main": [[{"node": "Prepare Weather", "type": "main", "index": 0}]]},
     "Prepare Weather": {"main": [[{"node": "Fetch Weather", "type": "main", "index": 0}]]},
-    "Fetch Weather": {"main": [[{"node": "Format Morning Briefing", "type": "main", "index": 0}]]},
-    "Format Morning Briefing": {"main": [[{"node": "Send Morning Briefing", "type": "main", "index": 0}]]}
+    "Fetch Weather": {"main": [[{"node": "Build Morning Prompt", "type": "main", "index": 0}]]},
+    "Build Morning Prompt": {"main": [[{"node": "Call Gemini", "type": "main", "index": 0}]]},
+    "Call Gemini": {"main": [[{"node": "Format Reply", "type": "main", "index": 0}]]},
+    "Format Reply": {"main": [[{"node": "Send Morning Briefing", "type": "main", "index": 0}]]}
 }
 
 morning_workflow = {
@@ -266,56 +313,47 @@ morning_workflow = {
 # EVENING CHECK (21:00 daily)
 # ══════════════════════════════════════════════════════════════════════════════
 
-EVENING_FORMAT_CODE = r"""
+BUILD_EVENING_PROMPT_CODE = r"""
 const data = $('Prepare Weather').first().json;
 const bookings = data.bookings || [];
 const stats = data.stats || {};
 const now = new Date();
 const today = now.toISOString().substring(0, 10);
 const dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];
+const monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];
 
-// Today's recap
 const todayBookings = bookings.filter(b => b.event_date === today);
 const todayRevenue = todayBookings.reduce((sum, b) => sum + (b.price || 0), 0);
 
-// Tomorrow preview
 const tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);
 const tmrwStr = tmrw.toISOString().substring(0, 10);
 const tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);
 
-// Next 3 days preview
-const upcoming = [];
+// Next 3 days
+const upcomingLines = [];
 for (let i = 1; i <= 3; i++) {
   const d = new Date(now); d.setDate(d.getDate() + i);
   const dStr = d.toISOString().substring(0, 10);
   const dayBks = bookings.filter(b => b.event_date === dStr);
   if (dayBks.length > 0) {
-    upcoming.push({ date: dStr, day: dayNames[d.getDay()], count: dayBks.length, bookings: dayBks });
+    const names = dayBks.slice(0, 3).map(b => b.raw_summary || '?').join(', ');
+    upcomingLines.push(`${dayNames[d.getDay()]}: ${dayBks.length} užs. (${names})`);
   }
 }
 
-let msg = `🌙 <b>Vakaro suvestinė</b>\n\n`;
-
-// Today recap
-msg += `📅 <b>Šiandienos rezultatai:</b>\n`;
-msg += `  📦 Užsakymai: ${todayBookings.length}\n`;
-msg += `  💰 Pajamos: €${todayRevenue}\n\n`;
-
-// Upcoming days
-if (upcoming.length > 0) {
-  msg += `📆 <b>Artimiausi:</b>\n`;
-  upcoming.forEach(u => {
-    msg += `  ${u.day}: ${u.count} užs.`;
-    const names = u.bookings.slice(0, 3).map(b => b.raw_summary || '?').join(', ');
-    msg += ` (${names})`;
-    msg += '\n';
-  });
-  msg += '\n';
-} else {
-  msg += `📆 Artimiausiomis dienomis užsakymų nėra\n\n`;
+function fmtBooking(b) {
+  const equip = Array.isArray(b.equipment) && b.equipment.length > 0
+    ? b.equipment.map(e => `${e.icon || ''} ${e.name}`).join(', ')
+    : (b.raw_summary || '?');
+  let line = `- ${equip}`;
+  if (b.customer_name) line += ` | ${b.customer_name}`;
+  if (b.delivery_address) line += ` | ${b.delivery_address}`;
+  if (b.price) line += ` | ${b.price}€`;
+  return line;
 }
 
-// Weather for tomorrow
+// Weather
+let weatherSection = '';
 try {
   const weatherData = $('Fetch Weather').first().json;
   const prepData = $('Prepare Weather').first().json;
@@ -325,28 +363,47 @@ try {
     const idx = daily.time && daily.time.length > 1 ? 1 : 0;
     const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;
     const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;
+    const city = cities.length > 0 ? cities[0] : 'Klaipėda';
 
-    msg += `🌤️ <b>Rytojaus orai`;
-    if (cities.length > 0) msg += ` (${cities[0]})`;
-    msg += `:</b>\n`;
-    if (tempMax !== null) msg += `  🌡️ ${tempMax}°C\n`;
-    if (rainProb !== null && rainProb >= 60) {
-      msg += `  ⛈️ <b>Lietus tikėtinas (${rainProb}%)!</b>\n`;
-    } else if (rainProb !== null) {
-      msg += `  ${rainProb >= 30 ? '🌦️' : '☀️'} Lietus: ${rainProb}%\n`;
+    if (rainProb !== null && rainProb >= 30) {
+      weatherSection = `\nORAI RYTOJ (${city}): ${tempMax || '?'}°C, lietaus tikimybė ${rainProb}%`;
+      if (rainProb >= 60 && tmrwBookings.length > 0) {
+        weatherSection += `\n⚠️ Rytoj yra ${tmrwBookings.length} užsakymas(-ai) — gali reikėti perkelti!`;
+      }
     }
-    msg += '\n';
   }
-} catch(e) { /* weather fetch failed */ }
+} catch(e) { weatherSection = ''; }
 
-// Month progress
-msg += `📊 <b>Mėnesio eiga:</b>\n`;
-msg += `  📦 Iš viso: ${stats.month_count || 0} užs.\n`;
-msg += `  💰 Pajamos: €${stats.month_revenue || 0}\n`;
+const prompt = `Tu esi Batutynas.lt batutų nuomos verslo asistentas. Parašyk TRUMPĄ vakaro suvestinę kaip Telegram žinutę.
 
-msg += `\n😴 Geros nakties!`;
+DATA: ${monthNames[now.getMonth()]} ${now.getDate()} d. (${dayNames[now.getDay()]})
 
-return [{ json: { message: msg } }];
+ŠIANDIENOS REZULTATAI:
+- Užsakymų: ${todayBookings.length}
+- Pajamos: ${todayRevenue}€
+${todayBookings.length > 0 ? '\nŠiandienos užsakymai:\n' + todayBookings.map(fmtBooking).join('\n') : ''}
+
+ARTIMIAUSI 3 DIENŲ UŽSAKYMAI:
+${upcomingLines.length > 0 ? upcomingLines.join('\n') : 'Nėra artimų užsakymų'}
+${weatherSection}
+
+MĖNESIO EIGA:
+- Iš viso užsakymų: ${stats.month_count || 0}
+- Pajamos: ${stats.month_revenue || 0}€
+
+TAISYKLĖS:
+- Rašyk TIKTAI lietuviškai
+- Naudok Telegram HTML: <b>bold</b>, <i>italic</i>
+- Pradėk nuo vakaro emoji ir šiandienos santraukos
+- Jei orai blogi rytoj (lietus >50%) — perspėk
+- Jei orai geri arba nėra duomenų — NEMINĖK orų
+- Jei nėra artimų užsakymų — pasiūlyk veiksmą rytojui
+- Pabaigoje — trumpa mėnesio statistika ir palinkėjimas geros nakties
+- Maksimum 300 žodžių
+- NENAUDOK markdown — TIK HTML
+- Nerašyk "Gemini" ar "AI"`;
+
+return [{ json: { prompt } }];
 """.strip()
 
 evening_nodes = [
@@ -383,11 +440,33 @@ evening_nodes = [
         "continueOnFail": True
     },
     {
-        "parameters": {"jsCode": EVENING_FORMAT_CODE},
-        "id": uid(), "name": "Format Evening Check",
+        "parameters": {"jsCode": BUILD_EVENING_PROMPT_CODE},
+        "id": uid(), "name": "Build Evening Prompt",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [1120, 400]
+    },
+    {
+        "parameters": {
+            "method": "POST",
+            "url": GEMINI_URL,
+            "sendBody": True,
+            "specifyBody": "json",
+            "jsonBody": '={{ JSON.stringify({ contents: [{ parts: [{ text: $json.prompt }] }], generationConfig: { maxOutputTokens: 1024, temperature: 0.3 } }) }}',
+            "options": {"timeout": 30000}
+        },
+        "id": uid(), "name": "Call Gemini",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1340, 400],
+        "continueOnFail": True
+    },
+    {
+        "parameters": {"jsCode": FORMAT_GEMINI_REPLY_CODE},
+        "id": uid(), "name": "Format Reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1560, 400]
     },
     {
         "parameters": {
@@ -399,7 +478,7 @@ evening_nodes = [
         "id": uid(), "name": "Send Evening Check",
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
-        "position": [1340, 400],
+        "position": [1780, 400],
         "credentials": {"telegramApi": TELEGRAM_CRED}
     }
 ]
@@ -408,8 +487,10 @@ evening_connections = {
     "Cron 21:00": {"main": [[{"node": "Fetch Data", "type": "main", "index": 0}]]},
     "Fetch Data": {"main": [[{"node": "Prepare Weather", "type": "main", "index": 0}]]},
     "Prepare Weather": {"main": [[{"node": "Fetch Weather", "type": "main", "index": 0}]]},
-    "Fetch Weather": {"main": [[{"node": "Format Evening Check", "type": "main", "index": 0}]]},
-    "Format Evening Check": {"main": [[{"node": "Send Evening Check", "type": "main", "index": 0}]]}
+    "Fetch Weather": {"main": [[{"node": "Build Evening Prompt", "type": "main", "index": 0}]]},
+    "Build Evening Prompt": {"main": [[{"node": "Call Gemini", "type": "main", "index": 0}]]},
+    "Call Gemini": {"main": [[{"node": "Format Reply", "type": "main", "index": 0}]]},
+    "Format Reply": {"main": [[{"node": "Send Evening Check", "type": "main", "index": 0}]]}
 }
 
 evening_workflow = {
