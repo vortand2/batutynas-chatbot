@@ -467,11 +467,18 @@ def build_dashboard_endpoint():
     nodes.append(code_node("dash-parse", "Parse Month", """
 const query = $input.first().json.query || {};
 const now = new Date();
-const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-const month = query.month || defaultMonth;
+// Support both ?month=YYYY-MM and ?year=2026&month=3 formats
+let month;
+if (query.year && query.month) {
+  month = `${query.year}-${String(query.month).padStart(2, '0')}`;
+} else if (query.month && /^\\d{4}-\\d{2}$/.test(query.month)) {
+  month = query.month;
+} else {
+  month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
 const monthRegex = /^\\d{4}-\\d{2}$/;
 if (!monthRegex.test(month)) {
-  throw new Error('Invalid month format. Expected YYYY-MM.');
+  throw new Error('Invalid month format. Expected YYYY-MM or year+month params.');
 }
 const [year, mon] = month.split('-').map(Number);
 const timeMin = `${month}-01T00:00:00Z`;
@@ -486,7 +493,8 @@ return [{ json: { month, timeMin, timeMax } }];
         "dash-fetch", "Fetch Calendar Events",
         "={{ $json.timeMin }}",
         "={{ $json.timeMax }}",
-        700, Y
+        700, Y,
+        always_output=True
     ))
 
     # 4. Parse & transform all events
@@ -701,9 +709,11 @@ const prev = $('Format Event').first().json;
 const parsed = events.filter(e => e.summary).map(parseCalendarEvent);
 const equipmentLower = prev.equipment.toLowerCase();
 
+// Match equipment by exact name or full-word match in summary (prevent substring false-positives)
+const equipRe = new RegExp('(^|[\\\\s,;|/])' + equipmentLower.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '($|[\\\\s,;|/])', 'i');
 const conflict = parsed.find(b =>
   b.equipment.some(e => e.name.toLowerCase() === equipmentLower) ||
-  b.raw_summary.toLowerCase().includes(equipmentLower)
+  equipRe.test(b.raw_summary)
 );
 
 if (conflict) {
@@ -876,9 +886,11 @@ const otherEvents = events.filter(e => e.id !== prev.eventId && e.summary);
 const parsed = otherEvents.map(parseCalendarEvent);
 
 const equipLower = (prev.equipmentName || '').toLowerCase();
+// Full-word match in summary to prevent substring false-positives
+const equipRe = equipLower ? new RegExp('(^|[\\\\s,;|/])' + equipLower.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '($|[\\\\s,;|/])', 'i') : null;
 const conflict = parsed.find(b =>
   b.equipment.some(e => e.name.toLowerCase() === equipLower) ||
-  (equipLower && b.raw_summary.toLowerCase().includes(equipLower))
+  (equipRe && equipRe.test(b.raw_summary))
 );
 
 if (conflict) {

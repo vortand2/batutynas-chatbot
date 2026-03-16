@@ -472,7 +472,7 @@ switch(intent) {
   }
 
   case 'available': {
-    const avail = data.available || [];
+    const avail = data.free || [];
     const booked = data.booked || [];
     const dateLabel = args.date ? fmtDate(args.date) : 'šiandien';
     reply = `🎪 <b>Įranga — ${dateLabel}</b>\n\n`;
@@ -497,8 +497,8 @@ switch(intent) {
     const stats = data.stats || {};
     const now = new Date();
     reply = `📊 <b>${monthNames[now.getMonth()]} statistika</b>\n\n` +
-      `📅 Šį mėnesį: ${stats.total_bookings || 0} užs.\n` +
-      `💰 Pajamos: €${stats.total_revenue || 0}\n` +
+      `📅 Šį mėnesį: ${stats.month_count || 0} užs.\n` +
+      `💰 Pajamos: €${stats.month_revenue || 0}\n` +
       `📈 Vid. kaina: €${stats.avg_price || 0}\n` +
       `🎪 Populiariausia: ${stats.top_equipment || '—'}\n`;
     if (stats.busiest_date) reply += `🔥 Daugiausiai: ${fmtDate(stats.busiest_date)}\n`;
@@ -767,7 +767,7 @@ if (intent === 'today' || intent === 'tomorrow') {
     bks.forEach(b => { reply += fmtBooking(b); });
   }
 } else if (intent === 'available') {
-  const avail = data.available || [];
+  const avail = data.free || [];
   const booked = data.booked || [];
   reply += `🎪 <b>Laisva (${avail.length}):</b>\n`;
   avail.forEach(e => { reply += `  ${e.icon||'🎪'} ${e.name}\n`; });
@@ -779,7 +779,7 @@ if (intent === 'today' || intent === 'tomorrow') {
   const stats = data.stats || {};
   const now = new Date();
   reply += `📊 <b>${monthNames[now.getMonth()]} statistika</b>\n` +
-    `📅 Užsakymai: ${stats.total_bookings || 0}\n💰 Pajamos: €${stats.total_revenue || 0}`;
+    `📅 Užsakymai: ${stats.month_count || 0}\n💰 Pajamos: €${stats.month_revenue || 0}`;
 } else if (intent === 'search') {
   const query = args.searchQuery || '';
   const bookings = (data.bookings || []).filter(b => {
@@ -1194,8 +1194,8 @@ add_node({
                 "leftValue": ""
             },
             "conditions": [
-                {"id": "cond-crossmonth", "leftValue": "={{ $('Parse Intent').first().json.args?.crossMonth }}", "rightValue": "true",
-                 "operator": {"type": "string", "operation": "equals"}}
+                {"id": "cond-crossmonth", "leftValue": "={{ $('Parse Intent').first().json.args?.crossMonth }}",
+                 "operator": {"type": "boolean", "operation": "true"}}
             ], "combinator": "and"
         }
     },
@@ -1552,6 +1552,21 @@ add_node({
 })
 connect("IF Is Callback", "Process Callback", 0)  # true branch of IF Is Callback
 
+# ── 22b. No-Op Respond (absorb unrecognized message types to prevent webhook retry storms)
+add_node({
+    "parameters": {
+        "respondWith": "json",
+        "responseBody": '={"ok":true}',
+        "options": {}
+    },
+    "id": uid(),
+    "name": "No-Op Respond",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": pos(920, 800)
+})
+connect("IF Is Callback", "No-Op Respond", 1)  # false branch → unknown message type, just respond OK
+
 # ── 23. Answer Callback Query ────────────────────────────────────────────────
 
 add_node({
@@ -1560,7 +1575,7 @@ add_node({
         "url": f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery",
         "sendBody": True,
         "specifyBody": "json",
-        "jsonBody": '={"callback_query_id":"{{ $json.callbackQueryId }}","text":"{{ $json.callbackAnswer }}"}'
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.callbackAnswer }) }}"
     },
     "id": uid(),
     "name": "Answer Callback",

@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "675964405a314c5fa451",
+      "id": "282302fbfb464ea5bd05",
       "name": "Cron 07:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -29,7 +29,7 @@
           "timeout": 15000
         }
       },
-      "id": "c607f4a955a64a028534",
+      "id": "81d9178b015742769408",
       "name": "Fetch Today Data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -43,7 +43,7 @@
       "parameters": {
         "jsCode": "const CITY_COORDS = {\n  'Klaipėda': [55.7033, 21.1443],\n  'Klaipeda': [55.7033, 21.1443],\n  'Vilnius': [54.6872, 25.2797],\n  'Kaunas': [54.8985, 23.9036],\n  'Šiauliai': [55.9349, 23.3137],\n  'Siauliai': [55.9349, 23.3137],\n  'Panevėžys': [55.7348, 24.3575],\n  'Panevezys': [55.7348, 24.3575],\n  'Tauragė': [55.2522, 22.2892],\n  'Taurage': [55.2522, 22.2892],\n  'Šilalė': [55.4917, 22.185],\n  'Silale': [55.4917, 22.185],\n  'Šilutė': [55.3481, 21.4742],\n  'Silute': [55.3481, 21.4742],\n  'Plungė': [55.9111, 21.845],\n  'Plunge': [55.9111, 21.845],\n  'Telšiai': [55.9831, 22.2456],\n  'Telsiai': [55.9831, 22.2456],\n  'Mažeikiai': [56.3092, 22.3425],\n  'Mazeikiai': [56.3092, 22.3425],\n  'Palanga': [55.9203, 21.0686],\n  'Jurbarkas': [55.0775, 22.7633],\n  'Pagramantis': [55.3167, 22.5167],\n  'Skuodas': [56.2692, 21.5278],\n  'Gargždai': [55.7125, 21.3917],\n  'Gargzdai': [55.7125, 21.3917],\n  'Kretinga': [55.8892, 21.2456],\n};\n\nconst data = $input.first().json;\nconst bookings = data.bookings || [];\nconst now = new Date();\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\n\n// Get unique delivery cities from tomorrow's bookings\nconst cities = new Set();\nbookings.filter(b => b.event_date === tmrwStr).forEach(b => {\n  if (b.city) cities.add(b.city);\n  if (b.delivery_address) {\n    // Try to extract city from address (last word or known city)\n    const words = b.delivery_address.split(/[\\s,]+/);\n    for (const w of words) {\n      if (CITY_COORDS[w]) { cities.add(w); break; }\n    }\n  }\n});\n\n// Find coordinates for matched cities\nconst matched = [];\nfor (const city of cities) {\n  // Try exact match first, then case-insensitive\n  if (CITY_COORDS[city]) {\n    matched.push({ city, lat: CITY_COORDS[city][0], lon: CITY_COORDS[city][1] });\n  } else {\n    const lower = city.toLowerCase();\n    for (const [k, v] of Object.entries(CITY_COORDS)) {\n      if (k.toLowerCase() === lower) {\n        matched.push({ city: k, lat: v[0], lon: v[1] });\n        break;\n      }\n    }\n  }\n}\n\n// Default to Klaipeda if no cities found (business HQ area)\nif (matched.length === 0) {\n  matched.push({ city: 'Klaipėda', lat: 55.7033, lon: 21.1443 });\n}\n\n// Use the first city for API call (Open-Meteo supports one location per request)\nconst primary = matched[0];\nconst weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${primary.lat}&longitude=${primary.lon}&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min&timezone=Europe/Vilnius&forecast_days=2`;\n\nreturn [{ json: { ...data, weatherUrl, weatherCities: matched.map(m => m.city) } }];\n"
       },
-      "id": "19bb2b83b386407da724",
+      "id": "371804f6e6084212b2be",
       "name": "Prepare Weather",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -60,7 +60,7 @@
           "timeout": 10000
         }
       },
-      "id": "24bb4b48f31c43af9841",
+      "id": "9933fec02b294327b4f8",
       "name": "Fetch Weather",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -72,9 +72,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $('Prepare Weather').first().json;\nconst bookings = data.bookings || [];\nconst stats = data.stats || {};\nconst now = new Date();\nconst today = now.toISOString().substring(0, 10);\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\nconst monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];\n\nconst dayName = dayNames[now.getDay()];\nconst todayBookings = bookings.filter(b => b.event_date === today);\n\n// Tomorrow\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\nconst tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);\n\nfunction fmtBooking(b) {\n  const equip = Array.isArray(b.equipment) && b.equipment.length > 0\n    ? b.equipment.map(e => `${e.icon || '🎪'} ${e.name}`).join(', ')\n    : (b.raw_summary || '?');\n  let line = `  📌 ${equip}`;\n  if (b.customer_name) line += `\\n     👤 ${b.customer_name}`;\n  if (b.customer_phone) line += ` | 📞 ${b.customer_phone}`;\n  if (b.delivery_address) line += `\\n     📍 ${b.delivery_address}`;\n  if (b.price) line += `\\n     💰 €${b.price}`;\n  return line;\n}\n\nlet msg = `☀️ <b>Ryto apžvalga — ${monthNames[now.getMonth()]} ${now.getDate()} (${dayName})</b>\\n\\n`;\n\n// Today's bookings\nif (todayBookings.length === 0) {\n  msg += `📅 <b>Šiandien:</b> Laisva diena! 🎉\\n`;\n} else {\n  msg += `📅 <b>Šiandien (${todayBookings.length} užs.):</b>\\n`;\n  todayBookings.forEach(b => { msg += fmtBooking(b) + '\\n\\n'; });\n}\n\n// Tomorrow preview\nif (tmrwBookings.length > 0) {\n  msg += `📅 <b>Rytoj (${tmrwBookings.length} užs.):</b>\\n`;\n  tmrwBookings.forEach(b => { msg += `  📌 ${b.raw_summary || '?'}\\n`; });\n  msg += '\\n';\n}\n\n// Weather section\ntry {\n  const weatherData = $('Fetch Weather').first().json;\n  const prepData = $('Prepare Weather').first().json;\n  const cities = prepData.weatherCities || [];\n  if (weatherData && weatherData.daily) {\n    const daily = weatherData.daily;\n    // Index 1 = tomorrow (index 0 = today)\n    const idx = daily.time && daily.time.length > 1 ? 1 : 0;\n    const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;\n    const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;\n    const tempMin = daily.temperature_2m_min ? daily.temperature_2m_min[idx] : null;\n\n    msg += `\\n🌤️ <b>Rytojaus orai`;\n    if (cities.length > 0) msg += ` (${cities[0]})`;\n    msg += `:</b>\\n`;\n    if (tempMax !== null) msg += `  🌡️ ${tempMin !== null ? tempMin + '°' + '–' : ''}${tempMax}°C\\n`;\n    if (rainProb !== null) {\n      if (rainProb >= 60) {\n        msg += `  ⛈️ <b>Dėmesio! Lietus tikėtinas (${rainProb}%)</b>\\n`;\n        if (tmrwBookings.length > 0) {\n          msg += `  ⚠️ Patikrinkite ${tmrwBookings.length} rytojaus užsakymą(-us)\\n`;\n        }\n      } else if (rainProb >= 30) {\n        msg += `  🌦️ Galimas lietus (${rainProb}%)\\n`;\n      } else {\n        msg += `  ☀️ Lietus mažai tikėtinas (${rainProb}%)\\n`;\n      }\n    }\n  }\n} catch(e) { /* weather fetch failed — skip silently */ }\n\n// Month stats\nmsg += `\\n📊 <b>Mėnesio suvestinė:</b>\\n`;\nmsg += `  📦 Užsakymai: ${stats.total_bookings || 0}\\n`;\nmsg += `  💰 Pajamos: €${stats.total_revenue || 0}\\n`;\n\nmsg += `\\n💬 Naudokite /help komandoms`;\n\nreturn [{ json: { message: msg } }];"
+        "jsCode": "const data = $('Prepare Weather').first().json;\nconst bookings = data.bookings || [];\nconst stats = data.stats || {};\nconst now = new Date();\nconst today = now.toISOString().substring(0, 10);\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\nconst monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];\n\nconst dayName = dayNames[now.getDay()];\nconst todayBookings = bookings.filter(b => b.event_date === today);\n\n// Tomorrow\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\nconst tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);\n\nfunction fmtBooking(b) {\n  const equip = Array.isArray(b.equipment) && b.equipment.length > 0\n    ? b.equipment.map(e => `${e.icon || '🎪'} ${e.name}`).join(', ')\n    : (b.raw_summary || '?');\n  let line = `  📌 ${equip}`;\n  if (b.customer_name) line += `\\n     👤 ${b.customer_name}`;\n  if (b.customer_phone) line += ` | 📞 ${b.customer_phone}`;\n  if (b.delivery_address) line += `\\n     📍 ${b.delivery_address}`;\n  if (b.price) line += `\\n     💰 €${b.price}`;\n  return line;\n}\n\nlet msg = `☀️ <b>Ryto apžvalga — ${monthNames[now.getMonth()]} ${now.getDate()} (${dayName})</b>\\n\\n`;\n\n// Today's bookings\nif (todayBookings.length === 0) {\n  msg += `📅 <b>Šiandien:</b> Laisva diena! 🎉\\n`;\n} else {\n  msg += `📅 <b>Šiandien (${todayBookings.length} užs.):</b>\\n`;\n  todayBookings.forEach(b => { msg += fmtBooking(b) + '\\n\\n'; });\n}\n\n// Tomorrow preview\nif (tmrwBookings.length > 0) {\n  msg += `📅 <b>Rytoj (${tmrwBookings.length} užs.):</b>\\n`;\n  tmrwBookings.forEach(b => { msg += `  📌 ${b.raw_summary || '?'}\\n`; });\n  msg += '\\n';\n}\n\n// Weather section\ntry {\n  const weatherData = $('Fetch Weather').first().json;\n  const prepData = $('Prepare Weather').first().json;\n  const cities = prepData.weatherCities || [];\n  if (weatherData && weatherData.daily) {\n    const daily = weatherData.daily;\n    // Index 1 = tomorrow (index 0 = today)\n    const idx = daily.time && daily.time.length > 1 ? 1 : 0;\n    const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;\n    const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;\n    const tempMin = daily.temperature_2m_min ? daily.temperature_2m_min[idx] : null;\n\n    msg += `\\n🌤️ <b>Rytojaus orai`;\n    if (cities.length > 0) msg += ` (${cities[0]})`;\n    msg += `:</b>\\n`;\n    if (tempMax !== null) msg += `  🌡️ ${tempMin !== null ? tempMin + '°' + '–' : ''}${tempMax}°C\\n`;\n    if (rainProb !== null) {\n      if (rainProb >= 60) {\n        msg += `  ⛈️ <b>Dėmesio! Lietus tikėtinas (${rainProb}%)</b>\\n`;\n        if (tmrwBookings.length > 0) {\n          msg += `  ⚠️ Patikrinkite ${tmrwBookings.length} rytojaus užsakymą(-us)\\n`;\n        }\n      } else if (rainProb >= 30) {\n        msg += `  🌦️ Galimas lietus (${rainProb}%)\\n`;\n      } else {\n        msg += `  ☀️ Lietus mažai tikėtinas (${rainProb}%)\\n`;\n      }\n    }\n  }\n} catch(e) { /* weather fetch failed — skip silently */ }\n\n// Month stats\nmsg += `\\n📊 <b>Mėnesio suvestinė:</b>\\n`;\nmsg += `  📦 Užsakymai: ${stats.month_count || 0}\\n`;\nmsg += `  💰 Pajamos: €${stats.month_revenue || 0}\\n`;\n\nmsg += `\\n💬 Naudokite /help komandoms`;\n\nreturn [{ json: { message: msg } }];"
       },
-      "id": "e7416c87e82343f78450",
+      "id": "6b4f9e7c31b74344b727",
       "name": "Format Morning Briefing",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -94,7 +94,7 @@
           "disable_web_page_preview": true
         }
       },
-      "id": "2182070946e443e0909d",
+      "id": "3c24bf07774242eda1ca",
       "name": "Send Morning Briefing",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

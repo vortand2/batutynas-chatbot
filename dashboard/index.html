@@ -62,6 +62,8 @@ table{border-collapse:collapse;border-spacing:0}
   /* Teal — secondary accent for variety */
   --teal:        #0D9488;
   --teal-dim:    #F0FDFA;
+  --orange:      #F97316;
+  --text-muted:  #A8A29E;
 
   /* Shape */
   --radius:      14px;
@@ -2559,7 +2561,7 @@ function buildBookingCard(b) {
     equipNames.forEach(function(name, idx) {
       var icon = equipIcons[idx] || '';
       html += '<span class="booking-card-equip-tag">' +
-        (icon ? icon + ' ' : '') + escHtml(name) + '</span>';
+        (icon ? escHtml(icon) + ' ' : '') + escHtml(name) + '</span>';
     });
     html += '</div>';
   }
@@ -2620,7 +2622,7 @@ function renderEquipment() {
     pill.className = 'equip-pill ' + statusClass;
 
     pill.innerHTML =
-      '<span class="equip-icon">' + (eq.icon || '\uD83C\uDFAA') + '</span>' +
+      '<span class="equip-icon">' + escHtml(eq.icon || '\uD83C\uDFAA') + '</span>' +
       '<span class="equip-name">' + escHtml(eq.name) + '</span>' +
       '<span class="equip-status">' + (EQUIP_STATUS_LT[statusKey] || statusKey) + '</span>';
 
@@ -2709,7 +2711,13 @@ function getFilteredBookings() {
 
 function getFilteredBookingsByDate(dateKey) {
   return getFilteredBookings().filter(function(b) {
-    return getDateKey(b) === dateKey;
+    var start = getDateKey(b);
+    if (!start) return false;
+    var endDate = (b.end_date || '').slice(0, 10);
+    if (endDate && endDate > start) {
+      return dateKey >= start && dateKey < endDate;
+    }
+    return start === dateKey;
   }).sort(function(a, b) {
     return (a.event_time || '').localeCompare(b.event_time || '');
   });
@@ -3101,7 +3109,8 @@ function saveBookingEdit(bookingId, formData, onComplete) {
       console.error('I\u0161saugoti nepavyko:', err);
       showToast('Klaida i\u0161saugant u\u017esakym\u0105. Bandykite dar kart\u0105.', 'error');
       if (typeof onComplete === 'function') onComplete();
-    });
+    })
+    .finally(function() { clearTimeout(_saveTimer); });
 }
 
 // ================================================================
@@ -3792,7 +3801,6 @@ function showLoading(on) {
 function showToast(msg, type) {
   var container = document.getElementById('toastContainer');
   if (!container) return;
-  }
 
   var icon = type === 'success' ? '\u2705' : type === 'error' ? '\u274C' : '\u2139\uFE0F';
   var toastEl = document.createElement('div');
@@ -3884,7 +3892,8 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(function() {
     // Skip auto-refresh if user has a modal or dialog open to prevent stale data conflicts
     var isModalOpen = !!document.getElementById('editModalBackdrop') ||
-                      !!document.getElementById('deleteDialogBackdrop');
+                      !!document.getElementById('deleteDialogBackdrop') ||
+                      !!document.getElementById('createModalBackdrop');
     if (!isModalOpen) { loadData(); }
   }, REFRESH_INTERVAL_MS);
 

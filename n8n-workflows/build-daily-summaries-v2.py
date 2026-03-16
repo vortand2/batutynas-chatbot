@@ -182,8 +182,8 @@ try {
 
 // Month stats
 msg += `\n📊 <b>Mėnesio suvestinė:</b>\n`;
-msg += `  📦 Užsakymai: ${stats.total_bookings || 0}\n`;
-msg += `  💰 Pajamos: €${stats.total_revenue || 0}\n`;
+msg += `  📦 Užsakymai: ${stats.month_count || 0}\n`;
+msg += `  💰 Pajamos: €${stats.month_revenue || 0}\n`;
 
 msg += `\n💬 Naudokite /help komandoms`;
 
@@ -341,8 +341,8 @@ try {
 
 // Month progress
 msg += `📊 <b>Mėnesio eiga:</b>\n`;
-msg += `  📦 Iš viso: ${stats.total_bookings || 0} užs.\n`;
-msg += `  💰 Pajamos: €${stats.total_revenue || 0}\n`;
+msg += `  📦 Iš viso: ${stats.month_count || 0} užs.\n`;
+msg += `  💰 Pajamos: €${stats.month_revenue || 0}\n`;
 
 msg += `\n😴 Geros nakties!`;
 
