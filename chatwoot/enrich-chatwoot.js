@@ -16,7 +16,11 @@ if (!conversationId) {
 // Fallback to hardcoded URL if variable not set (for backwards compatibility)
 var chatwootBase = (typeof $vars !== 'undefined' && $vars.CHATWOOT_BASE_URL) ? $vars.CHATWOOT_BASE_URL : 'https://batutynas-chatwoot-chatwoot.0uvai5.easypanel.host/api/v1/accounts/1';
 
-function formatOutput(msgs) {
+// Telegram notification — same bot + owner as booking-notify-workflow
+var TELEGRAM_BOT_URL = 'https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage';
+var TELEGRAM_OWNER_CHAT = '8258463322';
+
+function formatOutput(msgs, extraItems) {
   var url = chatwootBase + '/conversations/' + conversationId + '/messages';
   var typingUrl = chatwootBase + '/conversations/' + conversationId + '/toggle_typing_status';
   var result = [];
@@ -54,6 +58,13 @@ function formatOutput(msgs) {
       _url: typingUrl,
       _body: JSON.stringify({ typing_status: 'off' })
     }});
+  }
+
+  // Append extra items (e.g. Telegram notifications) — bypass normal message formatting
+  if (extraItems && extraItems.length) {
+    for (var ei = 0; ei < extraItems.length; ei++) {
+      result.push({ json: extraItems[ei] });
+    }
   }
 
   return result;
@@ -277,7 +288,8 @@ function buildMainMenu() {
       { title: '\u{1F3AA} Viešas renginys', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
       { title: '\u{1F389} Vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
       { title: '\u{1F6D2} Pirkti batutą', value: 'Noriu pirkti batutą' },
-      { title: '\u2139\uFE0F DUK / Kontaktai', value: 'Saugumas, DUK ir kontaktai' }
+      { title: '\u2139\uFE0F DUK / Kontaktai', value: 'Saugumas, DUK ir kontaktai' },
+      { title: '\u{1F4DE} Susisiekti', value: 'Noriu susisiekti su \u017emogumi' }
     ];
   } else {
     items = [
@@ -556,6 +568,36 @@ function buildQuickReplies(buttons, headerText) {
   }];
 }
 
+// --- Human Handoff (Messenger → Telegram alert to owner) ---
+function buildHumanHandoff() {
+  var contactName = '';
+  try { contactName = $('Filter & Extract').item.json.contactName || ''; } catch(e) {}
+
+  var customerMsg = {
+    content: 'M\u016bs\u0173 komanda netrukus su jumis susisieks! Jei skubu \u2014 skambinkite:\n\n\u{1F4DE} +370 648 803 88\n\u{1F4E7} info@batutynas.lt\n\n\u23F0 Darbo laikas: 8:00\u201321:00 kasdien',
+    content_type: 'text',
+    message_type: 'outgoing'
+  };
+
+  var label = contactName ? contactName : 'Ne\u017einomas klientas';
+  var channel = isMessenger ? 'Facebook Messenger' : 'Svetain\u0117s widget';
+  var telegramText = '\u{1F4DE} <b>Klientas nori kalb\u0117ti!</b>\n\n'
+    + '\u{1F464} ' + label + '\n'
+    + '\u{1F4AC} ' + channel + '\n\n'
+    + '\u{1F4A1} <i>Atidarykite Facebook Page Inbox ir atsakykite.</i>';
+
+  var telegramItem = {
+    _url: TELEGRAM_BOT_URL,
+    _body: JSON.stringify({
+      chat_id: TELEGRAM_OWNER_CHAT,
+      text: telegramText,
+      parse_mode: 'HTML'
+    })
+  };
+
+  return { messages: [customerMsg], telegram: telegramItem };
+}
+
 // ============================================================
 // MARKER PROCESSING
 // ============================================================
@@ -563,7 +605,7 @@ function buildQuickReplies(buttons, headerText) {
 var allMessages = [];
 
 // Quick check: does the response contain any markers?
-var hasMarker = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY|MENU_GROUP_PUBLIC|BOOKING_CONFIRM:)/.test(response);
+var hasMarker = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY|MENU_GROUP_PUBLIC|HUMAN_HANDOFF|BOOKING_CONFIRM:)/.test(response);
 
 if (!hasMarker) {
   var cleanText = response.replace(/\\n/g, '\n').replace(/\*\*(.+?)\*\*/g, isMessenger ? '$1' : '*$1*');
@@ -577,7 +619,7 @@ var enriched = response;
 
 // Fix #1: BOOKING_CONFIRM regex — handle one level of nested braces so arrays/objects in
 // values (e.g. "addons":"Dart, Rodeo") don't cause premature termination at the first '}'.
-var allMarkerRegex = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|MENU_GROUP_BIRTHDAY(?::[^\]]*)?|MENU_GROUP_PUBLIC(?::[^\]]*)?|BOOKING_CONFIRM:\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g;
+var allMarkerRegex = /\[(?:DATE_PICKER|GUEST_COUNT|GUEST_COUNT_PUBLIC|MAIN_MENU|ADDON_UPSELL|PURCHASE_SUBMENU|PURCHASE_EMAIL_INPUT|PURCHASE_CUSTOM_FORM|MENU_GROUP_PARTY|HUMAN_HANDOFF|MENU_GROUP_BIRTHDAY(?::[^\]]*)?|MENU_GROUP_PUBLIC(?::[^\]]*)?|BOOKING_CONFIRM:\{[^}]*(?:\{[^}]*\}[^}]*)*\})\]/g;
 
 var lastIndex = 0;
 var match;
@@ -594,7 +636,7 @@ if (lastIndex < enriched.length) {
   segments.push({ type: 'text', content: enriched.substring(lastIndex) });
 }
 
-var contextFlags = { hadCatalog: false, hadDatePicker: false, hadGuestCount: false, hadBookingConfirm: false, hadMainMenu: false, hadAddonUpsell: false, hadPurchaseSubmenu: false, hadEmailInput: false, hadCustomForm: false };
+var contextFlags = { hadCatalog: false, hadDatePicker: false, hadGuestCount: false, hadBookingConfirm: false, hadMainMenu: false, hadAddonUpsell: false, hadPurchaseSubmenu: false, hadEmailInput: false, hadCustomForm: false, hadHandoff: false, handoffTelegram: null };
 
 for (var si = 0; si < segments.length; si++) {
   var seg = segments[si];
@@ -636,6 +678,11 @@ for (var si = 0; si < segments.length; si++) {
     } else if (marker === '[MENU_GROUP_PARTY]') {
       allMessages.push.apply(allMessages, buildGroupPartyEquipment());
       contextFlags.hadCatalog = true;
+    } else if (marker === '[HUMAN_HANDOFF]') {
+      var handoffResult = buildHumanHandoff();
+      allMessages.push.apply(allMessages, handoffResult.messages);
+      contextFlags.hadHandoff = true;
+      contextFlags.handoffTelegram = handoffResult.telegram;
     } else {
       // Fix #2: all three checks are independent — no else chaining between them.
       // Previously BOOKING_CONFIRM was nested inside the else of MENU_GROUP_PUBLIC,
@@ -695,4 +742,8 @@ if (allMessages.length === 0) {
   });
 }
 
-return formatOutput(allMessages);
+var extras = [];
+if (contextFlags.hadHandoff && contextFlags.handoffTelegram) {
+  extras.push(contextFlags.handoffTelegram);
+}
+return formatOutput(allMessages, extras);
