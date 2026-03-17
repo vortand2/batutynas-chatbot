@@ -12,8 +12,6 @@ Commands:
   /laisvi [date], /available— Equipment availability
   /stats, /statistika       — Month stats
   /surask [query], /search  — Search bookings
-  /perkelk [id] [date]      — Move booking (conflict check)
-  /pratesek [id] [days]     — Extend to multi-day
   /atsaukti [id]            — Cancel booking
   Voice message             — Query OR create booking
 """
@@ -249,22 +247,39 @@ if (cleanText.startsWith('/')) {
 
     case '/nauja': case '/naujas': case '/new': {
       // Format: /nauja <equipment> <name> <date> [price] [phone] [location]
-      const rawArgs = parts.slice(1);
-      if (rawArgs.length < 3) {
+      // Equipment names may be multi-word (e.g. "Candy Pop"), so we match greedily
+      // against the known EQUIPMENT_NAMES list before tokenizing the remainder.
+      const EQUIPMENT_NAMES = """ + json.dumps(EQUIPMENT_NAMES) + r""";
+
+      const rawText = parts.slice(1).join(' ');
+      if (!rawText || rawText.split(/\s+/).length < 2) {
         intent = 'error';
-        args.msg = '⚠️ Formatas: /nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; [kaina] [tel] [vietovė]\nPvz: /nauja CandyPop Rita 06-15 185';
+        args.msg = '⚠️ Formatas: /nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; [kaina] [tel] [vietovė]\nPvz: /nauja Candy Pop Rita 06-15 185';
         break;
       }
 
-      // Parse arguments by pattern matching
-      let eqName = null, custName = null, dateStr = null, price = null, phone = null, location = null;
+      // Try to match equipment name from the start (longest match first)
+      let eqName = null, remainder = rawText;
+      const sortedNames = EQUIPMENT_NAMES.slice().sort((a, b) => b.length - a.length);
+      const rawLower = rawText.toLowerCase();
+      for (const name of sortedNames) {
+        if (rawLower.startsWith(name.toLowerCase())) {
+          eqName = name;
+          remainder = rawText.substring(name.length).trim();
+          break;
+        }
+      }
 
-      for (const a of rawArgs) {
+      // Parse remaining tokens by pattern matching
+      const remainArgs = remainder.split(/\s+/).filter(Boolean);
+      let custName = null, dateStr = null, price = null, phone = null, location = null;
+
+      for (const a of remainArgs) {
         const parsedDate = parseDate(a);
         if (parsedDate && !dateStr) { dateStr = parsedDate; continue; }
         if (/^\+?\d{8,}$/.test(a.replace(/[\s-]/g, '')) && !phone) { phone = a; continue; }
         if (/^\d{2,4}$/.test(a) && parseInt(a) < 5000 && !price) { price = parseInt(a); continue; }
-        if (!eqName) { eqName = a; continue; }
+        if (!eqName && !custName) { eqName = a; continue; }  // fallback: no list match
         if (!custName) { custName = a; continue; }
         if (!location) { location = a; continue; }
         // Extra words append to location
@@ -273,7 +288,7 @@ if (cleanText.startsWith('/')) {
 
       if (!eqName || !dateStr) {
         intent = 'error';
-        args.msg = '⚠️ Neatpažinta įranga arba data.\nPvz: /nauja CandyPop Rita 06-15 185';
+        args.msg = '⚠️ Neatpažinta įranga arba data.\nPvz: /nauja Candy Pop Rita 06-15 185';
         break;
       }
 
@@ -688,7 +703,7 @@ if (type === 'create') {
       customer_name: parsed.customer_name || '',
       customer_phone: parsed.customer_phone || '',
       date: parsed.event_date || '',
-      location: parsed.delivery_address || '',
+      delivery_address: parsed.delivery_address || '',
       price: parsed.price || 0,
       addons: parsed.addons || [],
       notes: parsed.notes || ''
@@ -942,6 +957,17 @@ const cb = $('Process Callback').first().json;
 const action = cb.action;
 const chatId = cb.chatId;
 const bookingId = cb.bookingId;
+
+// Double-tap prevention: if booking was already processed, return early
+try {
+  const booking = $('Fetch Booking').first().json;
+  if (booking && (booking.status === 'Confirmed' || booking.status === 'Cancelled')) {
+    return [{ json: {
+      reply: '⚠️ Šis užsakymas jau apdorotas (' + booking.status + ').',
+      chatId
+    }}];
+  }
+} catch(e) {}
 
 let reply;
 if (action === 'bk_confirm') {
@@ -1667,7 +1693,7 @@ add_node({
                 "leftValue": ""
             },
             "conditions": [
-                {"id": "cond-bdata", "leftValue": "={{ $('Process Callback').first().json.bookingData }}", "rightValue": "",
+                {"id": "cond-bdata", "leftValue": "={{ JSON.stringify($('Process Callback').first().json.bookingData) }}", "rightValue": "null",
                  "operator": {"type": "string", "operation": "notEquals"}}
             ], "combinator": "and"
         }
@@ -1765,7 +1791,7 @@ connect("IF Is Confirm", "IF Is BK Confirm", 1)  # false branch of voice confirm
 add_node({
     "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT b.id, b.event_date, b.delivery_address, b.city, b.notes, b.status, c.name AS customer_name, c.phone AS customer_phone, STRING_AGG(e.name, ', ') AS equipment_names FROM batutynas.bookings b JOIN batutynas.contacts c ON b.contact_id = c.id LEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id LEFT JOIN batutynas.equipment e ON be.equipment_id = e.id WHERE b.id = {{ $('Process Callback').first().json.bookingId }} GROUP BY b.id, c.id",
+        "query": "=SELECT b.id, b.event_date, b.delivery_address, b.city, b.notes, b.status, b.price, c.name AS customer_name, c.phone AS customer_phone, STRING_AGG(e.name, ', ') AS equipment_names FROM batutynas.bookings b JOIN batutynas.contacts c ON b.contact_id = c.id LEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id LEFT JOIN batutynas.equipment e ON be.equipment_id = e.id WHERE b.id = {{ $('Process Callback').first().json.bookingId }} GROUP BY b.id, c.id",
         "options": {}
     },
     "id": uid(),
@@ -1786,7 +1812,7 @@ add_node({
         "url": API_CREATE,
         "sendBody": True,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, location: $json.city || $json.delivery_address || '', price: '' }) }}",
+        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, delivery_address: $json.city || $json.delivery_address || null, price: $json.price || null }) }}",
         "options": {"timeout": 15000}
     },
     "id": uid(),

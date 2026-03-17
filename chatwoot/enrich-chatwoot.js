@@ -638,6 +638,7 @@ if (lastIndex < enriched.length) {
 
 var contextFlags = { hadCatalog: false, hadDatePicker: false, hadGuestCount: false, hadBookingConfirm: false, hadMainMenu: false, hadAddonUpsell: false, hadPurchaseSubmenu: false, hadEmailInput: false, hadCustomForm: false, hadHandoff: false, handoffTelegram: null };
 
+try {
 for (var si = 0; si < segments.length; si++) {
   var seg = segments[si];
   if (seg.type === 'text') {
@@ -645,6 +646,8 @@ for (var si = 0; si < segments.length; si++) {
     if (isMessenger) { trimmed = trimmed.replace(/\*(.+?)\*/g, '$1'); }
     // FR-3.1: Strip any unrecognized markers so raw [MARKER_NAME] text never leaks to user
     trimmed = trimmed.replace(/\[[A-Z][A-Z0-9_]*(?::[^\]]*?)?\]/g, '').trim();
+    // Fix L5: catch trailing malformed BOOKING_CONFIRM without closing ] (e.g. [BOOKING_CONFIRM:{...)
+    trimmed = trimmed.replace(/\[BOOKING_CONFIRM:[^\]]*$/, '').trim();
     if (trimmed) {
       allMessages.push({ content: trimmed, content_type: 'text', message_type: 'outgoing' });
     }
@@ -716,6 +719,13 @@ for (var si = 0; si < segments.length; si++) {
       }
     }
   }
+}
+} catch (enricherError) {
+  allMessages.push({
+    content: 'Atsiprašome, įvyko klaida. Pabandykite dar kartą arba skambinkite: +370 648 803 88',
+    content_type: 'text',
+    message_type: 'outgoing'
+  });
 }
 
 // --- Post-booking navigation only ---

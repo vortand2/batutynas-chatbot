@@ -48,6 +48,8 @@ const EQUIPMENT = [
   { name: 'Milžiniškas Dart', aliases: ['dart', 'milziniskas dart', 'giant dart', 'milžiniškas'], icon: '🎯', category: 'interactive' },
   { name: 'Kamuolių medžioklė', aliases: ['kamuoliu', 'kamuoliu medziokle', 'ball hunt', 'kamuolių'], icon: '⚽', category: 'interactive' },
   { name: 'Rodeo bulius', aliases: ['rodeo', 'bulius', 'bull', 'rodeo bulius'], icon: '🐂', category: 'interactive' },
+  { name: 'Saldėsių aparatai', aliases: ['saldesiu aparatai', 'saldesiai', 'saldainiai', 'vata', 'popcorn'], icon: '🍬', category: 'addon' },
+  { name: 'Banketo stalai ir kėdės', aliases: ['banketo stalai', 'stalai ir kedes', 'stalai kedes', 'stalai'], icon: '🪑', category: 'party-equipment' },
 ];
 
 const ADDONS = [
@@ -289,7 +291,7 @@ function parseCalendarEvent(event) {
     city: location,
     price: price,
     status: 'Confirmed', // Calendar events are confirmed by default
-    payment_status: price ? 'Pending' : 'Unknown',
+    payment_status: price ? 'Unpaid' : 'Unpaid',
     entry_source: entry_source,
     equipment: equipment ? [{
       name: equipment.name,
@@ -531,8 +533,26 @@ const equipmentList = EQUIPMENT.map(eq => ({
   name: eq.name,
   icon: eq.icon,
   category: eq.category,
-  status: todayEquipmentNames.includes(eq.name) ? 'Booked' : 'Available'
+  status: todayEquipmentNames.includes(eq.name) ? 'Rented' : 'Available'
 }));
+
+// Additional stats
+const monthRevenue = bookings.reduce((s, b) => s + (b.price || 0), 0);
+
+const prices = bookings.filter(b => b.price > 0).map(b => b.price);
+const avgPrice = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
+
+const eqCount = {};
+bookings.forEach(b => {
+  (b.equipment || []).forEach(e => { eqCount[e.name] = (eqCount[e.name] || 0) + 1; });
+});
+const topEq = Object.entries(eqCount).sort((a, b) => b[1] - a[1]);
+const topEquipment = topEq.length ? topEq[0][0] : null;
+
+const dateCount = {};
+bookings.forEach(b => { if (b.event_date) { dateCount[b.event_date] = (dateCount[b.event_date] || 0) + 1; } });
+const topDate = Object.entries(dateCount).sort((a, b) => b[1] - a[1]);
+const busiestDate = topDate.length ? topDate[0][0] : null;
 
 return [{ json: {
   bookings,
@@ -541,9 +561,12 @@ return [{ json: {
     month_count: bookings.length,
     week_revenue: weekRevenue,
     last_week_revenue: lastWeekRevenue,
-    month_revenue: bookings.reduce((s, b) => s + (b.price || 0), 0),
+    month_revenue: monthRevenue,
     available_equipment: availableCount,
-    total_equipment: EQUIPMENT.length
+    total_equipment: EQUIPMENT.length,
+    avg_price: avgPrice,
+    top_equipment: topEquipment,
+    busiest_date: busiestDate
   },
   equipment: equipmentList
 }}];
@@ -799,12 +822,13 @@ const body = $input.first().json.body || $input.first().json;
 const eventId = body.event_id || body.eventId;
 if (!eventId) throw new Error('Missing event_id');
 
-const action = body.action || 'move'; // 'move' | 'extend'
+const action = body.action || 'move'; // 'move' | 'extend' | 'edit'
 const newDate = body.new_date || body.newDate || '';
 const extendDays = parseInt(body.extend_days || body.extendDays || '0', 10);
+const fields = body.fields || {}; // for 'edit' action: object with booking field updates
 
 // We need to fetch the current event first to know its details
-return [{ json: { eventId, action, newDate, extendDays } }];
+return [{ json: { eventId, action, newDate, extendDays, fields } }];
 """, 460, Y))
 
     # Fetch the specific event
@@ -846,6 +870,10 @@ if (params.action === 'move' && params.newDate) {
   const endObj = new Date(currentEnd);
   endObj.setDate(endObj.getDate() + params.extendDays);
   newEnd = endObj.toISOString().substring(0, 10);
+} else if (params.action === 'edit') {
+  // Edit: keep dates, rebuild summary/description from provided fields
+  newStart = currentStart;
+  newEnd = currentEnd;
 } else {
   throw new Error('Invalid action or missing parameters');
 }
@@ -854,12 +882,38 @@ if (params.action === 'move' && params.newDate) {
 const parsed = parseCalendarEvent(event);
 const equipmentName = parsed.equipment.length > 0 ? parsed.equipment[0].name : '';
 
+// For 'edit' action: rebuild summary and description from fields
+let newSummary = event.summary || '';
+let newDescription = event.description || '';
+if (params.action === 'edit' && params.fields && Object.keys(params.fields).length > 0) {
+  const f = params.fields;
+  // Rebuild title: "Equipment [+ addons] | price"
+  const equipment = f.equipment || parsed.equipment.map(e => e.name).join(', ') || '';
+  const addons = f.addons || '';
+  const price = f.price != null ? f.price : parsed.price;
+  let title = equipment;
+  if (addons) title += ' + ' + addons;
+  if (price) title += ' | ' + price + '\\u20ac';
+  newSummary = title || newSummary;
+  // Rebuild description
+  const location = f.location || f.delivery_address || f.city || parsed.delivery_address || '';
+  const phone = f.customer_phone || f.phone || parsed.customer_phone || '';
+  const name = f.customer_name || f.name || parsed.customer_name || '';
+  const notes = f.notes || parsed.notes || '';
+  const descParts = [];
+  if (location) descParts.push(location);
+  if (phone) descParts.push(phone);
+  if (name) descParts.push(name);
+  if (notes) descParts.push(notes);
+  if (descParts.length > 0) newDescription = descParts.join('\\n');
+}
+
 return [{ json: {
   eventId: params.eventId,
   newStart,
   newEnd,
-  newSummary: event.summary || '',
-  newDescription: event.description || '',
+  newSummary,
+  newDescription,
   equipmentName,
   action: params.action,
   checkConflictMin: newStart + 'T00:00:00Z',
@@ -929,11 +983,17 @@ return [{ json: { ...prev, hasConflict: false } }];
     nodes.append(code_node("update-success", "Update Success", """
 const updated = $input.first().json;
 const params = $('Calculate New Dates').first().json;
+let message;
+if (params.action === 'extend') {
+  message = `Užsakymas pratęstas iki ${params.newEnd}`;
+} else if (params.action === 'edit') {
+  message = 'Užsakymas atnaujintas';
+} else {
+  message = `Užsakymas perkeltas į ${params.newStart}`;
+}
 return [{ json: {
   success: true,
-  message: params.action === 'extend'
-    ? `Užsakymas pratęstas iki ${params.newEnd}`
-    : `Užsakymas perkeltas į ${params.newStart}`,
+  message,
   eventId: updated.id || params.eventId
 }}];
 """, 2140, Y - 80))

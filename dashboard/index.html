@@ -1225,7 +1225,7 @@ body {
 }
 .create-fab:hover {
   transform: scale(1.08);
-  background: var(--accent-dark, #e68900);
+  background: var(--accent-hover, #E85D2C);
 }
 
 /* Filter bar */
@@ -1708,7 +1708,7 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
     <div class="stat-sub" id="statWeekSub"></div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Neapmok&#279;ti avansai</div>
+    <div class="stat-label">&#128197; &#352;io m&#279;nesio</div>
     <div class="stat-value" id="statUnpaid">&mdash;</div>
   </div>
   <div class="stat-card">
@@ -1815,20 +1815,25 @@ var PAYMENT_LT = {
   'Paid in Full': 'Apmok\u0117ta',
   'Paid':         'Apmok\u0117ta',
   'Deposit Paid': 'Avansas',
-  'Unpaid':       'Neapmok\u0117ta'
+  'Unpaid':       'Neapmok\u0117ta',
+  'Pending':      'Neapmok\u0117ta',
+  'Unknown':      'Ne\u017einoma'
 };
 
 var PAYMENT_CLASS = {
   'Paid in Full': 'pay-paid',
   'Paid':         'pay-paid',
   'Deposit Paid': 'pay-deposit',
-  'Unpaid':       'pay-unpaid'
+  'Unpaid':       'pay-unpaid',
+  'Pending':      'payment-unpaid',
+  'Unknown':      'payment-unpaid'
 };
 
 var EQUIP_STATUS_LT = {
   'Available':      'Laisva',
   'Reserved':       'Rezervuota',
   'Rented':         'I\u0161nuomota',
+  'Booked':         'U\u017eimta',
   'In Transit':     'Gabenama',
   'Needs Cleaning': 'Valymas',
   'Damaged':        'Pa\u017eeista'
@@ -1838,6 +1843,7 @@ var EQUIP_STATUS_CLASS = {
   'Available':      'equip-available',
   'Reserved':       'equip-reserved',
   'Rented':         'equip-rented',
+  'Booked':         'equip-rented',
   'In Transit':     'equip-in-transit',
   'Needs Cleaning': 'equip-needs-cleaning',
   'Damaged':        'equip-damaged'
@@ -2166,7 +2172,7 @@ function applyDemoData() {
     today_count: 2,
     week_revenue: 840,
     last_week_revenue: 620,
-    unpaid_deposits: 1,
+    month_count: 1,
     available_equipment: 15
   };
 }
@@ -2485,13 +2491,18 @@ function buildBookingCard(b) {
 
   // Determine entry source icon
   var sourceIcon = '';
+  var sourceTitle = '';
   var src = b.entry_source || '';
   if (src === 'Telegram') {
-    sourceIcon = '\uD83D\uDCF1';
+    sourceIcon = '\uD83D\uDCF1'; sourceTitle = 'Telegram';
   } else if (src === 'Chatwoot' || src === 'Chat') {
-    sourceIcon = '\uD83D\uDCAC';
+    sourceIcon = '\uD83D\uDCAC'; sourceTitle = src;
   } else if (src === 'Web' || src === 'Demo') {
-    sourceIcon = '\uD83C\uDF10';
+    sourceIcon = '\uD83C\uDF10'; sourceTitle = src;
+  } else if (src === 'system') {
+    sourceIcon = '\uD83E\uDD16'; sourceTitle = 'Sistema';
+  } else if (src === 'manual') {
+    sourceIcon = '\u270F\uFE0F'; sourceTitle = 'Rankinis';
   }
 
   // Format created_at date
@@ -2507,7 +2518,7 @@ function buildBookingCard(b) {
   html += '<div class="booking-card-name">';
   html += escHtml(b.customer_name || '\u2014');
   if (sourceIcon) {
-    html += ' <span class="booking-source-badge" title="' + escHtml(src) + '">' + sourceIcon + '</span>';
+    html += ' <span class="booking-source-badge" title="' + escHtml(sourceTitle || src) + '">' + sourceIcon + '</span>';
   }
   html += '</div>';
   if (timeStr) html += '<div class="booking-card-time">' + escHtml(timeStr) + '</div>';
@@ -2639,7 +2650,7 @@ function renderStats() {
   var todayCount = parseInt(s.today_count) || 0;
   var weekRevenue = parseFloat(s.week_revenue) || 0;
   var lastWeekRevenue = parseFloat(s.last_week_revenue) || 0;
-  var unpaid = parseInt(s.unpaid_deposits) || 0;
+  var unpaid = parseInt(s.month_count) || 0;
   var available = parseInt(s.available_equipment) || 0;
   var totalEquip = state.equipment.length || 20;
 
@@ -3228,7 +3239,7 @@ function openCreateModal(prefilledDate) {
     fetch(API_AVAILABILITY + '?date=' + dt + '&equipment=' + encodeURIComponent(eq))
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var available = d.available !== false;
+        var available = !d.booked || !d.booked.some(function(b) { return b.name === eq; });
         availBadge.textContent = available ? '\u2705 Laisva' : '\u26a0\ufe0f U\u017eimta';
         availBadge.style.color = available ? 'var(--green)' : 'var(--orange)';
       })
@@ -3494,7 +3505,12 @@ function deleteBooking(bookingId) {
     if (!res.ok) { throw new Error('HTTP ' + res.status); }
     return res.json().catch(function() { return {}; });
   })
-  .then(function() {
+  .then(function(data) {
+    if (data && data.success === false) {
+      closeDeleteDialog();
+      showToast(data.reason === 'manual_event' ? 'Negalima ištrinti rankinio įvykio' : 'Klaida trinant', 'error');
+      return;
+    }
     state.bookings = state.bookings.filter(function(b) {
       return String(getBookingId(b)) !== String(bookingId);
     });

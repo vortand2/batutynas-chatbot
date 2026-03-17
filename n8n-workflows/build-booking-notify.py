@@ -481,7 +481,7 @@ add_node({
 connect("Prepare Telegram", "Send Telegram")
 
 # ── 5. Return Confirmation ────────────────────────────────────────────────────
-# This is the "last node" for both webhook (responseMode: lastNode) and sub-workflow
+# Runs after Send Email; then flows into Respond OK (the shared terminal node)
 
 add_node({
     "parameters": {"jsCode": RETURN_CONFIRMATION_CODE},
@@ -493,10 +493,11 @@ add_node({
 })
 connect("Send Email", "Return Confirmation")
 
-# ── 5b. Respond to Webhook (for webhook path) ─────────────────────────────────
-# Webhook with responseMode: lastNode will auto-respond from Return Confirmation
-# But we also need to ensure the webhook responds even if email fails
-# The respondToWebhook provides explicit control
+# ── 5b. Respond to Webhook (terminal node — both branches converge here) ───────
+# Email branch:    Send Email → Return Confirmation → Respond OK
+# Telegram branch: Send Telegram → Respond OK
+# responseMode: "responseNode" requires this node to be reachable from BOTH branches.
+# continueOnFail prevents crash when triggered as sub-workflow (no webhook context).
 
 add_node({
     "parameters": {
@@ -515,9 +516,10 @@ add_node({
     "name": "Respond OK",
     "type": "n8n-nodes-base.respondToWebhook",
     "typeVersion": 1,
-    "position": pos(1980, 500),
+    "position": pos(1980, 300),
     "continueOnFail": True  # Prevents crash when called as sub-workflow (no webhook context)
 })
+connect("Return Confirmation", "Respond OK")
 connect("Send Telegram", "Respond OK")
 
 # ══════════════════════════════════════════════════════════════════════════════

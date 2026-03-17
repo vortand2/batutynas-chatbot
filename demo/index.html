@@ -3580,10 +3580,11 @@
 
   function buildGuestCountOptions() {
     const ranges = [
-      { label: 'Iki 6 vaikų', value: 'Apie 6 vaikų' },
-      { label: '7–12 vaikų', value: 'Apie 10 vaikų' },
-      { label: '13–20 vaikų', value: 'Apie 15 vaikų' },
-      { label: 'Daugiau nei 20', value: 'Apie 30 vaikų' }
+      { label: 'Iki 6', value: 'Apie 6 vaikų' },
+      { label: '7–12', value: 'Apie 10 vaikų' },
+      { label: '13–20', value: 'Apie 15 vaikų' },
+      { label: '21–50', value: 'Apie 35 vaikų' },
+      { label: '50+', value: 'Daugiau nei 50 vaikų' }
     ];
     let html = '<div class="chat-options" data-step="guest-count">';
     for (const r of ranges) {
@@ -3897,7 +3898,8 @@
       { pattern: /\[PURCHASE_SUBMENU\]/g, fn: () => buildPurchaseSubmenu() },
       { pattern: /\[PURCHASE_EMAIL_INPUT\]/g, fn: () => buildPurchaseEmailInput() },
       { pattern: /\[PURCHASE_CUSTOM_FORM\]/g, fn: () => buildPurchaseCustomForm() },
-      { pattern: /\[LOCATION_OPTIONS\]/g, fn: () => buildLocationOptions() }
+      { pattern: /\[LOCATION_OPTIONS\]/g, fn: () => buildLocationOptions() },
+      { pattern: /\[HUMAN_HANDOFF\]/g, fn: () => '<div class="chat-handoff-notice">Šį klausimą geriau išspręs mūsų komanda tiesiogiai.<br><br>📞 <strong>+370 648 803 88</strong><br>✉️ <strong>info@batutynas.lt</strong><br>🕐 Darbo laikas: <strong>8:00–21:00</strong></div>' }
     ];
 
     let hasMarker = false;
@@ -3970,8 +3972,8 @@
 
     if (hadBookingConfirm) {
       quickReplies = [
-        { label: 'Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },
-        { label: 'Pagrindinis meniu', value: 'Pagrindinis meniu' }
+        { label: '🔁 Užsakyti dar vieną', value: 'Noriu užsakyti dar vieną batutą' },
+        { label: '🏠 Pradžia', value: 'Pagrindinis meniu' }
       ];
     } else if (isBookingStep) {
       quickReplies = [
