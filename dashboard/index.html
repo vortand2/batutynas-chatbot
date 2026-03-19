@@ -1825,8 +1825,8 @@ var PAYMENT_CLASS = {
   'Paid':         'pay-paid',
   'Deposit Paid': 'pay-deposit',
   'Unpaid':       'pay-unpaid',
-  'Pending':      'payment-unpaid',
-  'Unknown':      'payment-unpaid'
+  'Pending':      'pay-unpaid',
+  'Unknown':      'pay-unpaid'
 };
 
 var EQUIP_STATUS_LT = {
@@ -2112,9 +2112,8 @@ function loadData() {
     })
     .finally(function() {
       clearTimeout(timeoutId);
-      if (_activeFetchController === controller) {
-        _activeFetchController = null;
-      }
+      if (_activeFetchController !== controller) return; // superseded by newer request
+      _activeFetchController = null;
       state.loading = false;
       state.lastFetched = new Date();
       showLoading(false);
@@ -2635,7 +2634,7 @@ function renderEquipment() {
     pill.innerHTML =
       '<span class="equip-icon">' + escHtml(eq.icon || '\uD83C\uDFAA') + '</span>' +
       '<span class="equip-name">' + escHtml(eq.name) + '</span>' +
-      '<span class="equip-status">' + (EQUIP_STATUS_LT[statusKey] || statusKey) + '</span>';
+      '<span class="equip-status">' + escHtml(EQUIP_STATUS_LT[statusKey] || statusKey) + '</span>';
 
     strip.appendChild(pill);
   });
@@ -3314,10 +3313,13 @@ function openCreateModal(prefilledDate) {
       notes: inpNotes.value.trim() || null
     };
 
+    var createCtrl = new AbortController();
+    var createTimeout = setTimeout(function() { createCtrl.abort(); }, 15000);
     fetch(API_CREATE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: createCtrl.signal
     })
       .then(function(res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -3336,10 +3338,11 @@ function openCreateModal(prefilledDate) {
       })
       .catch(function(err) {
         console.error('Create failed:', err);
-        showToast('Klaida kuriant u\u017esakym\u0105', 'error');
+        showToast(err.name === 'AbortError' ? 'Serveris neatsako' : 'Klaida kuriant u\u017esakym\u0105', 'error');
         btnCreate.disabled = false;
         btnCreate.textContent = 'Sukurti';
-      });
+      })
+      .finally(function() { clearTimeout(createTimeout); });
   });
 
   footer.appendChild(btnCancel);
