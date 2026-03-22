@@ -169,18 +169,29 @@ function buildGroupEquipment(items, headerText, guestCount, btnText) {
   }
 
   // Cards work on both web widget and Messenger (Chatwoot translates to Generic Template)
+  // Messenger Generic Templates max 10 elements — overflow to dropdown
   if (recommended.length > 0) {
     var result = buildTrampolineCards(recommended, btnText || '\u2713 Noriu šio');
-    if (result.cards.length > 0) {
+    var cardItems = result.cards;
+    var overflowCards = [];
+    if (isMessenger && cardItems.length > 10) {
+      overflowCards = cardItems.slice(10);
+      cardItems = cardItems.slice(0, 10);
+    }
+    if (cardItems.length > 0) {
       messages.push({
         content: headerText + ':',
         content_type: 'cards',
-        content_attributes: { items: result.cards },
+        content_attributes: { items: cardItems },
         message_type: 'outgoing'
       });
     }
-    // Merge no-image recommended items + others into one dropdown
-    var extraItems = buildTrampolineSelectItems(result.noImgItems.concat(others));
+    // Convert overflow cards to select items
+    var overflowSelectItems = overflowCards.map(function(c) {
+      return { title: c.title.substring(0, 20), value: c.actions[0].payload };
+    });
+    // Merge no-image recommended items + others + overflow into one dropdown
+    var extraItems = buildTrampolineSelectItems(result.noImgItems.concat(others)).concat(overflowSelectItems);
     if (extraItems.length > 0) {
       messages.push({
         content: result.noImgItems.length > 0 ? 'Ir dar:' : 'Turime ir daugiau:',
@@ -584,7 +595,7 @@ function buildHumanHandoff() {
   var telegramText = '\u{1F4DE} <b>Klientas nori kalb\u0117ti!</b>\n\n'
     + '\u{1F464} ' + label + '\n'
     + '\u{1F4AC} ' + channel + '\n\n'
-    + '\u{1F4A1} <i>Atidarykite Facebook Page Inbox ir atsakykite.</i>';
+    + '\u{1F4A1} <i>' + (isMessenger ? 'Atidarykite Facebook Page Inbox ir atsakykite.' : 'Atidarykite Chatwoot ir atsakykite.') + '</i>';
 
   var telegramItem = {
     _url: TELEGRAM_BOT_URL,
