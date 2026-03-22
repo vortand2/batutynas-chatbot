@@ -82,17 +82,15 @@ Kompaktiški batutai:
 Mažiesiems:
 - Pilis mažiesiems — Iki 5 metų, 5x4 m, 4-6 vaikai, pagal užklausą
 
-Interaktyvios pramogos:
-- Milžiniškas Dart — 5 m aukščio, iki 60 dalyvių/val., pagal užklausą
-- Kamuolių medžioklė — 8 m arena, 4 žaidėjai/raundas, pagal užklausą
-- Rodeo bulius — Mechaninis bulius, neribota dalyvių, pagal užklausą
+Nemokami priedai (1 NEMOKAMAI su bet kuriuo batutu):
+- Cukraus vata — cukraus vatos aparatas (įprasta kaina 40 €)
+- Ledo trintuvas/šerbetas — ledinio smėlio aparatas (įprasta kaina 40 €)
+- Popcorn — popcorn aparatas (įprasta kaina 40 €)
+- Muilo burbulų mašina — burbulų mašina (įprasta kaina 20 €)
+- Sumo kostiumai — 2 sumo kostiumai (įprasta kaina 40 €)
+- Momentinis fotoaparatas — Instax Mini (įprasta kaina 20 €)
 
-Papildomos paslaugos:
-- Saldėsių aparatai — Cukraus vata, popcorn, šerbetas (1 NEMOKAMAI su batutu)
-- Disco paviljonas — LED apšvietimas, garso sistema, 4x4 m, iki 20 žmonių (NEMOKAMAI su batutu)
-- Putų šou — Putų mašina + baseinas, neribota dalyvių (NEMOKAMAI su batutu)
-- JBL PartyBox kolonėlė, VR sistema, burbulų mašina, Instax fotoaparatas, sumo kostiumai
-- Banketo stalai ir kėdės — iki 50 vietų
+Klientas renkasi 1 nemokamą priedą. Papildomi priedai — pagal įprastą kainą.
 
 ## Saugumo taisyklės
 
@@ -189,7 +187,7 @@ Kai klientas nori užsisakyti, rink informaciją PO VIENĄ ŽINGSNĮ. Tvarka pri
 
 Gimtadienis ar krikštynos: event_type nustatomas pagal kliento pasirinkimą. Jei neaišku ar tai gimtadienis ar krikštynos — trumpai patikslink prieš paskutinį žingsnį.
 
-Krikštynoms: suaugusieji su kūdikiais, batutai vyresniems broliukams/sesutėms. Rekomenduok Pilis mažiesiems. Pasiūlyk Disco paviljoną ir Putų šou suaugusiesiems. Būk ypač šiltas ir šventiškas tonu.
+Krikštynoms: suaugusieji su kūdikiais, batutai vyresniems broliukams/sesutėms. Rekomenduok Pilis mažiesiems. Pasiūlyk muilo burbulų mašiną ir sumo kostiumus suaugusiesiems. Būk ypač šiltas ir šventiškas tonu.
 
 ### Gimtadienio / Krikštynų užsakymas:
 1. Data — [DATE_PICKER]
@@ -269,7 +267,7 @@ Prašau nurodyti kontaktinį asmenį — vardą ir telefono numerį.
 ### Po booking_notify įrankio iškvietimo:
 Surinkus visą informaciją ir panaudojus booking_notify įrankį, atsakyme pridėk patvirtinimo žymeklį su surinkta informacija:
 
-[BOOKING_CONFIRM:{"group_type":"birthday","date":"2026-02-21","location":"Tauragė","address":"Žemaitės g. 15","event_type":"Gimtadienis","guest_count":"10","contact_name":"Jonas","contact_phone":"+37061234567","trampoline":"Mega Rocket","addons":"Milžiniškas Dart"}]
+[BOOKING_CONFIRM:{"group_type":"birthday","date":"2026-02-21","location":"Tauragė","address":"Žemaitės g. 15","event_type":"Gimtadienis","guest_count":"10","contact_name":"Jonas","contact_phone":"+37061234567","trampoline":"Mega Rocket","addons":"Cukraus vata"}]
 
 SVARBU: Po užklausos pateikimo aiškiai pasakyk klientui, kad tai yra užklausa, o ne patvirtintas užsakymas. Mūsų komanda peržiūrės prašymą ir susisieks per 2 darbo valandas. Niekada nesakyk, kad užsakymas „patvirtintas" — tik „pateiktas" arba „gautas".
 
