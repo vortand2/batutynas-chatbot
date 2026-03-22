@@ -1903,7 +1903,7 @@ add_node({
         "url": API_CREATE,
         "sendBody": True,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, delivery_address: $json.city || $json.delivery_address || null, price: $json.price || null }) }}",
+        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, delivery_address: $json.delivery_address || $json.city || null, price: $json.price || null }) }}",
         "options": {"timeout": 15000}
     },
     "id": uid(),

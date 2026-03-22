@@ -3555,8 +3555,32 @@ function deleteBooking(bookingId) {
   })
   .then(function(data) {
     if (data && data.success === false) {
+      if (data.reason === 'manual_event') {
+        closeDeleteDialog();
+        if (confirm('\u0160is \u012fvykis sukurtas rankiniu b\u016bdu Google Calendar. Vis tiek i\u0161trinti?')) {
+          var forceCtrl = new AbortController();
+          var forceTimeout = setTimeout(function() { forceCtrl.abort(); }, 15000);
+          fetch(API_DELETE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: bookingId, force: true }),
+            signal: forceCtrl.signal
+          })
+          .then(function(r) { return r.json().catch(function() { return {}; }); })
+          .then(function(d) {
+            if (d && d.success !== false) {
+              state.bookings = state.bookings.filter(function(b) { return String(getBookingId(b)) !== String(bookingId); });
+              renderCalendar(); _rerenderCurrentDay();
+              showToast('U\u017esakymas i\u0161trintas', 'success');
+            } else { showToast('Klaida trinant', 'error'); }
+          })
+          .catch(function() { showToast('Serveris neatsako', 'error'); })
+          .finally(function() { clearTimeout(forceTimeout); });
+        }
+        return;
+      }
       closeDeleteDialog();
-      showToast(data.reason === 'manual_event' ? 'Negalima ištrinti rankinio įvykio' : 'Klaida trinant', 'error');
+      showToast('Klaida trinant', 'error');
       return;
     }
     state.bookings = state.bookings.filter(function(b) {

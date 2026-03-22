@@ -8,7 +8,7 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "a90a132c2c6f4d9ab0e1",
+      "id": "21939f7367454f14845e",
       "name": "Telegram Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
@@ -22,7 +22,7 @@
       "parameters": {
         "jsCode": "// Webhook wraps Telegram payload in body\nconst raw = $input.first().json;\nconst update = raw.body || raw;\n\n// Callback query (inline keyboard press)\nif (update.callback_query) {\n  const cb = update.callback_query;\n  return [{ json: {\n    msgType: 'callback',\n    callbackData: cb.data || '',\n    callbackQueryId: cb.id,\n    chatId: String(cb.message?.chat?.id || ''),\n    messageId: cb.message?.message_id\n  }}];\n}\n\nconst message = update.message || {};\nconst chatId = String(message.chat?.id || '');\n\n// Voice message\nif (message.voice || message.audio) {\n  const voice = message.voice || message.audio;\n  return [{ json: {\n    msgType: 'voice',\n    chatId,\n    fileId: voice.file_id,\n    duration: voice.duration || 0\n  }}];\n}\n\n// Text message\nreturn [{ json: {\n  msgType: 'text',\n  chatId,\n  text: (message.text || '').trim()\n}}];"
       },
-      "id": "e64dc486886b4407b81f",
+      "id": "36f38c4183f640b8adb2",
       "name": "Classify Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -53,7 +53,7 @@
         },
         "options": {}
       },
-      "id": "873c027cb89e4c61b482",
+      "id": "5da97afa0019465196ef",
       "name": "IF Is Text",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -84,7 +84,7 @@
         },
         "options": {}
       },
-      "id": "b908b23d5e494912a696",
+      "id": "000b35c2150c4fb5abdb",
       "name": "IF Is Voice",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -115,7 +115,7 @@
         },
         "options": {}
       },
-      "id": "6ff99afcd43f4a9e974d",
+      "id": "3a441f8b09df4643b3a1",
       "name": "IF Is Callback",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -128,7 +128,7 @@
       "parameters": {
         "jsCode": "\nconst item = $input.first().json;\nconst text = (item.text || '').trim();\nconst chatId = item.chatId || '';\n\nif (!text || !chatId) {\n  return [{ json: { intent: 'ignore', chatId, apiType: 'none' } }];\n}\n\nlet intent = 'unknown';\nlet args = {};\nlet apiType = 'none';  // 'fetch_dashboard', 'fetch_availability', 'action_update', 'action_delete', 'none'\nlet apiUrl = '';\nlet apiBody = {};\n\nconst cleanText = text.replace(/@[A-Za-z_]+bot/i, '').trim();\nconst parts = cleanText.split(/\\s+/);\nconst cmd = parts[0]?.toLowerCase() || '';\nconst arg1 = parts[1] || '';\nconst arg2 = parts[2] || '';\nconst lowerText = cleanText.toLowerCase();\n\n// Helper: parse Lithuanian date like \"06-15\", \"2026-06-15\", \"birzelio 6\", \"rytoj\"\nfunction parseDate(str) {\n  const s = str.toLowerCase().trim();\n  const now = new Date();\n\n  if (/^(siandien|šiandien|šiandie)$/.test(s)) return now.toISOString().substring(0, 10);\n  if (/^(rytoj|ryt)$/.test(s)) {\n    const t = new Date(now); t.setDate(t.getDate() + 1);\n    return t.toISOString().substring(0, 10);\n  }\n  if (/^(poryt|porytoj)$/.test(s)) {\n    const t = new Date(now); t.setDate(t.getDate() + 2);\n    return t.toISOString().substring(0, 10);\n  }\n\n  // ISO date: 2026-06-15\n  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s;\n  // Short date: 06-15 or 06.15\n  const shortMatch = s.match(/^(\\d{1,2})[-.](\\d{1,2})$/);\n  if (shortMatch) {\n    const mm = shortMatch[1].padStart(2, '0');\n    const dd = shortMatch[2].padStart(2, '0');\n    return `${now.getFullYear()}-${mm}-${dd}`;\n  }\n\n  // Lithuanian month names (genitive form)\n  const LT_MONTHS = {\n    'sausio':1,'vasario':2,'kovo':3,'balandzio':4,'balandžio':4,\n    'gegužės':5,'geguzes':5,'birželio':6,'birzelio':6,\n    'liepos':7,'rugpjūčio':8,'rugpjucio':8,'rugsėjo':9,'rugsejo':9,\n    'spalio':10,'lapkričio':11,'lapkricio':11,'gruodžio':12,'gruodzio':12\n  };\n  const ltMatch = s.match(/^([a-ząčęėįšųūž]+)\\s+(\\d{1,2})$/);\n  if (ltMatch && LT_MONTHS[ltMatch[1]]) {\n    const mm = String(LT_MONTHS[ltMatch[1]]).padStart(2,'0');\n    const dd = ltMatch[2].padStart(2,'0');\n    return `${now.getFullYear()}-${mm}-${dd}`;\n  }\n\n  return null;\n}\n\nconst today = new Date().toISOString().substring(0, 10);\nconst now = new Date();\n\n// === COMMAND PARSING ===\nif (cleanText.startsWith('/')) {\n  switch(cmd) {\n    case '/start': case '/help': case '/pagalba':\n      intent = 'help'; break;\n\n    case '/today': case '/siandien':\n      intent = 'today';\n      apiType = 'fetch_dashboard';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n      args.filterDate = today;\n      break;\n\n    case '/tomorrow': case '/rytoj': {\n      intent = 'tomorrow';\n      const tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\n      const tmrwStr = tmrw.toISOString().substring(0, 10);\n      apiType = 'fetch_dashboard';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${tmrw.getFullYear()}&month=${tmrw.getMonth() + 1}`;\n      args.filterDate = tmrwStr;\n      break;\n    }\n\n    case '/week': case '/savaite': {\n      intent = 'week';\n      apiType = 'fetch_dashboard';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n      const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 6);\n      args.filterDateFrom = today;\n      args.filterDateTo = weekEnd.toISOString().substring(0, 10);\n      // Cross-month detection: if week end is in different month, fetch both\n      if (weekEnd.getMonth() !== now.getMonth() || weekEnd.getFullYear() !== now.getFullYear()) {\n        args.crossMonth = true;\n        args.secondApiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${weekEnd.getFullYear()}&month=${weekEnd.getMonth() + 1}`;\n      }\n      break;\n    }\n\n    case '/available': case '/laisvi': {\n      intent = 'available';\n      const dateArg = arg1 ? parseDate(arg1) : today;\n      apiType = 'fetch_availability';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability' + `?date=${dateArg || today}`;\n      args.date = dateArg || today;\n      break;\n    }\n\n    case '/stats': case '/statistika':\n      intent = 'stats';\n      apiType = 'fetch_dashboard';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n      break;\n\n    case '/search': case '/surask': case '/rask': {\n      intent = 'search';\n      const query = parts.slice(1).join(' ');\n      if (!query) {\n        intent = 'error'; args.msg = '⚠️ Nurodykite paieškos žodį, pvz: /surask Rita';\n        break;\n      }\n      apiType = 'fetch_dashboard';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n      args.searchQuery = query.toLowerCase();\n      args.multiMonth = true;\n      break;\n    }\n\n    case '/cancel': case '/atsaukti': {\n      if (!arg1) {\n        intent = 'error'; args.msg = '⚠️ Nurodykite event ID, pvz: /atsaukti abc123';\n        break;\n      }\n      // Support: /atsaukti <id> force — to force-delete manual events\n      const forceDelete = (arg2 || '').toLowerCase() === 'force';\n      intent = 'cancel';\n      apiType = 'action_delete';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-delete';\n      apiBody = { event_id: arg1, force: forceDelete };\n      break;\n    }\n\n    case '/nauja': case '/naujas': case '/new': {\n      // Format: /nauja <equipment> <name> <date> [price] [phone] [location]\n      // Equipment names may be multi-word (e.g. \"Candy Pop\"), so we match greedily\n      // against the known EQUIPMENT_NAMES list before tokenizing the remainder.\n      const EQUIPMENT_NAMES = [\"Fantazij\\u0173 parkas\", \"D\\u017eiumand\\u017ei parkas\", \"Giga ruo\\u017eas\", \"Mega ruo\\u017eas\", \"Mega Rocket\", \"Mega Ufonautai\", \"Mega Waikiki\", \"Monstrai\", \"Chameleonas\", \"Candy Pop\", \"A\\u0161tuonkojis\", \"Vienaragiai\", \"Pilis ma\\u017eiesiems\", \"Mil\\u017eini\\u0161kas Dart\", \"Kamuoli\\u0173 med\\u017eiokl\\u0117\", \"Rodeo bulius\"];\n\n      const rawText = parts.slice(1).join(' ');\n      if (!rawText || rawText.split(/\\s+/).length < 2) {\n        intent = 'error';\n        args.msg = '⚠️ Formatas: /nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; [kaina] [tel] [vietovė]\\nPvz: /nauja Candy Pop Rita 06-15 185';\n        break;\n      }\n\n      // Try to match equipment name from the start (longest match first)\n      let eqName = null, remainder = rawText;\n      const sortedNames = EQUIPMENT_NAMES.slice().sort((a, b) => b.length - a.length);\n      const rawLower = rawText.toLowerCase();\n      for (const name of sortedNames) {\n        if (rawLower.startsWith(name.toLowerCase())) {\n          eqName = name;\n          remainder = rawText.substring(name.length).trim();\n          break;\n        }\n      }\n\n      // Parse remaining tokens by pattern matching\n      const remainArgs = remainder.split(/\\s+/).filter(Boolean);\n      let custName = null, dateStr = null, price = null, phone = null, location = null;\n\n      for (const a of remainArgs) {\n        const parsedDate = parseDate(a);\n        if (parsedDate && !dateStr) { dateStr = parsedDate; continue; }\n        if (/^\\+?\\d{8,}$/.test(a.replace(/[\\s-]/g, '')) && !phone) { phone = a; continue; }\n        if (/^\\d{2,4}$/.test(a) && parseInt(a) < 5000 && !price) { price = parseInt(a); continue; }\n        if (!eqName && !custName) { eqName = a; continue; }  // fallback: no list match\n        if (!custName) { custName = a; continue; }\n        if (!location) { location = a; continue; }\n        // Extra words append to location\n        if (location) { location += ' ' + a; }\n      }\n\n      if (!eqName || !dateStr) {\n        intent = 'error';\n        args.msg = '⚠️ Neatpažinta įranga arba data.\\nPvz: /nauja Candy Pop Rita 06-15 185';\n        break;\n      }\n\n      intent = 'quick_create';\n      apiType = 'action_create';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create';\n      apiBody = {\n        equipment: eqName,\n        date: dateStr,\n        customer_name: custName || 'Klientas',\n        customer_phone: phone || null,\n        delivery_address: location || null,\n        price: price || null\n      };\n      break;\n    }\n\n    case '/kada': case '/laisva': {\n      const equipQuery = parts.slice(1).join(' ');\n      if (!equipQuery) {\n        intent = 'error'; args.msg = '⚠️ Nurodykite įrangą: /kada Candy Pop';\n        break;\n      }\n      intent = 'next_free';\n      apiType = 'fetch_next_free';\n      apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-next-free' + `?equipment=${encodeURIComponent(equipQuery)}&days=30`;\n      args.equipQuery = equipQuery;\n      break;\n    }\n\n    default:\n      intent = 'unknown';\n  }\n} else {\n  // === NATURAL LANGUAGE (Lithuanian) ===\n  if (/\\b(siandien|šiandien|šiandie|kas siandien|kas šiandien)\\b/i.test(lowerText)) {\n    intent = 'today';\n    apiType = 'fetch_dashboard';\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n    args.filterDate = today;\n  } else if (/\\b(rytoj|ryt\\b)/i.test(lowerText)) {\n    intent = 'tomorrow';\n    const tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\n    apiType = 'fetch_dashboard';\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${tmrw.getFullYear()}&month=${tmrw.getMonth() + 1}`;\n    args.filterDate = tmrw.toISOString().substring(0, 10);\n  } else if (/(savait|savaite|savaitė|šią savaitę|sia savaite)/i.test(lowerText)) {\n    intent = 'week';\n    apiType = 'fetch_dashboard';\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n    const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 6);\n    args.filterDateFrom = today;\n    args.filterDateTo = weekEnd.toISOString().substring(0, 10);\n    if (weekEnd.getMonth() !== now.getMonth() || weekEnd.getFullYear() !== now.getFullYear()) {\n      args.crossMonth = true;\n      args.secondApiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${weekEnd.getFullYear()}&month=${weekEnd.getMonth() + 1}`;\n    }\n  } else if (/(laisv|turimos|kiek laisv|kas laisva)/i.test(lowerText)) {\n    intent = 'available';\n    // Try to extract date from NL\n    let nlDate = today;\n    const dateMatch = lowerText.match(/(\\d{1,2})[-.](\\d{1,2})/);\n    if (dateMatch) nlDate = `${now.getFullYear()}-${dateMatch[1].padStart(2,'0')}-${dateMatch[2].padStart(2,'0')}`;\n    if (/rytoj/i.test(lowerText)) { const t = new Date(now); t.setDate(t.getDate()+1); nlDate = t.toISOString().substring(0,10); }\n    apiType = 'fetch_availability';\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability' + `?date=${nlDate}`;\n    args.date = nlDate;\n  } else if (/(statistik|apzvalga|apžvalga)/i.test(lowerText)) {\n    intent = 'stats';\n    apiType = 'fetch_dashboard';\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n  } else if (/(pagalb|komand)/i.test(lowerText)) {\n    intent = 'help';\n  } else if (/(surask|rask|iesk|iešk|kur|koks|kokia)/i.test(lowerText)) {\n    intent = 'search';\n    apiType = 'fetch_dashboard';\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n    // Use the whole text as search query (remove trigger words)\n    args.searchQuery = lowerText.replace(/(surask|rask|iesk|iešk|kur|koks|kokia)\\s*/gi, '').trim();\n  }\n}\n\nreturn [{ json: { intent, args, apiType, apiUrl, apiBody, chatId } }];"
       },
-      "id": "0089ec93234a45439ced",
+      "id": "6ca97702fecc40c69c80",
       "name": "Parse Intent",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -159,7 +159,7 @@
         },
         "options": {}
       },
-      "id": "b281416814214d6ead89",
+      "id": "fb118443905246698d4c",
       "name": "IF Is Fetch",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -190,7 +190,7 @@
         },
         "options": {}
       },
-      "id": "4eb28e0c16cf4ea2a0e2",
+      "id": "2e4f06ff060e4a318ee5",
       "name": "IF Is Delete",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -221,7 +221,7 @@
         },
         "options": {}
       },
-      "id": "2e53dfe57a0d4d97bb36",
+      "id": "d8dd3e63c3cf4b81af77",
       "name": "IF Is Create",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -238,7 +238,7 @@
           "timeout": 15000
         }
       },
-      "id": "a71f57fc929d42918792",
+      "id": "d87a32cf43364d07b3c1",
       "name": "HTTP Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -259,7 +259,7 @@
           "timeout": 15000
         }
       },
-      "id": "3ce21319f600454e8afe",
+      "id": "dfbf4dd9a88e44d0a793",
       "name": "HTTP POST Delete",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -280,7 +280,7 @@
           "timeout": 15000
         }
       },
-      "id": "77c68344c48947e4886d",
+      "id": "ecd27e92f28d4ec99253",
       "name": "HTTP POST Create",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -294,7 +294,7 @@
       "parameters": {
         "jsCode": "const parsed = $('Parse Intent').first().json;\nconst { intent, args, chatId, apiType } = parsed;\nlet data = {};\n\n// Get API response — $input has data from whichever HTTP node fed us\nif (apiType !== 'none') {\n  try {\n    data = $input.first().json;\n  } catch(e) {\n    data = {};\n  }\n}\n\nlet reply = '';\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\nconst monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];\n\nfunction fmtDate(dateStr) {\n  if (!dateStr) return '?';\n  const d = new Date(dateStr + 'T00:00:00');\n  return `${monthNames[d.getMonth()]} ${d.getDate()} (${dayNames[d.getDay()]})`;\n}\n\nfunction fmtBooking(b) {\n  const equip = Array.isArray(b.equipment) && b.equipment.length > 0\n    ? b.equipment.map(e => `${e.icon || '🎪'} ${e.name}`).join(', ')\n    : (b.raw_summary || '?');\n\n  let line = `📌 <b>${equip}</b>`;\n  if (b.duration_days > 1) line += ` (${b.duration_days}d)`;\n  line += '\\n';\n  if (b.customer_name) line += `   👤 ${b.customer_name}`;\n  if (b.customer_phone) line += ` | 📞 ${b.customer_phone}`;\n  if (b.customer_name || b.customer_phone) line += '\\n';\n  if (b.delivery_address) line += `   📍 ${b.delivery_address}\\n`;\n  if (b.price) line += `   💰 €${b.price}`;\n  if (b.addons && b.addons.length > 0) line += ` + ${b.addons.join(', ')}`;\n  if (b.price || (b.addons && b.addons.length > 0)) line += '\\n';\n  // Show event ID (shortened) for reference in commands\n  if (b.calendarEventId) {\n    const shortId = b.calendarEventId.substring(0, 8);\n    line += `   🆔 <code>${shortId}</code>\\n`;\n  }\n  return line;\n}\n\nswitch(intent) {\n  case 'help':\n    reply = `🤖 <b>Batutynas Asistentas</b>\\n\\n` +\n      `📋 <b>Peržiūra:</b>\\n` +\n      `/today — Šiandienos užsakymai\\n` +\n      `/tomorrow — Rytojaus užsakymai\\n` +\n      `/week — Savaitės užsakymai\\n` +\n      `/available [data] — Laisva įranga\\n` +\n      `/stats — Mėnesio statistika\\n` +\n      `/search &lt;žodis&gt; — Ieškoti užsakymo\\n` +\n      `/kada &lt;įranga&gt; — Laisvos datos\\n\\n` +\n      `✏️ <b>Veiksmai:</b>\\n` +\n      `/nauja &lt;įranga&gt; &lt;vardas&gt; &lt;data&gt; — Sukurti\\n` +\n      `/cancel &lt;id&gt; — Atšaukti\\n\\n` +\n      `🎙️ <b>Balsas:</b>\\n` +\n      `Atsiųskite balso žinutę!\\n` +\n      `• Klausimas → atsakys iškart\\n` +\n      `• Naujas užsakymas → sukurs kalendoriuje\\n\\n` +\n      `💬 <b>Arba rašykite lietuviškai:</b>\\n` +\n      `\"šiandien\", \"rytoj\", \"kas laisva?\", \"surask Rita\"`;\n    break;\n\n  case 'today': case 'tomorrow': {\n    const bookings = (data.bookings || []).filter(b => {\n      if (!args.filterDate) return true;\n      return b.event_date === args.filterDate;\n    });\n    const label = intent === 'today' ? '📅 Šiandien' : '📅 Rytoj';\n    const dateLabel = args.filterDate ? ` (${fmtDate(args.filterDate)})` : '';\n    if (bookings.length === 0) {\n      reply = `${label}${dateLabel}: Užsakymų nėra 🎉`;\n    } else {\n      reply = `${label}${dateLabel} — ${bookings.length} užs.:\\n\\n`;\n      bookings.forEach(b => { reply += fmtBooking(b) + '\\n'; });\n    }\n    break;\n  }\n\n  case 'week': {\n    const from = args.filterDateFrom;\n    const to = args.filterDateTo;\n    const bookings = (data.bookings || []).filter(b => {\n      if (!from || !to) return true;\n      return b.event_date >= from && b.event_date <= to;\n    });\n    if (bookings.length === 0) {\n      reply = `📅 Ši savaitė: Užsakymų nėra 🎉`;\n    } else {\n      reply = `📅 Ši savaitė — ${bookings.length} užs.:\\n`;\n      // Group by date\n      const byDate = {};\n      bookings.forEach(b => {\n        const d = (b.event_date || '').substring(0, 10);\n        if (!byDate[d]) byDate[d] = [];\n        byDate[d].push(b);\n      });\n      for (const [date, bks] of Object.entries(byDate).sort()) {\n        reply += `\\n📆 <b>${fmtDate(date)}</b>\\n`;\n        bks.forEach(b => { reply += fmtBooking(b); });\n      }\n    }\n    break;\n  }\n\n  case 'available': {\n    const avail = data.free || [];\n    const booked = data.booked || [];\n    const dateLabel = args.date ? fmtDate(args.date) : 'šiandien';\n    reply = `🎪 <b>Įranga — ${dateLabel}</b>\\n\\n`;\n    if (avail.length === 0) {\n      reply += `⚠️ Visa įranga užimta!\\n`;\n    } else {\n      reply += `✅ <b>Laisva (${avail.length}):</b>\\n`;\n      avail.forEach(e => { reply += `  ${e.icon || '🎪'} ${e.name}\\n`; });\n    }\n    if (booked.length > 0) {\n      reply += `\\n🔒 <b>Užimta (${booked.length}):</b>\\n`;\n      booked.forEach(e => {\n        reply += `  ${e.icon || '🎪'} ${e.name}`;\n        if (e.customer) reply += ` → ${e.customer}`;\n        reply += '\\n';\n      });\n    }\n    break;\n  }\n\n  case 'stats': {\n    const stats = data.stats || {};\n    const now = new Date();\n    reply = `📊 <b>${monthNames[now.getMonth()]} statistika</b>\\n\\n` +\n      `📅 Šį mėnesį: ${stats.month_count || 0} užs.\\n` +\n      `💰 Pajamos: €${stats.month_revenue || 0}\\n` +\n      `📈 Vid. kaina: €${stats.avg_price || 0}\\n` +\n      `🎪 Populiariausia: ${stats.top_equipment || '—'}\\n`;\n    if (stats.busiest_date) reply += `🔥 Daugiausiai: ${fmtDate(stats.busiest_date)}\\n`;\n    break;\n  }\n\n  case 'search': {\n    const query = args.searchQuery || '';\n    const bookings = (data.bookings || []).filter(b => {\n      const text = [\n        b.customer_name, b.customer_phone, b.delivery_address,\n        b.raw_summary, (b.equipment || []).map(e => e.name).join(' ')\n      ].join(' ').toLowerCase();\n      return text.includes(query);\n    });\n    if (bookings.length === 0) {\n      reply = `🔍 Paieška \"${query}\" — nieko nerasta šį mėnesį`;\n    } else {\n      // Group by customer for contact history view\n      const customerMap = {};\n      bookings.forEach(b => {\n        const key = (b.customer_name || b.customer_phone || 'Nežinomas').toLowerCase();\n        if (!customerMap[key]) customerMap[key] = { name: b.customer_name || '—', phone: b.customer_phone || '', bookings: [] };\n        customerMap[key].bookings.push(b);\n      });\n\n      const customerKeys = Object.keys(customerMap);\n      if (customerKeys.length <= 3) {\n        // Show customer history summary\n        reply = `🔍 Paieška \"${query}\" — ${bookings.length} rezultatai:\\n\\n`;\n        customerKeys.forEach(k => {\n          const c = customerMap[k];\n          const sortedBks = c.bookings.sort((a,b) => (b.event_date||'').localeCompare(a.event_date||''));\n          reply += `👤 <b>${c.name}</b>`;\n          if (c.phone) reply += ` | 📞 ${c.phone}`;\n          reply += `\\n📊 ${c.bookings.length} užs. šį mėn.`;\n          reply += `\\n`;\n          sortedBks.slice(0, 5).forEach(b => {\n            reply += `📆 ${fmtDate(b.event_date)}\\n` + fmtBooking(b);\n          });\n          reply += '\\n';\n        });\n      } else {\n        reply = `🔍 Paieška \"${query}\" — ${bookings.length} rezultatai:\\n\\n`;\n        bookings.slice(0, 10).forEach(b => {\n          reply += `📆 ${fmtDate(b.event_date)}\\n` + fmtBooking(b) + '\\n';\n        });\n        if (bookings.length > 10) reply += `\\n... ir dar ${bookings.length - 10}`;\n      }\n    }\n    break;\n  }\n\n  case 'cancel': {\n    if (data.blocked) {\n      // Manual event — blocked without force flag\n      const evId = parsed.apiBody?.event_id || '';\n      reply = `⚠️ <b>Negalima ištrinti</b>\\n` +\n        `📌 Šis įvykis sukurtas rankiniu būdu:\\n` +\n        `<i>${data.event_summary || '?'}</i>`;\n      if (data.event_date) reply += `\\n📅 ${fmtDate(data.event_date)}`;\n      reply += `\\n\\n💡 Jei tikrai norite ištrinti:\\n` +\n        `<code>/atsaukti ${evId} force</code>`;\n    } else if (data.error) {\n      reply = `⚠️ ${data.error}`;\n    } else {\n      reply = `❌ <b>Atšaukta</b>\\n📌 ${data.summary || 'Užsakymas pašalintas iš kalendoriaus'}`;\n    }\n    break;\n  }\n\n  case 'quick_create': {\n    if (data.conflict) {\n      reply = `⚠️ <b>Konfliktas!</b> ${data.conflict_equipment || parsed.apiBody?.equipment || 'Įranga'} jau užimta ${fmtDate(parsed.apiBody?.date || '')}.\\n` +\n        `Naudokite /kada ${parsed.apiBody?.equipment || ''} rasti laisvą datą.`;\n    } else if (data.error) {\n      reply = `⚠️ ${data.error}`;\n    } else {\n      const b = parsed.apiBody || {};\n      reply = `✅ <b>Užsakymas sukurtas!</b>\\n\\n`;\n      if (b.equipment) reply += `🎪 ${b.equipment}\\n`;\n      if (b.customer_name) reply += `👤 ${b.customer_name}\\n`;\n      if (b.date) reply += `📅 ${fmtDate(b.date)}\\n`;\n      if (b.delivery_address) reply += `📍 ${b.delivery_address}\\n`;\n      if (b.price) reply += `💰 €${b.price}\\n`;\n      if (data.eventId || data.event_id) reply += `\\n🔑 ID: <code>${data.eventId || data.event_id}</code>`;\n    }\n    break;\n  }\n\n  case 'next_free': {\n    const freeDates = data.freeDates || [];\n    const eqName = data.equipment || args.equipQuery || '?';\n    const icon = data.equipmentIcon || '🎪';\n    if (data.error || data.message) {\n      reply = `${icon} <b>${eqName}</b>: ${data.message || data.error}`;\n    } else if (freeDates.length === 0) {\n      reply = `${icon} <b>${eqName}</b>: Artimiausiomis ${data.searchedDays || 30} dienų nėra laisvų datų`;\n    } else {\n      reply = `${icon} <b>${eqName}</b> — laisvos datos:\\n\\n`;\n      freeDates.forEach(d => {\n        reply += `  📅 ${d.date} (${d.weekday})\\n`;\n      });\n      reply += `\\n💡 Užsakyti: /nauja ${eqName} &lt;vardas&gt; &lt;data&gt; [kaina]`;\n    }\n    break;\n  }\n\n  case 'error':\n    reply = args.msg || '⚠️ Klaida';\n    break;\n\n  case 'ignore':\n    reply = '';\n    break;\n\n  default:\n    reply = '🤔 Nesupratau. Naudokite /help arba rašykite lietuviškai.';\n    break;\n}\n\nreturn [{ json: { reply, shouldSend: reply.length > 0, chatId } }];"
       },
-      "id": "2448b0265fd248beb06f",
+      "id": "3a9200176b074b82bea4",
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -324,7 +324,7 @@
         },
         "options": {}
       },
-      "id": "4636aeb756fc44eab3f1",
+      "id": "f63efa3ca8e242619278",
       "name": "IF Cross Month",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -341,7 +341,7 @@
           "timeout": 15000
         }
       },
-      "id": "7cb610299f794119b498",
+      "id": "becc3f0fc0e04fb19979",
       "name": "HTTP Request 2",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -355,7 +355,7 @@
       "parameters": {
         "jsCode": "\n// Merge bookings from both month responses for cross-month queries\nconst firstData = $('HTTP Request').first().json || {};\nconst secondData = $input.first().json || {};\nconst mergedBookings = [...(firstData.bookings || []), ...(secondData.bookings || [])];\n// Deduplicate by event ID\nconst seen = new Set();\nconst unique = mergedBookings.filter(b => {\n  const id = b.calendarEventId || b.id;\n  if (seen.has(id)) return false;\n  seen.add(id);\n  return true;\n});\nreturn [{ json: { ...firstData, bookings: unique } }];\n"
       },
-      "id": "3f4c8ba3db264d08a020",
+      "id": "3402ce85e9ed4b1d967f",
       "name": "Merge Month Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -375,7 +375,7 @@
           "combinator": "and",
           "conditions": [
             {
-              "id": "a7bd7017d9ca45a99ba2",
+              "id": "0449d42723c14fd8a657",
               "leftValue": "={{ $json.shouldSend }}",
               "rightValue": true,
               "operator": {
@@ -387,7 +387,7 @@
         },
         "options": {}
       },
-      "id": "5587e9e1b60b466c843d",
+      "id": "8fe5b176a69a4b7f84ad",
       "name": "IF Should Send",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -406,7 +406,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "cc65e8a933f54f398fe9",
+      "id": "c717908f7c5c447fa96c",
       "name": "Send Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -427,7 +427,7 @@
         "url": "=https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/getFile?file_id={{ $json.fileId }}",
         "options": {}
       },
-      "id": "40d4a57a59394cae84f5",
+      "id": "667f098432ad40a291f5",
       "name": "Get File URL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -450,7 +450,7 @@
           "timeout": 15000
         }
       },
-      "id": "b9c063a31873454a9258",
+      "id": "1fd89a362bbd4afdbfb8",
       "name": "Download Voice File",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -489,7 +489,7 @@
           "timeout": 30000
         }
       },
-      "id": "06d92f3d010a40139846",
+      "id": "fecc1f783fdd4e8c909e",
       "name": "Transcribe Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -517,7 +517,7 @@
           "timeout": 15000
         }
       },
-      "id": "71713329bd864ac6a75b",
+      "id": "10a13608584f4aa8bebb",
       "name": "Extract Voice Intent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -536,7 +536,7 @@
       "parameters": {
         "jsCode": "\nconst transcript = $('Transcribe Audio').first().json.text || '';\nconst chatId = $('Classify Message').first().json.chatId;\nconst extractResp = $input.first().json;\n\nlet content = '';\nif (extractResp.choices && extractResp.choices[0]) {\n  content = extractResp.choices[0].message?.content || '{}';\n}\n\nlet parsed;\ntry {\n  const cleaned = content.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch(e) {\n  parsed = { type: 'unknown', text: transcript };\n}\n\nconst type = parsed.type || 'unknown';\nconst now = new Date();\nconst today = now.toISOString().substring(0, 10);\n\nif (type === 'query') {\n  // Map to same format as Parse Intent output\n  const intent = parsed.intent || 'unknown';\n  let apiType = 'fetch_dashboard';\n  let apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;\n  let args = {};\n\n  if (intent === 'available') {\n    apiType = 'fetch_availability';\n    const date = parsed.date || today;\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability' + `?date=${date}`;\n    args.date = date;\n  } else if (intent === 'today') {\n    args.filterDate = today;\n  } else if (intent === 'tomorrow') {\n    const tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\n    args.filterDate = tmrw.toISOString().substring(0, 10);\n    apiUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2' + `?year=${tmrw.getFullYear()}&month=${tmrw.getMonth() + 1}`;\n  } else if (intent === 'search') {\n    args.searchQuery = (parsed.query || '').toLowerCase();\n  }\n\n  return [{ json: {\n    voiceType: 'query',\n    intent, args, apiType, apiUrl, apiBody: {},\n    chatId, transcript\n  }}];\n}\n\nif (type === 'create') {\n  // Voice booking creation\n  return [{ json: {\n    voiceType: 'create',\n    chatId, transcript,\n    booking: parsed,\n    apiType: 'action_create',\n    apiUrl: 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create',\n    apiBody: {\n      equipment: parsed.equipment || '',\n      customer_name: parsed.customer_name || '',\n      customer_phone: parsed.customer_phone || '',\n      date: parsed.event_date || '',\n      delivery_address: parsed.delivery_address || '',\n      price: parsed.price || 0,\n      addons: parsed.addons || [],\n      notes: parsed.notes || ''\n    }\n  }}];\n}\n\n// Unknown — send back transcript with apology\nreturn [{ json: {\n  voiceType: 'unknown',\n  chatId, transcript,\n  apiType: 'none'\n}}];"
       },
-      "id": "4099786dcb254fa19f9d",
+      "id": "c348da63a093450cafc3",
       "name": "Route Voice Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -567,7 +567,7 @@
         },
         "options": {}
       },
-      "id": "bcefd7fb3c8543e2a235",
+      "id": "a2d40062170449459138",
       "name": "IF Voice Query",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -598,7 +598,7 @@
         },
         "options": {}
       },
-      "id": "0b260f01a63640ad8cb7",
+      "id": "a8e25947cd1b41aa94c1",
       "name": "IF Voice Create",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -615,7 +615,7 @@
           "timeout": 15000
         }
       },
-      "id": "09e8c4fd4925405f93b5",
+      "id": "4fb2fcb396ff4e639dfc",
       "name": "Voice HTTP Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -629,7 +629,7 @@
       "parameters": {
         "jsCode": "const voiceData = $('Route Voice Result').first().json;\nconst { intent, args, chatId, transcript } = voiceData;\nlet data = {};\n\ntry {\n  data = $('Voice HTTP Request').first().json;\n} catch(e) {\n  data = {};\n}\n\n// Reuse same formatting logic as text Format Response\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\nconst monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];\n\nfunction fmtDate(dateStr) {\n  if (!dateStr) return '?';\n  const d = new Date(dateStr + 'T00:00:00');\n  return `${monthNames[d.getMonth()]} ${d.getDate()} (${dayNames[d.getDay()]})`;\n}\n\nfunction fmtBooking(b) {\n  const equip = Array.isArray(b.equipment) && b.equipment.length > 0\n    ? b.equipment.map(e => `${e.icon || '🎪'} ${e.name}`).join(', ')\n    : (b.raw_summary || '?');\n  let line = `📌 <b>${equip}</b>`;\n  if (b.duration_days > 1) line += ` (${b.duration_days}d)`;\n  line += '\\n';\n  if (b.customer_name) line += `   👤 ${b.customer_name}`;\n  if (b.customer_phone) line += ` | 📞 ${b.customer_phone}`;\n  if (b.customer_name || b.customer_phone) line += '\\n';\n  if (b.delivery_address) line += `   📍 ${b.delivery_address}\\n`;\n  if (b.price) line += `   💰 €${b.price}\\n`;\n  if (b.calendarEventId) line += `   🆔 <code>${b.calendarEventId.substring(0,8)}</code>\\n`;\n  return line;\n}\n\nlet reply = `🎙️ <i>\"${transcript.substring(0, 80)}${transcript.length > 80 ? '...' : ''}\"</i>\\n\\n`;\n\n// Same switch logic as text Format Response\nif (intent === 'today' || intent === 'tomorrow') {\n  const bookings = (data.bookings || []).filter(b => !args.filterDate || b.event_date === args.filterDate);\n  const label = intent === 'today' ? '📅 Šiandien' : '📅 Rytoj';\n  if (bookings.length === 0) {\n    reply += `${label}: Užsakymų nėra 🎉`;\n  } else {\n    reply += `${label} — ${bookings.length} užs.:\\n\\n`;\n    bookings.forEach(b => { reply += fmtBooking(b) + '\\n'; });\n  }\n} else if (intent === 'week') {\n  const bookings = (data.bookings || []).filter(b => {\n    if (!args.filterDateFrom || !args.filterDateTo) return true;\n    return b.event_date >= args.filterDateFrom && b.event_date <= args.filterDateTo;\n  });\n  reply += `📅 Ši savaitė — ${bookings.length} užs.:\\n`;\n  const byDate = {};\n  bookings.forEach(b => { const d = (b.event_date||'').substring(0,10); if (!byDate[d]) byDate[d]=[]; byDate[d].push(b); });\n  for (const [date, bks] of Object.entries(byDate).sort()) {\n    reply += `\\n📆 <b>${fmtDate(date)}</b>\\n`;\n    bks.forEach(b => { reply += fmtBooking(b); });\n  }\n} else if (intent === 'available') {\n  const avail = data.free || [];\n  const booked = data.booked || [];\n  reply += `🎪 <b>Laisva (${avail.length}):</b>\\n`;\n  avail.forEach(e => { reply += `  ${e.icon||'🎪'} ${e.name}\\n`; });\n  if (booked.length > 0) {\n    reply += `\\n🔒 <b>Užimta (${booked.length}):</b>\\n`;\n    booked.forEach(e => { reply += `  ${e.icon||'🎪'} ${e.name}\\n`; });\n  }\n} else if (intent === 'stats') {\n  const stats = data.stats || {};\n  const now = new Date();\n  reply += `📊 <b>${monthNames[now.getMonth()]} statistika</b>\\n` +\n    `📅 Užsakymai: ${stats.month_count || 0}\\n💰 Pajamos: €${stats.month_revenue || 0}`;\n} else if (intent === 'search') {\n  const query = args.searchQuery || '';\n  const bookings = (data.bookings || []).filter(b => {\n    const text = [b.customer_name, b.customer_phone, b.delivery_address, b.raw_summary].join(' ').toLowerCase();\n    return text.includes(query);\n  });\n  if (bookings.length === 0) { reply += `🔍 \"${query}\" — nieko nerasta`; }\n  else {\n    reply += `🔍 \"${query}\" — ${bookings.length} rez.:\\n\\n`;\n    bookings.slice(0,5).forEach(b => { reply += `📆 ${fmtDate(b.event_date)}\\n` + fmtBooking(b) + '\\n'; });\n  }\n} else if (intent === 'next_free') {\n  const freeDates = data.freeDates || [];\n  const eq = data.equipment || args.equipQuery;\n  const icon = data.equipmentIcon || '🎪';\n  if (data.message && !freeDates.length) {\n    reply += `${icon} <b>${eq}</b>: ${data.message}`;\n  } else if (!freeDates.length) {\n    reply += `${icon} <b>${eq}</b>: Artimiausiomis 30 dienų nėra laisvų datų`;\n  } else {\n    reply += `${icon} <b>${eq}</b> — laisvos datos:\\n\\n`;\n    freeDates.slice(0,8).forEach(fd => { reply += `📅 ${fd.date} (${fd.weekday})\\n`; });\n    reply += `\\n💡 Užsakyti: /nauja ${eq} &lt;vardas&gt; &lt;data&gt; [kaina]`;\n  }\n} else {\n  reply += '🤔 Nesupratau klausimo. Bandykite dar kartą arba naudokite /help';\n}\n\nreturn [{ json: { reply, shouldSend: true, chatId } }];"
       },
-      "id": "438cf3a729fa4abb991e",
+      "id": "8fc0189447024202a83a",
       "name": "Format Voice Query",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -648,7 +648,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "5503f65d70e645f88b18",
+      "id": "df33e9718f9a4a4387ff",
       "name": "Send Voice Query Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -667,7 +667,7 @@
       "parameters": {
         "jsCode": "const voiceData = $('Route Voice Result').first().json;\nconst { chatId, transcript, booking } = voiceData;\n\nlet msg = `🎙️ <b>Naujas užsakymas</b>\\n`;\nmsg += `────────────────────\\n\\n`;\nif (booking.customer_name) msg += `👤 ${booking.customer_name}\\n`;\nif (booking.customer_phone) msg += `📞 ${booking.customer_phone}\\n`;\nif (booking.event_date) msg += `📅 ${booking.event_date}\\n`;\nif (booking.delivery_address) msg += `📍 ${booking.delivery_address}\\n`;\nif (booking.equipment) msg += `🎪 ${booking.equipment}\\n`;\nif (booking.addons && booking.addons.length > 0) msg += `➕ ${booking.addons.join(', ')}\\n`;\nif (booking.price) msg += `💰 €${booking.price}\\n`;\nif (booking.notes) msg += `📝 ${booking.notes}\\n`;\nmsg += `\\n💬 <i>\"${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}\"</i>`;\nmsg += `\\n\\n✏️ <b>Patvirtinti užsakymą?</b>`;\n\n// Persist booking data in n8n static data (survives between webhook executions)\nconst confirmId = Date.now().toString(36);\nconst store = $getWorkflowStaticData('global');\nstore[confirmId] = voiceData.apiBody;\n\n// Prune entries older than 1 hour to prevent memory leaks\nconst nowMs = Date.now();\nfor (const key of Object.keys(store)) {\n  if (key.length >= 7 && key.length <= 10) {\n    const ts = parseInt(key, 36);\n    if (!isNaN(ts) && nowMs - ts > 3600000) delete store[key];\n  }\n}\n\nreturn [{ json: {\n  chatId,\n  confirmMessage: msg,\n  confirmId,\n  // Inline keyboard\n  inlineKeyboard: [\n    [\n      { text: '✅ Patvirtinti', callback_data: `vc_ok:${confirmId}` },\n      { text: '❌ Atšaukti', callback_data: `vc_no:${confirmId}` }\n    ]\n  ]\n}}];"
       },
-      "id": "2d69d86d51e04bb4a230",
+      "id": "72d1d674448e4f8289ca",
       "name": "Format Voice Create",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -685,7 +685,7 @@
         "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.confirmMessage, parse_mode: \"HTML\", reply_markup: { inline_keyboard: $json.inlineKeyboard } }) }}",
         "options": {}
       },
-      "id": "95888eb61a154317b06d",
+      "id": "133ebbd1359945c687a6",
       "name": "Send Voice Confirm",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -698,7 +698,7 @@
       "parameters": {
         "jsCode": "const voiceData = $('Route Voice Result').first().json;\nconst { chatId, transcript } = voiceData;\n\nconst reply = `🎙️ <i>\"${transcript.substring(0, 200)}${transcript.length > 200 ? '...' : ''}\"</i>\\n\\n` +\n  `🤔 Nesupratau. Pabandykite:\\n` +\n  `• Klausimą: \"Kas šiandien?\", \"Kas laisva rytoj?\"\\n` +\n  `• Užsakymą: \"Candy Pop Rita Juskaitė Pagramantis 185 eurų birželio 6\"`;\n\nreturn [{ json: { reply, shouldSend: true, chatId } }];"
       },
-      "id": "660e97d3de174af580c0",
+      "id": "2c52449aa2704ea8b360",
       "name": "Format Voice Unknown",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -717,7 +717,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "53d5ca031e78462984bf",
+      "id": "c89cc3f5fd1f4b509b7a",
       "name": "Send Voice Unknown Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -736,7 +736,7 @@
       "parameters": {
         "jsCode": "const item = $input.first().json;\nconst data = item.callbackData || '';\nconst chatId = item.chatId;\nconst callbackQueryId = item.callbackQueryId;\n\nif (data.startsWith('vc_ok:')) {\n  // Retrieve booking data from n8n static data store\n  const confirmKey = data.split(':')[1];\n  const store = $getWorkflowStaticData('global');\n  const bookingData = (confirmKey && store[confirmKey]) ? store[confirmKey] : null;\n  // Clean up after retrieval\n  if (confirmKey && store[confirmKey]) delete store[confirmKey];\n\n  return [{ json: {\n    chatId, callbackQueryId,\n    action: 'voice_confirm',\n    callbackAnswer: bookingData ? '✅ Kuriamas...' : '⚠️ Pasibaigė galiojimas',\n    bookingData\n  }}];\n}\n\nif (data.startsWith('vc_no:')) {\n  // Clean up stored data on cancel too\n  const confirmKey = data.split(':')[1];\n  const store = $getWorkflowStaticData('global');\n  if (confirmKey && store[confirmKey]) delete store[confirmKey];\n\n  return [{ json: {\n    chatId, callbackQueryId,\n    action: 'voice_cancel',\n    callbackAnswer: '❌ Atšaukta'\n  }}];\n}\n\nif (data.startsWith('bk_ok:')) {\n  const bookingId = parseInt(data.split(':')[1], 10) || null;\n  return [{ json: { chatId, callbackQueryId,\n    action: bookingId ? 'bk_confirm' : 'unknown',\n    bookingId,\n    callbackAnswer: bookingId ? '✅ Tvirtinama...' : '⚠️ Nežinomas užsakymas'\n  }}];\n}\n\nif (data.startsWith('bk_no:')) {\n  const bookingId = parseInt(data.split(':')[1], 10) || null;\n  return [{ json: { chatId, callbackQueryId,\n    action: bookingId ? 'bk_reject' : 'unknown',\n    bookingId,\n    callbackAnswer: bookingId ? '❌ Atmetama...' : '⚠️ Nežinomas užsakymas'\n  }}];\n}\n\nreturn [{ json: {\n  chatId, callbackQueryId,\n  action: 'unknown',\n  callbackAnswer: '❓'\n}}];"
       },
-      "id": "df4e754ddd1d4f9a874b",
+      "id": "b115033a64b64a1da363",
       "name": "Process Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -749,7 +749,7 @@
       "parameters": {
         "jsCode": "return [{ json: { ok: true } }];"
       },
-      "id": "2d7810fb3629413aa7aa",
+      "id": "be8d4f2676584b249ac6",
       "name": "No-Op Respond",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -766,7 +766,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.callbackAnswer }) }}"
       },
-      "id": "576642b7c62d4da8aa7c",
+      "id": "dc0a5e9698bd493ab8d9",
       "name": "Answer Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -798,7 +798,7 @@
         },
         "options": {}
       },
-      "id": "7d7f7658b7ee4d74a119",
+      "id": "ae64ec73b193491496b6",
       "name": "IF Is Confirm",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -829,7 +829,7 @@
         },
         "options": {}
       },
-      "id": "db91f5829d54451fb1e1",
+      "id": "8f51f2b49aba45f49200",
       "name": "IF Booking Data Exists",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -848,7 +848,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "629b5323a5cb4688b611",
+      "id": "b949dbd73ffe410ea95a",
       "name": "Send Expired Message",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -874,7 +874,7 @@
           "timeout": 15000
         }
       },
-      "id": "158d8f4b05204ad8879b",
+      "id": "8a2266feddf44939a116",
       "name": "Create Calendar Event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -894,7 +894,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "78444255358a4387ae44",
+      "id": "3fdc073808d7457fb8df",
       "name": "Send Create Confirm",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -931,7 +931,7 @@
         },
         "options": {}
       },
-      "id": "87ab4f593aff4fd980e5",
+      "id": "70a6baeb3ae640f7a788",
       "name": "IF Is BK Confirm",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -946,7 +946,7 @@
         "query": "=SELECT b.id, b.event_date, b.delivery_address, b.city, b.notes, b.status, b.price, c.name AS customer_name, c.phone AS customer_phone, c.email AS customer_email, STRING_AGG(e.name, ', ') AS equipment_names FROM batutynas.bookings b JOIN batutynas.contacts c ON b.contact_id = c.id LEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id LEFT JOIN batutynas.equipment e ON be.equipment_id = e.id WHERE b.id = {{ $('Process Callback').first().json.bookingId }} GROUP BY b.id, c.id",
         "options": {}
       },
-      "id": "17edac9f0cb140f0819c",
+      "id": "d69eec292d2e4747b3ca",
       "name": "Fetch Booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -968,12 +968,12 @@
         "url": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, delivery_address: $json.city || $json.delivery_address || null, price: $json.price || null }) }}",
+        "jsonBody": "={{ JSON.stringify({ equipment: $json.equipment_names || 'Batutas', date: new Date($json.event_date).toISOString().substring(0, 10), customer_name: $json.customer_name, customer_phone: $json.customer_phone, delivery_address: $json.delivery_address || $json.city || null, price: $json.price || null }) }}",
         "options": {
           "timeout": 15000
         }
       },
-      "id": "fb15898e11014760bd35",
+      "id": "43549d4491d14be0939b",
       "name": "Create Calendar Event BK",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1005,7 +1005,7 @@
         },
         "options": {}
       },
-      "id": "8813cb43847e413f81a9",
+      "id": "6e01688ae47b4429946f",
       "name": "IF Is BK Reject",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -1020,7 +1020,7 @@
         "query": "=UPDATE batutynas.bookings SET status = '{{ $('Process Callback').first().json.action === \"bk_confirm\" ? \"Confirmed\" : \"Cancelled\" }}' WHERE id = {{ $('Process Callback').first().json.bookingId }}",
         "options": {}
       },
-      "id": "647a0f45cf35423c9861",
+      "id": "92b1c9c3373549918da3",
       "name": "Update BK Status",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -1040,7 +1040,7 @@
       "parameters": {
         "jsCode": "const cb = $('Process Callback').first().json;\nconst action = cb.action;\nconst chatId = cb.chatId;\nconst bookingId = cb.bookingId;\n\n// Get booking data for customer notification\nlet booking = {};\ntry { booking = $('Fetch Booking').first().json || {}; } catch(e) {}\n\n// Double-tap prevention: if booking was already processed, return early\nif (booking && (booking.status === 'Confirmed' || booking.status === 'Cancelled')) {\n  return [{ json: {\n    reply: '⚠️ Šis užsakymas jau apdorotas (' + booking.status + ').',\n    chatId,\n    customerEmail: null\n  }}];\n}\n\nlet reply;\nlet customerEmailSubject = '';\nlet customerEmailBody = '';\nconst custName = booking.customer_name || 'Kliente';\nconst custEmail = booking.customer_email || null;\nconst eventDate = booking.event_date ? new Date(booking.event_date).toISOString().substring(0, 10) : '';\nconst equipNames = booking.equipment_names || '';\n\nif (action === 'bk_confirm') {\n  let calendarLink = '';\n  try {\n    const calResult = $('Create Calendar Event BK').first().json;\n    if (calResult.success === false && calResult.conflict) {\n      return [{ json: {\n        reply: '⚠️ <b>Konfliktas!</b>\\n\\nĮranga jau užimta tą dieną.\\nUžsakymo nr. ' + bookingId,\n        chatId,\n        customerEmail: null\n      }}];\n    }\n    if (calResult.htmlLink) {\n      calendarLink = '\\n🔗 <a href=\"' + calResult.htmlLink + '\">Atidaryti kalendorių</a>';\n    }\n  } catch(e) {}\n  reply = '✅ <b>Patvirtinta!</b>\\n\\nKalendoriaus įvykis sukurtas.' + calendarLink + '\\nUžsakymo nr. ' + bookingId;\n\n  // Customer confirmation email\n  customerEmailSubject = 'Batutynas.lt — Jūsų užsakymas patvirtintas! ✅';\n  customerEmailBody = 'Sveiki, ' + custName + '!\\n\\n' +\n    'Džiaugiamės pranešti, kad Jūsų užsakymas patvirtintas.\\n\\n' +\n    'UŽSAKYMO DETALĖS:\\n' +\n    'Data: ' + eventDate + '\\n' +\n    'Įranga: ' + equipNames + '\\n' +\n    'Pristatymo laikas: 8:00\\n' +\n    (booking.delivery_address ? 'Adresas: ' + booking.delivery_address + '\\n' : '') +\n    '\\nJei turite klausimų, susisiekite:\\n' +\n    'Tel: +370 648 803 88\\n' +\n    'El. paštas: info@batutynas.lt\\n\\n' +\n    'Iki pasimatymo!\\nBatutynas.lt komanda';\n} else {\n  reply = '❌ <b>Atmesta.</b>\\n\\nKontakto duomenys išsaugoti sistemoje.\\nUžsakymo nr. ' + bookingId;\n\n  // Customer rejection email\n  customerEmailSubject = 'Batutynas.lt — Užsakymo atnaujinimas';\n  customerEmailBody = 'Sveiki, ' + custName + '!\\n\\n' +\n    'Deja, šiuo metu negalime patvirtinti Jūsų užsakymo (' + eventDate + ', ' + equipNames + ').\\n\\n' +\n    'Susisiekite su mumis ir padėsime rasti kitą datą:\\n' +\n    'Tel: +370 648 803 88\\n' +\n    'El. paštas: info@batutynas.lt\\n\\n' +\n    'Atsiprašome už nepatogumus.\\nBatutynas.lt komanda';\n}\n\nreturn [{ json: { reply, chatId, customerEmail: custEmail, customerEmailSubject, customerEmailBody } }];"
       },
-      "id": "6cbff3cd736d48ec9722",
+      "id": "e987542ca7e249ad9526",
       "name": "Format BK Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1059,7 +1059,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "1c85d993d5f14331a78c",
+      "id": "293bb606383044c0ad74",
       "name": "Send BK Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -1096,7 +1096,7 @@
         },
         "options": {}
       },
-      "id": "fca46f7d4c654e43a5e5",
+      "id": "a65dca6a68194e2fbee3",
       "name": "IF Customer Has Email",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -1114,7 +1114,7 @@
         "text": "={{ $('Format BK Reply').first().json.customerEmailBody }}",
         "options": {}
       },
-      "id": "eef717030aba455dae7c",
+      "id": "c3032089d8a544b0b824",
       "name": "Send Customer Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -1140,7 +1140,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "420e065df93c4fb09749",
+      "id": "d7f9d1c0ad794418803f",
       "name": "Send Cancel Message",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

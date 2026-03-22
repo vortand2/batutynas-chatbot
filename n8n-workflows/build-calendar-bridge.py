@@ -295,8 +295,9 @@ function parseCalendarEvent(event) {
     city: location,
     delivery_time: delivery_time,
     price: price,
-    status: 'Confirmed', // Calendar events are confirmed by default
-    payment_status: 'Unpaid',
+    status: (lines.find(l => l.startsWith('Status: ')) || '').replace('Status: ', '') || 'Confirmed',
+    payment_status: (lines.find(l => l.startsWith('Payment: ')) || '').replace('Payment: ', '') || 'Unpaid',
+    deposit_amount: (lines.find(l => l.startsWith('Deposit: ')) || '').replace('Deposit: ', '') || '',
     entry_source: entry_source,
     equipment: equipment ? [{
       name: equipment.name,
@@ -908,10 +909,18 @@ if (params.action === 'edit' && params.fields && Object.keys(params.fields).leng
   const phone = f.customer_phone || f.phone || parsed.customer_phone || '';
   const name = f.customer_name || f.name || parsed.customer_name || '';
   const notes = f.notes || parsed.notes || '';
+  const deliveryTime = f.event_time || f.delivery_time || parsed.delivery_time || '8:00';
+  const status = f.status || parsed.status || '';
+  const paymentStatus = f.payment_status || parsed.payment_status || '';
+  const depositAmount = f.deposit_amount || parsed.deposit_amount || '';
   const descParts = [];
+  descParts.push('Pristatymas: ' + deliveryTime);
   if (location) descParts.push(location);
   if (phone) descParts.push(phone);
   if (name) descParts.push(name);
+  if (status) descParts.push('Status: ' + status);
+  if (paymentStatus) descParts.push('Payment: ' + paymentStatus);
+  if (depositAmount) descParts.push('Deposit: ' + depositAmount);
   if (notes) descParts.push(notes);
   if (descParts.length > 0) newDescription = descParts.join('\\n');
 }
