@@ -502,6 +502,10 @@
   // --- Shared webhook send logic ---
 
   function _sendToWebhook(text) {
+    if (!config.webhookUrl) {
+      addMessage('system', '{{HTML}}Konfigūracijos klaida: webhookUrl nenurodytas.<br><small>Susisiekite su administratoriumi.</small>');
+      return;
+    }
     state._lastSentText = text;
     state.sending = true;
 

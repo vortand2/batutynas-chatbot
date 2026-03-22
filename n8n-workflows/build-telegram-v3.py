@@ -2030,7 +2030,25 @@ add_node({
 })
 connect("IF Customer Has Email", "Send Customer Email", 0)  # true branch
 
-# ── 34. Send Cancel Message (voice_cancel + unknown fallback) ───────────────
+# ── 33b. IF Is Voice Cancel (guard: only send cancel message for voice_cancel) ─
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": ""},
+            "conditions": [
+                {"id": "cond-vc", "leftValue": "={{ $('Process Callback').first().json.action }}", "rightValue": "voice_cancel",
+                 "operator": {"type": "string", "operation": "equals"}}
+            ], "combinator": "and"
+        },
+        "options": {}
+    },
+    "id": uid(), "name": "IF Is Voice Cancel",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(1740, 1340)
+})
+connect("IF Is BK Reject", "IF Is Voice Cancel", 1)  # false branch → check if voice_cancel
+
+# ── 34. Send Cancel Message (only for voice_cancel) ─────────────────────────
 
 add_node({
     "parameters": {
@@ -2047,7 +2065,8 @@ add_node({
     "position": pos(1860, 1340),
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
-connect("IF Is BK Reject", "Send Cancel Message", 1)  # false branch = voice_cancel / unknown
+connect("IF Is Voice Cancel", "Send Cancel Message", 0)  # true = voice_cancel → send message
+# false branch (unknown callbacks) → silently ignored (no node needed, n8n stops)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BUILD FINAL WORKFLOW JSON
