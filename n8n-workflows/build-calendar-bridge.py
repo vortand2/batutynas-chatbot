@@ -277,6 +277,10 @@ function parseCalendarEvent(event) {
     // So a 1-day event has end = start + 1 day, meaning durationDays = 1 is correct
   }
 
+  // Extract delivery time from description (e.g., "Pristatymas: 8:00")
+  const deliveryTimeMatch = description.match(/Pristatymas:\\s*(\\d{1,2}:\\d{2})/i);
+  const delivery_time = deliveryTimeMatch ? deliveryTimeMatch[1] : '8:00';
+
   return {
     id: event.id,
     calendarEventId: event.id,
@@ -289,6 +293,7 @@ function parseCalendarEvent(event) {
     customer_phone: phone,
     delivery_address: location,
     city: location,
+    delivery_time: delivery_time,
     price: price,
     status: 'Confirmed', // Calendar events are confirmed by default
     payment_status: price ? 'Unpaid' : 'Unpaid',
@@ -692,6 +697,7 @@ if (price) title += ' | ' + price + '€';
 
 // Build description
 const descParts = [];
+descParts.push('Pristatymas: 8:00');
 if (location) descParts.push(location);
 if (customerPhone) descParts.push(customerPhone);
 if (customerName) descParts.push(customerName);

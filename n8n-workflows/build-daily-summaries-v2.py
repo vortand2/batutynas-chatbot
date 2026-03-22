@@ -97,7 +97,7 @@ if (matched.length === 0) {
 
 // Use the first city for API call (Open-Meteo supports one location per request)
 const primary = matched[0];
-const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${primary.lat}&longitude=${primary.lon}&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min&timezone=Europe/Vilnius&forecast_days=2`;
+const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${primary.lat}&longitude=${primary.lon}&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min,wind_speed_10m_max&timezone=Europe/Vilnius&forecast_days=2`;
 
 return [{ json: { ...data, weatherUrl, weatherCities: matched.map(m => m.city) } }];
 """
@@ -154,15 +154,26 @@ try {
     const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;
     const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;
     const tempMin = daily.temperature_2m_min ? daily.temperature_2m_min[idx] : null;
+    const windMax = daily.wind_speed_10m_max ? daily.wind_speed_10m_max[idx] : null;
     const city = cities.length > 0 ? cities[0] : 'Klaipėda';
 
     if (rainProb !== null && rainProb >= 30) {
       weatherSection = `\nORAI RYTOJ (${city}): ${tempMin || '?'}–${tempMax || '?'}°C, lietaus tikimybė ${rainProb}%`;
-      if (rainProb >= 60 && tmrwBookings.length > 0) {
-        weatherSection += `\n⚠️ SVARBU: Yra ${tmrwBookings.length} užsakymas(-ai) rytoj — gali reikėti perkelti!`;
+      if (windMax !== null) weatherSection += `, vėjas iki ${windMax} km/h`;
+      if ((rainProb >= 60 || (windMax !== null && windMax >= 40)) && tmrwBookings.length > 0) {
+        weatherSection += `\n🚨 PERSPĖJIMAS: `;
+        if (windMax >= 40) weatherSection += `Stiprus vėjas (${windMax} km/h) — PAVOJINGA pripučiamiems batutams! `;
+        if (rainProb >= 60) weatherSection += `Didelis lietaus tikimybė (${rainProb}%). `;
+        weatherSection += `Yra ${tmrwBookings.length} užsakymas(-ai) rytoj — BŪTINA susisiekti su klientais dėl perkėlimo!`;
       }
     } else if (rainProb !== null) {
       weatherSection = `\nORAI RYTOJ (${city}): ${tempMin || '?'}–${tempMax || '?'}°C, giedra (lietaus ${rainProb}%)`;
+      if (windMax !== null && windMax >= 40) {
+        weatherSection += `\n🚨 PERSPĖJIMAS: Stiprus vėjas (${windMax} km/h) — PAVOJINGA pripučiamiems batutams!`;
+        if (tmrwBookings.length > 0) weatherSection += ` Yra ${tmrwBookings.length} užsakymas(-ai) rytoj — BŪTINA susisiekti su klientais!`;
+      } else if (windMax !== null) {
+        weatherSection += `, vėjas ${windMax} km/h`;
+      }
     }
   }
 } catch(e) { weatherSection = ''; }
@@ -186,7 +197,8 @@ TAISYKLĖS:
 - Rašyk TIKTAI lietuviškai
 - Naudok Telegram HTML: <b>bold</b>, <i>italic</i>
 - Pradėk nuo emoji ir pasisveikinimo
-- Jei orai blogi (lietus >50%) — aiškiai perspėk ir pasiūlyk susisiekti su klientais dėl perkėlimo
+- Jei orai blogi (lietus >50% arba vėjas >40 km/h) — aiškiai perspėk ir pasiūlyk susisiekti su klientais dėl perkėlimo
+- Jei vėjas >40 km/h — tai PAVOJINGA pripučiamiems batutams, būtinai perspėk!
 - Jei orai geri arba nėra duomenų — NEMINĖK orų, sutelk dėmesį į užsakymus
 - Jei nėra užsakymų šiandien — padrąsink (pvz. "gera diena pasiruošti savaitgaliui" arba "puikus laikas paskelbti akciją socialiniuose tinkluose")
 - Paminėk kiekvieno užsakymo klientą, įrangą ir vietą
@@ -305,7 +317,7 @@ morning_workflow = {
     "nodes": morning_nodes,
     "connections": morning_connections,
     "active": False,
-    "settings": {"executionOrder": "v1"},
+    "settings": {"executionOrder": "v1", "timezone": "Europe/Vilnius"},
     "tags": [{"name": "batutynas"}, {"name": "cron"}]
 }
 
@@ -363,13 +375,21 @@ try {
     const idx = daily.time && daily.time.length > 1 ? 1 : 0;
     const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;
     const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;
+    const windMax = daily.wind_speed_10m_max ? daily.wind_speed_10m_max[idx] : null;
     const city = cities.length > 0 ? cities[0] : 'Klaipėda';
 
     if (rainProb !== null && rainProb >= 30) {
       weatherSection = `\nORAI RYTOJ (${city}): ${tempMax || '?'}°C, lietaus tikimybė ${rainProb}%`;
-      if (rainProb >= 60 && tmrwBookings.length > 0) {
-        weatherSection += `\n⚠️ Rytoj yra ${tmrwBookings.length} užsakymas(-ai) — gali reikėti perkelti!`;
+      if (windMax !== null) weatherSection += `, vėjas iki ${windMax} km/h`;
+      if ((rainProb >= 60 || (windMax !== null && windMax >= 40)) && tmrwBookings.length > 0) {
+        weatherSection += `\n🚨 PERSPĖJIMAS: `;
+        if (windMax >= 40) weatherSection += `Stiprus vėjas (${windMax} km/h) — PAVOJINGA! `;
+        if (rainProb >= 60) weatherSection += `Didelis lietaus tikimybė (${rainProb}%). `;
+        weatherSection += `Rytoj yra ${tmrwBookings.length} užsakymas(-ai) — BŪTINA susisiekti su klientais dėl perkėlimo!`;
       }
+    } else if (windMax !== null && windMax >= 40 && tmrwBookings.length > 0) {
+      weatherSection = `\n🚨 PERSPĖJIMAS (${city}): Stiprus vėjas rytoj (${windMax} km/h) — PAVOJINGA pripučiamiems batutams!`;
+      weatherSection += ` Yra ${tmrwBookings.length} užsakymas(-ai) — BŪTINA susisiekti su klientais!`;
     }
   }
 } catch(e) { weatherSection = ''; }
@@ -395,7 +415,8 @@ TAISYKLĖS:
 - Rašyk TIKTAI lietuviškai
 - Naudok Telegram HTML: <b>bold</b>, <i>italic</i>
 - Pradėk nuo vakaro emoji ir šiandienos santraukos
-- Jei orai blogi rytoj (lietus >50%) — perspėk
+- Jei orai blogi rytoj (lietus >50% arba vėjas >40 km/h) — perspėk
+- Jei vėjas >40 km/h — tai PAVOJINGA pripučiamiems batutams, būtinai perspėk!
 - Jei orai geri arba nėra duomenų — NEMINĖK orų
 - Jei nėra artimų užsakymų — pasiūlyk veiksmą rytojui
 - Pabaigoje — trumpa mėnesio statistika ir palinkėjimas geros nakties
@@ -498,7 +519,7 @@ evening_workflow = {
     "nodes": evening_nodes,
     "connections": evening_connections,
     "active": False,
-    "settings": {"executionOrder": "v1"},
+    "settings": {"executionOrder": "v1", "timezone": "Europe/Vilnius"},
     "tags": [{"name": "batutynas"}, {"name": "cron"}]
 }
 

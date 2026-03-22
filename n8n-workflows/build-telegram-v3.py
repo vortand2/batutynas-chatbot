@@ -228,6 +228,13 @@ if (cleanText.startsWith('/')) {
       apiType = 'fetch_dashboard';
       apiUrl = '""" + API_DASHBOARD + r"""' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;
       args.searchQuery = query.toLowerCase();
+      args.multiMonth = true;
+      // Build URLs for last 12 months to enable full customer history
+      args.historyUrls = [];
+      for (let mi = 1; mi <= 12; mi++) {
+        const d = new Date(now); d.setMonth(d.getMonth() - mi);
+        args.historyUrls.push('""" + API_DASHBOARD + r"""' + `?year=${d.getFullYear()}&month=${d.getMonth() + 1}`);
+      }
       break;
     }
 
@@ -531,13 +538,39 @@ switch(intent) {
       return text.includes(query);
     });
     if (bookings.length === 0) {
-      reply = `🔍 Paieška "${query}" — nieko nerasta`;
+      reply = `🔍 Paieška "${query}" — nieko nerasta šį mėnesį`;
     } else {
-      reply = `🔍 Paieška "${query}" — ${bookings.length} rezultatai:\n\n`;
-      bookings.slice(0, 10).forEach(b => {
-        reply += `📆 ${fmtDate(b.event_date)}\n` + fmtBooking(b) + '\n';
+      // Group by customer for contact history view
+      const customerMap = {};
+      bookings.forEach(b => {
+        const key = (b.customer_name || b.customer_phone || 'Nežinomas').toLowerCase();
+        if (!customerMap[key]) customerMap[key] = { name: b.customer_name || '—', phone: b.customer_phone || '', bookings: [] };
+        customerMap[key].bookings.push(b);
       });
-      if (bookings.length > 10) reply += `\n... ir dar ${bookings.length - 10}`;
+
+      const customerKeys = Object.keys(customerMap);
+      if (customerKeys.length <= 3) {
+        // Show customer history summary
+        reply = `🔍 Paieška "${query}" — ${bookings.length} rezultatai:\n\n`;
+        customerKeys.forEach(k => {
+          const c = customerMap[k];
+          const sortedBks = c.bookings.sort((a,b) => (b.event_date||'').localeCompare(a.event_date||''));
+          reply += `👤 <b>${c.name}</b>`;
+          if (c.phone) reply += ` | 📞 ${c.phone}`;
+          reply += `\n📊 ${c.bookings.length} užs. šį mėn.`;
+          reply += `\n`;
+          sortedBks.slice(0, 5).forEach(b => {
+            reply += `📆 ${fmtDate(b.event_date)}\n` + fmtBooking(b);
+          });
+          reply += '\n';
+        });
+      } else {
+        reply = `🔍 Paieška "${query}" — ${bookings.length} rezultatai:\n\n`;
+        bookings.slice(0, 10).forEach(b => {
+          reply += `📆 ${fmtDate(b.event_date)}\n` + fmtBooking(b) + '\n';
+        });
+        if (bookings.length > 10) reply += `\n... ir dar ${bookings.length - 10}`;
+      }
     }
     break;
   }
@@ -958,18 +991,27 @@ const action = cb.action;
 const chatId = cb.chatId;
 const bookingId = cb.bookingId;
 
+// Get booking data for customer notification
+let booking = {};
+try { booking = $('Fetch Booking').first().json || {}; } catch(e) {}
+
 // Double-tap prevention: if booking was already processed, return early
-try {
-  const booking = $('Fetch Booking').first().json;
-  if (booking && (booking.status === 'Confirmed' || booking.status === 'Cancelled')) {
-    return [{ json: {
-      reply: '⚠️ Šis užsakymas jau apdorotas (' + booking.status + ').',
-      chatId
-    }}];
-  }
-} catch(e) {}
+if (booking && (booking.status === 'Confirmed' || booking.status === 'Cancelled')) {
+  return [{ json: {
+    reply: '⚠️ Šis užsakymas jau apdorotas (' + booking.status + ').',
+    chatId,
+    customerEmail: null
+  }}];
+}
 
 let reply;
+let customerEmailSubject = '';
+let customerEmailBody = '';
+const custName = booking.customer_name || 'Kliente';
+const custEmail = booking.customer_email || null;
+const eventDate = booking.event_date ? new Date(booking.event_date).toISOString().substring(0, 10) : '';
+const equipNames = booking.equipment_names || '';
+
 if (action === 'bk_confirm') {
   let calendarLink = '';
   try {
@@ -977,7 +1019,8 @@ if (action === 'bk_confirm') {
     if (calResult.success === false && calResult.conflict) {
       return [{ json: {
         reply: '⚠️ <b>Konfliktas!</b>\n\nĮranga jau užimta tą dieną.\nUžsakymo nr. ' + bookingId,
-        chatId
+        chatId,
+        customerEmail: null
       }}];
     }
     if (calResult.htmlLink) {
@@ -985,11 +1028,34 @@ if (action === 'bk_confirm') {
     }
   } catch(e) {}
   reply = '✅ <b>Patvirtinta!</b>\n\nKalendoriaus įvykis sukurtas.' + calendarLink + '\nUžsakymo nr. ' + bookingId;
+
+  // Customer confirmation email
+  customerEmailSubject = 'Batutynas.lt — Jūsų užsakymas patvirtintas! ✅';
+  customerEmailBody = 'Sveiki, ' + custName + '!\n\n' +
+    'Džiaugiamės pranešti, kad Jūsų užsakymas patvirtintas.\n\n' +
+    'UŽSAKYMO DETALĖS:\n' +
+    'Data: ' + eventDate + '\n' +
+    'Įranga: ' + equipNames + '\n' +
+    'Pristatymo laikas: 8:00\n' +
+    (booking.delivery_address ? 'Adresas: ' + booking.delivery_address + '\n' : '') +
+    '\nJei turite klausimų, susisiekite:\n' +
+    'Tel: +370 648 803 88\n' +
+    'El. paštas: info@batutynas.lt\n\n' +
+    'Iki pasimatymo!\nBatutynas.lt komanda';
 } else {
   reply = '❌ <b>Atmesta.</b>\n\nKontakto duomenys išsaugoti sistemoje.\nUžsakymo nr. ' + bookingId;
+
+  // Customer rejection email
+  customerEmailSubject = 'Batutynas.lt — Užsakymo atnaujinimas';
+  customerEmailBody = 'Sveiki, ' + custName + '!\n\n' +
+    'Deja, šiuo metu negalime patvirtinti Jūsų užsakymo (' + eventDate + ', ' + equipNames + ').\n\n' +
+    'Susisiekite su mumis ir padėsime rasti kitą datą:\n' +
+    'Tel: +370 648 803 88\n' +
+    'El. paštas: info@batutynas.lt\n\n' +
+    'Atsiprašome už nepatogumus.\nBatutynas.lt komanda';
 }
 
-return [{ json: { reply, chatId } }];
+return [{ json: { reply, chatId, customerEmail: custEmail, customerEmailSubject, customerEmailBody } }];
 """.strip()
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1791,7 +1857,7 @@ connect("IF Is Confirm", "IF Is BK Confirm", 1)  # false branch of voice confirm
 add_node({
     "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT b.id, b.event_date, b.delivery_address, b.city, b.notes, b.status, b.price, c.name AS customer_name, c.phone AS customer_phone, STRING_AGG(e.name, ', ') AS equipment_names FROM batutynas.bookings b JOIN batutynas.contacts c ON b.contact_id = c.id LEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id LEFT JOIN batutynas.equipment e ON be.equipment_id = e.id WHERE b.id = {{ $('Process Callback').first().json.bookingId }} GROUP BY b.id, c.id",
+        "query": "=SELECT b.id, b.event_date, b.delivery_address, b.city, b.notes, b.status, b.price, c.name AS customer_name, c.phone AS customer_phone, c.email AS customer_email, STRING_AGG(e.name, ', ') AS equipment_names FROM batutynas.bookings b JOIN batutynas.contacts c ON b.contact_id = c.id LEFT JOIN batutynas.booking_equipment be ON be.booking_id = b.id LEFT JOIN batutynas.equipment e ON be.equipment_id = e.id WHERE b.id = {{ $('Process Callback').first().json.bookingId }} GROUP BY b.id, c.id",
         "options": {}
     },
     "id": uid(),
@@ -1893,6 +1959,49 @@ add_node({
     "credentials": {"telegramApi": TELEGRAM_CRED}
 })
 connect("Format BK Reply", "Send BK Reply")
+
+# ── 33b. IF Customer Has Email ─────────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": ""},
+            "conditions": [
+                {"id": "cond-has-email",
+                 "leftValue": "={{ $('Format BK Reply').first().json.customerEmail }}",
+                 "rightValue": "",
+                 "operator": {"type": "string", "operation": "notEquals"}}
+            ], "combinator": "and"
+        }
+    },
+    "id": uid(), "name": "IF Customer Has Email",
+    "type": "n8n-nodes-base.if", "typeVersion": 2,
+    "position": pos(2820, 1260)
+})
+connect("Format BK Reply", "IF Customer Has Email")
+
+# ── 33c. Send Customer Status Email ──────────────────────────────────────
+
+SMTP_CRED_TELEGRAM = {"id": "UHVHpJrJED5CHOJh", "name": "SMTP account"}
+
+add_node({
+    "parameters": {
+        "fromEmail": "info@batutynas.lt",
+        "toEmail": "={{ $('Format BK Reply').first().json.customerEmail }}",
+        "subject": "={{ $('Format BK Reply').first().json.customerEmailSubject }}",
+        "emailFormat": "text",
+        "text": "={{ $('Format BK Reply').first().json.customerEmailBody }}",
+        "options": {}
+    },
+    "id": uid(),
+    "name": "Send Customer Email",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2.1,
+    "position": pos(3060, 1200),
+    "credentials": {"smtp": SMTP_CRED_TELEGRAM},
+    "onError": "continueRegularOutput"
+})
+connect("IF Customer Has Email", "Send Customer Email", 0)  # true branch
 
 # ── 34. Send Cancel Message (voice_cancel + unknown fallback) ───────────────
 

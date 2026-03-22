@@ -225,6 +225,10 @@ body {
 .stat-card:nth-child(2)::before { background: var(--teal); }
 .stat-card:nth-child(3)::before { background: var(--yellow); }
 .stat-card:nth-child(4)::before { background: var(--blue); }
+.stat-card:nth-child(5)::before { background: #8B5CF6; }
+
+.source-breakdown { font-size: 0.7rem; line-height: 1.5; margin-top: 4px; }
+.source-breakdown span { display: inline-block; margin-right: 6px; white-space: nowrap; }
 
 .stat-label {
   font-size: 0.65rem;
@@ -1716,6 +1720,11 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
     <div class="stat-value" id="statAvailable">&mdash;</div>
     <div class="stat-sub" id="statAvailableSub"></div>
   </div>
+  <div class="stat-card">
+    <div class="stat-label">U&#382;sakym&#371; &#353;altiniai</div>
+    <div class="stat-value" id="statSourceTotal">&mdash;</div>
+    <div class="source-breakdown" id="statSourceBreakdown"></div>
+  </div>
 </section>
 
 <!-- Next Free Date Finder -->
@@ -2678,6 +2687,33 @@ function renderStats() {
   }
 
   document.getElementById('statAvailableSub').textContent = 'i\u0161 ' + totalEquip;
+
+  // Source tracking breakdown
+  var sourceCounts = {};
+  var totalBookings = (state.bookings || []).length;
+  (state.bookings || []).forEach(function(b) {
+    var src = b.entry_source || 'manual';
+    if (src === 'system') src = 'Chatbot';
+    else if (src === 'manual') src = 'Rankinis';
+    else if (src === 'Chat' || src === 'Chatwoot') src = 'Chatbot';
+    else if (src === 'Telegram') src = 'Telegram';
+    else if (src === 'Web' || src === 'Demo') src = 'Web';
+    sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+  });
+  var srcEl = document.getElementById('statSourceTotal');
+  var srcBreak = document.getElementById('statSourceBreakdown');
+  if (srcEl) srcEl.textContent = totalBookings;
+  if (srcBreak) {
+    // Build source breakdown using safe DOM methods (no innerHTML with untrusted data)
+    srcBreak.textContent = '';
+    var srcIcons = { 'Chatbot': '\uD83E\uDD16', 'Telegram': '\uD83D\uDCF1', 'Rankinis': '\u270F\uFE0F', 'Web': '\uD83C\uDF10' };
+    Object.keys(sourceCounts).sort(function(a,b) { return sourceCounts[b] - sourceCounts[a]; }).forEach(function(k) {
+      var pct = totalBookings > 0 ? Math.round(sourceCounts[k] / totalBookings * 100) : 0;
+      var span = document.createElement('span');
+      span.textContent = (srcIcons[k] || '') + ' ' + k + ' ' + pct + '%';
+      srcBreak.appendChild(span);
+    });
+  }
 
   if (state.lastFetched) {
     var h = pad(state.lastFetched.getHours());
