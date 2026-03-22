@@ -3382,7 +3382,6 @@ function openCreateModal(prefilledDate) {
         loadData();
       })
       .catch(function(err) {
-        console.error('Create failed:', err);
         showToast(err.name === 'AbortError' ? 'Serveris neatsako' : 'Klaida kuriant u\u017esakym\u0105', 'error');
         btnCreate.disabled = false;
         btnCreate.textContent = 'Sukurti';
@@ -3593,7 +3592,6 @@ function deleteBooking(bookingId) {
     showToast('U\u017esakymas i\u0161trintas', 'success');
   })
   .catch(function(err) {
-    console.error('deleteBooking error:', err);
     closeDeleteDialog();
     showToast(err.name === 'AbortError' ? 'Serveris neatsako' : 'Klaida trinant u\u017esakym\u0105', 'error');
   })
@@ -3847,7 +3845,6 @@ function moveBookingToDate(bookingId, newDate) {
     showToast('U\u017esakymas perkeltas', 'success');
   })
   .catch(function(err) {
-    console.error('moveBookingToDate error:', err);
     showToast(err.name === 'AbortError' ? 'Serveris neatsako' : 'Klaida perkeliant u\u017esakym\u0105', 'error');
   })
   .finally(function() { clearTimeout(timeoutId); });

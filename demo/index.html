@@ -3947,7 +3947,7 @@
       try {
         var bookingObj = JSON.parse(decoded);
         _submitBookingToWebhook(bookingObj);
-      } catch(e) { console.warn('Booking JSON parse failed:', e); }
+      } catch(e) { /* parse failed — non-critical */ }
       return buildBookingConfirm(decoded);
     });
     if (enriched !== confirmBefore) hasMarker = true;

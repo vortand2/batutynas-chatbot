@@ -12,8 +12,8 @@
   const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   const LANGUAGES = {
-    lt: { name: 'Lietuvi\u0173', placeholder: 'Ra\u0161ykite \u017einut\u0119...', welcome: 'Sveiki! Kuo galiu pad\u0117ti?', escalate: 'Kalb\u0117ti su \u017emogumi', welcomeTitle: 'Sveiki!' },
-    en: { name: 'English', placeholder: 'Type your message...', welcome: 'Hi! How can I help you today?', escalate: 'Talk to a human', welcomeTitle: 'Welcome!' }
+    lt: { name: 'Lietuvi\u0173', placeholder: 'Ra\u0161ykite \u017einut\u0119...', escalate: 'Kalb\u0117ti su \u017emogumi' },
+    en: { name: 'English', placeholder: 'Type your message...', escalate: 'Talk to a human' }
   };
 
   let config = {
@@ -39,7 +39,7 @@
 
   // --- Session Management ---
 
-  var MAX_MESSAGE_LENGTH = 2000;
+  const MAX_MESSAGE_LENGTH = 2000;
 
   function generateSessionId() {
     var rand = crypto.getRandomValues(new Uint8Array(10));
