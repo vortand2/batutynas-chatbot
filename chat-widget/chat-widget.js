@@ -528,10 +528,13 @@
       fetchHeaders['Authorization'] = 'Bearer ' + config.authToken;
     }
 
+    var _fetchCtrl = new AbortController();
+    var _fetchTimeout = setTimeout(function() { _fetchCtrl.abort(); }, 30000);
     fetch(config.webhookUrl, {
       method: 'POST',
       headers: fetchHeaders,
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: _fetchCtrl.signal
     })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -550,6 +553,7 @@
         addMessage('system', '{{HTML}}Ry\u0161io klaida.<br><button class="woo-chat-retry" data-chat-retry>Bandyti dar kart\u0105</button>');
       })
       .finally(function () {
+        clearTimeout(_fetchTimeout);
         state.sending = false;
         var btn = document.getElementById('woo-chat-send-btn');
         if (btn) btn.disabled = false;
@@ -568,6 +572,8 @@
       text = text.substring(0, MAX_MESSAGE_LENGTH);
     }
 
+    input.value = '';
+    input.style.height = '';
     addMessage('customer', text);
     _sendToWebhook(text);
   }
@@ -578,6 +584,8 @@
     if (typeof text === 'string' && text.length > MAX_MESSAGE_LENGTH) {
       text = text.substring(0, MAX_MESSAGE_LENGTH);
     }
+    input.value = '';
+    input.style.height = '';
     addMessage('customer', text);
     _sendToWebhook(text);
   }

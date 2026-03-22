@@ -220,6 +220,15 @@ if (!text) {
 let msg = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/__(.*?)__/g, '<i>$1</i>');
 // Remove markdown headers
 msg = msg.replace(/^#{1,3}\s+/gm, '');
+// Sanitize unclosed HTML tags that Telegram rejects
+msg = msg.replace(/<b>([^<]*?)(?=<b>|$)/g, (m, p1) => p1.includes('</b>') ? m : '<b>' + p1 + '</b>');
+// Strip any remaining unclosed tags as a safety net
+const allowed = ['b', 'i', 'u', 'a', 'code', 'pre'];
+for (const tag of allowed) {
+  const opens = (msg.match(new RegExp('<' + tag + '[> ]', 'g')) || []).length;
+  const closes = (msg.match(new RegExp('</' + tag + '>', 'g')) || []).length;
+  for (let i = closes; i < opens; i++) msg += '</' + tag + '>';
+}
 return [{ json: { message: msg } }];
 """.strip()
 

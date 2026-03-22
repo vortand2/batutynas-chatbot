@@ -2040,7 +2040,9 @@ function fetchNextFree(equipmentName) {
   result.textContent = 'Ieškoma...';
   result.className = 'next-free-result';
 
-  fetch(API_NEXT_FREE + '?equipment=' + encodeURIComponent(equipmentName) + '&days=30')
+  var nfCtrl = new AbortController();
+  var nfTimeout = setTimeout(function() { nfCtrl.abort(); }, 15000);
+  fetch(API_NEXT_FREE + '?equipment=' + encodeURIComponent(equipmentName) + '&days=30', { signal: nfCtrl.signal })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       // Clear previous results
@@ -2077,10 +2079,16 @@ function fetchNextFree(equipmentName) {
         result.appendChild(more);
       }
     })
-    .catch(function() {
-      result.textContent = 'Klaida';
-      result.style.color = 'var(--red)';
-    });
+    .catch(function(err) {
+      if (err.name !== 'AbortError') {
+        result.textContent = 'Klaida';
+        result.style.color = 'var(--red)';
+      } else {
+        result.textContent = 'Serveris neatsako';
+        result.style.color = 'var(--text-muted)';
+      }
+    })
+    .finally(function() { clearTimeout(nfTimeout); });
 }
 
 function loadData() {
@@ -3362,8 +3370,8 @@ function openCreateModal(prefilledDate) {
         return res.json().catch(function() { return {}; });
       })
       .then(function(resp) {
-        if (resp.conflict) {
-          showToast('\u26a0\ufe0f Konfliktas: ' + (resp.message || '\u012eranga u\u017eimta'), 'error');
+        if (resp.success === false) {
+          showToast('\u26a0\ufe0f Konfliktas: ' + (resp.error || resp.message || '\u012eranga u\u017eimta'), 'error');
           btnCreate.disabled = false;
           btnCreate.textContent = 'Sukurti';
           return;
@@ -3948,7 +3956,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Skip auto-refresh if user has a modal or dialog open to prevent stale data conflicts
     var isModalOpen = !!document.getElementById('editModalBackdrop') ||
                       !!document.getElementById('deleteDialogBackdrop') ||
-                      !!document.getElementById('createModalBackdrop');
+                      !!document.getElementById('createModalBackdrop') ||
+                      !!document.getElementById('dpDropdown');
     if (!isModalOpen) { loadData(); }
   }, REFRESH_INTERVAL_MS);
 

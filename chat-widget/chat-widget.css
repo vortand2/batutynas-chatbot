@@ -1634,3 +1634,14 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ═══ Human Handoff Notice ═══ */
+.chat-handoff-notice {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #9a3412;
+}

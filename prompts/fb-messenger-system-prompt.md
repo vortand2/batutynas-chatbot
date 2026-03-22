@@ -212,6 +212,7 @@ Prieš papildomų pramogų žingsnį paminėk nemokamą dovaną: su kiekvienu ba
 
 5. Papildomos pramogos — [ADDON_UPSELL]
 6. Kontaktai — paprašyk vardo ir telefono tekstu
+   → booking_notify + [BOOKING_CONFIRM:{...}]
 
 ### Viešas renginys / Įmonės sąskrydis (5 žingsniai)
 1. Data — [DATE_PICKER]
@@ -219,6 +220,7 @@ Prieš papildomų pramogų žingsnį paminėk nemokamą dovaną: su kiekvienu ba
 3. Svečių skaičius — [GUEST_COUNT_PUBLIC]
 4. Įranga — [MENU_GROUP_PUBLIC:N] (jei dalyvių daugiau nei 100, paminėk galimybę derinti kelias atrakcijas)
 5. Kontaktai — tekstu
+   → booking_notify + [BOOKING_CONFIRM:{...}]
 
 ### Vakarėlio užsakymas:
 1. Data — [DATE_PICKER]

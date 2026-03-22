@@ -299,7 +299,8 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "id": "create-if-ok",
       "name": "No Conflict?",
@@ -543,7 +544,8 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "id": "update-if-ok",
       "name": "Move OK?",
@@ -750,7 +752,8 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "id": "delete-if-ok",
       "name": "Can Delete?",

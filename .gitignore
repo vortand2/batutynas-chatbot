@@ -18,6 +18,7 @@ node_modules/
 # Credential / secret files
 credentials/
 secrets/
+CLAUDE.md
 
 # n8n workflow exports containing embedded secrets
 chatwoot/chatwoot-main.json

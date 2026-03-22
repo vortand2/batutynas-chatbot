@@ -384,6 +384,7 @@ Jei klientas atsisako papildomų pramogų (pvz. „ne, ačiū", „pakanka", „
 
 **6 — Kontaktai:**
 Paprašyk vardo ir telefono numerio vienu klausimu (tai yra išimtis iš „po vieną žingsnį" taisyklės — efektyvumui). Pvz.: „Ir paskutinė detalė — koks jūsų vardas ir telefono numeris, kad galėtume susisiekti?"
+   → booking_notify + [BOOKING_CONFIRM:{...}]
 
 ### Viešas renginys / Įmonės sąskrydis (5 žingsniai):
 1. Data — [DATE_PICKER]
