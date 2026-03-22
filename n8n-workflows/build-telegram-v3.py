@@ -25,8 +25,8 @@ GROQ_CRED     = {"id": "yf0G3FBiIj8uxM4N", "name": "Groq Whisper API"}
 XAI_CRED      = {"id": "3o4JPVqz73RdiO0Q", "name": "xAI Grok API"}
 POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 
-# IMPORTANT: Set BATUTYNAS_BOT_TOKEN env var. Rotate token if repo goes public.
-BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '__TELEGRAM_BOT_TOKEN__')
+# All secrets from env vars — NO hardcoded fallbacks. Set in .env before running.
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
 
 # ── Calendar Bridge API URLs ─────────────────────────────────────────────────
 
@@ -1204,7 +1204,8 @@ add_node({
                 {"id": "cond-fetch", "leftValue": "={{ $json.apiType }}", "rightValue": "fetch_",
                  "operator": {"type": "string", "operation": "contains"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Fetch",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1225,7 +1226,8 @@ add_node({
                 {"id": "cond-delete", "leftValue": "={{ $json.apiType }}", "rightValue": "action_delete",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Delete",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1246,7 +1248,8 @@ add_node({
                 {"id": "cond-create", "leftValue": "={{ $json.apiType }}", "rightValue": "action_create",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Create",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1336,7 +1339,8 @@ add_node({
                 {"id": "cond-crossmonth", "leftValue": "={{ $('Parse Intent').first().json.args?.crossMonth }}",
                  "operator": {"type": "boolean", "operation": "true"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Cross Month",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1455,7 +1459,8 @@ add_node({
     "name": "Get File URL",
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.2,
-    "position": pos(920, 600)
+    "position": pos(920, 600),
+    "continueOnFail": True
 })
 connect("IF Is Voice", "Get File URL", 0)  # true branch of IF Is Voice
 
@@ -1535,7 +1540,8 @@ add_node({
                 {"id": "cond-vquery", "leftValue": "={{ $json.voiceType }}", "rightValue": "query",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Voice Query",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1556,7 +1562,8 @@ add_node({
                 {"id": "cond-vcreate", "leftValue": "={{ $json.voiceType }}", "rightValue": "create",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Voice Create",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1694,14 +1701,12 @@ connect("IF Is Callback", "Process Callback", 0)  # true branch of IF Is Callbac
 # ── 22b. No-Op Respond (absorb unrecognized message types to prevent webhook retry storms)
 add_node({
     "parameters": {
-        "respondWith": "json",
-        "responseBody": '={"ok":true}',
-        "options": {}
+        "jsCode": "return [{ json: { ok: true } }];"
     },
     "id": uid(),
     "name": "No-Op Respond",
-    "type": "n8n-nodes-base.respondToWebhook",
-    "typeVersion": 1,
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
     "position": pos(920, 800)
 })
 connect("IF Is Callback", "No-Op Respond", 1)  # false branch → unknown message type, just respond OK
@@ -1738,7 +1743,8 @@ add_node({
                 {"id": "cond-confirm", "leftValue": "={{ $('Process Callback').first().json.action }}", "rightValue": "voice_confirm",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Confirm",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1759,7 +1765,8 @@ add_node({
                 {"id": "cond-bdata", "leftValue": "={{ JSON.stringify($('Process Callback').first().json.bookingData) }}", "rightValue": "null",
                  "operator": {"type": "string", "operation": "notEquals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Booking Data Exists",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1841,7 +1848,8 @@ add_node({
                  "rightValue": "bk_confirm",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is BK Confirm",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1899,7 +1907,8 @@ add_node({
                  "rightValue": "bk_reject",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is BK Reject",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1969,7 +1978,8 @@ add_node({
                  "rightValue": "",
                  "operator": {"type": "string", "operation": "notEquals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Customer Has Email",
     "type": "n8n-nodes-base.if", "typeVersion": 2,

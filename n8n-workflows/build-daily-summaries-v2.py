@@ -9,16 +9,14 @@ Gemini generates intelligent narrative summaries from booking + weather data.
 
 import json, uuid, os
 
-# IMPORTANT: Set BATUTYNAS_BOT_TOKEN env var. Rotate token if repo goes public.
-BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '__TELEGRAM_BOT_TOKEN__')
+# All secrets loaded from environment variables — NO hardcoded fallbacks.
+# Set these in .env file or export before running: source .env && python3 build-daily-summaries-v2.py
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 GEMINI_CRED = {"id": "V0fvCRokUIPzfmGC", "name": "Google Gemini(PaLM) Api account"}
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '__GEMINI_API_KEY__')
+GEMINI_API_KEY = os.environ['GEMINI_API_KEY']
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-
-# Client's Telegram chat ID — needs to be set after first interaction
-# The bot sends a message to this chat ID on schedule
-OWNER_CHAT_ID = "8258463322"
+OWNER_CHAT_ID = os.environ['BATUTYNAS_OWNER_CHAT_ID']
 
 API_DASHBOARD = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2"
 

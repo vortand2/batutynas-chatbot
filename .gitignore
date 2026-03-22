@@ -12,9 +12,15 @@ node_modules/
 .idea/
 .vscode/
 
+# MCP config (contains API keys)
+.mcp.json
+
 # Credential / secret files
 credentials/
 secrets/
+
+# n8n workflow exports containing embedded secrets
+chatwoot/chatwoot-main.json
 *.credentials.json
 *.secrets.json
 *.secret

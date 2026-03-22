@@ -210,8 +210,8 @@ nodes = [
     {
         "parameters": {
             "jsCode": "const resp = $input.first().json;\n"
-                      "if (resp.error) {\n"
-                      "  return [{ json: { success: false, error: resp.error } }];\n"
+                      "if (resp.error || resp.success === false) {\n"
+                      "  return [{ json: { success: false, error: resp.error || resp.message || 'Calendar create failed' } }];\n"
                       "}\n"
                       "return [{ json: { success: true, eventId: resp.id || resp.eventId || 'created' } }];"
         },

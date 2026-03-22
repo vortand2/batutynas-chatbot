@@ -25,9 +25,10 @@ SMTP_CRED = {"id": "UHVHpJrJED5CHOJh", "name": "SMTP account"}
 POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 
-BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '__TELEGRAM_BOT_TOKEN__')
-OWNER_CHAT_ID = "8258463322"
-OWNER_EMAIL = "dovydasdobrovolskis@gmail.com"
+# All secrets from env vars — NO hardcoded fallbacks. Set in .env before running.
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
+OWNER_CHAT_ID = os.environ['BATUTYNAS_OWNER_CHAT_ID']
+OWNER_EMAIL = os.environ.get('BATUTYNAS_OWNER_EMAIL', 'dovydasdobrovolskis@gmail.com')
 # Calendar event creation removed — owner confirms booking manually
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

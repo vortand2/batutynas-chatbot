@@ -774,7 +774,8 @@ return [{ json: {
                     "operator": {"type": "boolean", "operation": "equals"}
                 }],
                 "combinator": "and"
-            }
+            },
+            "options": {}
         },
         "id": "create-if-ok",
         "name": "No Conflict?",
@@ -976,7 +977,8 @@ return [{ json: { ...prev, hasConflict: false } }];
                     "operator": {"type": "boolean", "operation": "equals"}
                 }],
                 "combinator": "and"
-            }
+            },
+            "options": {}
         },
         "id": "update-if-ok",
         "name": "Move OK?",
@@ -1092,7 +1094,8 @@ return [{ json: {
                     "operator": {"type": "boolean", "operation": "equals"}
                 }],
                 "combinator": "and"
-            }
+            },
+            "options": {}
         },
         "id": "delete-if-ok",
         "name": "Can Delete?",

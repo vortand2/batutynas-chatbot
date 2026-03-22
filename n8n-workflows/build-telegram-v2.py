@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Build Telegram Bot V2 workflow JSON with voice booking + callback support."""
 
-import json
+import json, os
 
-BOT_TOKEN = "__TELEGRAM_BOT_TOKEN__"
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 GROQ_CRED = {"id": "yf0G3FBiIj8uxM4N", "name": "Groq Whisper API"}  # Whisper transcription
