@@ -662,8 +662,6 @@ Jei NAUJAS UŽSAKYMAS:
 Nežinomus laukus palik null. Data formatas visada YYYY-MM-DD.
 Jei negali nustatyti — grąžink: {{"type": "unknown", "text": "originali transkripcija"}}"""
 
-VOICE_EXTRACT_USER_PROMPT = "Transkripcija: \"{transcript}\""
-
 # ── Voice: Route voice result ─────────────────────────────────────────────────
 
 ROUTE_VOICE_CODE = r"""
