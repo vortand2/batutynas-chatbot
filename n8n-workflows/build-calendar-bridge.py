@@ -281,6 +281,18 @@ function parseCalendarEvent(event) {
   const deliveryTimeMatch = description.match(/Pristatymas:\\s*(\\d{1,2}:\\d{2})/i);
   const delivery_time = deliveryTimeMatch ? deliveryTimeMatch[1] : '8:00';
 
+  // Extract pickup time (e.g., "Paėmimas: 20:00" or "Pickup: 20:00")
+  const pickupMatch = description.match(/Pa[eė]mimas:\\s*(\\d{1,2}:\\d{2})/i) || description.match(/Pickup:\\s*(\\d{1,2}:\\d{2})/i);
+  const pickup_time = pickupMatch ? pickupMatch[1] : '';
+
+  // Extract notes
+  const notesMatch = lines.find(l => l.startsWith('Notes:') || l.startsWith('Pastabos:'));
+  const notes = notesMatch ? notesMatch.replace(/^(Notes|Pastabos):\\s*/i, '').trim() : '';
+
+  // Deposit paid status
+  const depositPaidLine = lines.find(l => /deposit.*paid|užstatas.*sumok/i.test(l));
+  const deposit_paid = !!depositPaidLine;
+
   return {
     id: event.id,
     calendarEventId: event.id,
@@ -294,6 +306,10 @@ function parseCalendarEvent(event) {
     delivery_address: location,
     city: location,
     delivery_time: delivery_time,
+    event_time: delivery_time,
+    pickup_time: pickup_time,
+    notes: notes,
+    deposit_paid: deposit_paid,
     price: price,
     status: (lines.find(l => l.startsWith('Status: ')) || '').replace('Status: ', '') || 'Confirmed',
     payment_status: (lines.find(l => l.startsWith('Payment: ')) || '').replace('Payment: ', '') || 'Unpaid',
