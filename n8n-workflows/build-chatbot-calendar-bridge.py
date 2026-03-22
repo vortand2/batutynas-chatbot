@@ -64,13 +64,15 @@ const formatted = $('Format for Calendar').first().json;
 const availData = $input.first().json;
 const equipment = formatted.calendarBody.equipment || '';
 
-// Check if the equipment is in the "booked" list
+// Check if the equipment is in the "booked" list using full-word regex
+// (prevents substring false positives like "Mega ruožas" matching "Giga ruožas")
 const booked = availData.booked || [];
+const eqLower = equipment.toLowerCase();
+const eqEscaped = eqLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const eqRe = new RegExp('(^|[\\s,;|/])' + eqEscaped + '($|[\\s,;|/])', 'i');
 const isConflict = booked.some(b => {
   const bName = (b.name || '').toLowerCase();
-  const eqName = equipment.toLowerCase();
-  // Full-word match to prevent substring false positives
-  return bName === eqName || bName.includes(eqName) || eqName.includes(bName);
+  return bName === eqLower || eqRe.test(b.name || '');
 });
 
 return [{ json: { isConflict, calendarBody: formatted.calendarBody, nextFreeUrl: formatted.nextFreeUrl } }];
@@ -122,7 +124,8 @@ nodes = [
             "conditions": {
                 "options": {
                     "caseSensitive": True,
-                    "leftValue": ""
+                    "leftValue": "",
+                    "typeValidation": "strict"
                 },
                 "conditions": [
                     {
@@ -133,7 +136,8 @@ nodes = [
                     }
                 ],
                 "combinator": "and"
-            }
+            },
+            "options": {}
         },
         "id": uid(),
         "name": "IF Is Booking",
@@ -167,7 +171,7 @@ nodes = [
     {
         "parameters": {
             "conditions": {
-                "options": {"caseSensitive": True, "leftValue": ""},
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
                 "conditions": [
                     {
                         "id": "cond-conflict",
@@ -177,7 +181,8 @@ nodes = [
                     }
                 ],
                 "combinator": "and"
-            }
+            },
+            "options": {}
         },
         "id": uid(),
         "name": "IF No Conflict",
@@ -237,6 +242,17 @@ nodes = [
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [1840, 360]
+    },
+    # ── Return Skip (for non-booking requests — prevents caller timeout) ──
+    {
+        "parameters": {
+            "jsCode": "return [{ json: { success: true, skipped: true, reason: 'Not a booking request' } }];"
+        },
+        "id": uid(),
+        "name": "Return Skip",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [920, 400]
     }
 ]
 
@@ -245,7 +261,7 @@ connections = {
     "Format for Calendar": {"main": [[{"node": "IF Is Booking", "type": "main", "index": 0}]]},
     "IF Is Booking": {"main": [
         [{"node": "Check Availability", "type": "main", "index": 0}],
-        []  # false path — skip
+        [{"node": "Return Skip", "type": "main", "index": 0}]
     ]},
     "Check Availability": {"main": [[{"node": "Check Conflict", "type": "main", "index": 0}]]},
     "Check Conflict": {"main": [[{"node": "IF No Conflict", "type": "main", "index": 0}]]},

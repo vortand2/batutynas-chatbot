@@ -234,7 +234,7 @@ morning_nodes = [
         "position": [240, 400]
     },
     {
-        "parameters": {"method": "GET", "url": "=" + API_DASHBOARD + "?year={{ new Date().getFullYear() }}&month={{ new Date().getMonth()+1 }}",
+        "parameters": {"method": "GET", "url": "=" + API_DASHBOARD + "?month={{ new Date().getFullYear() }}-{{ String(new Date().getMonth()+1).padStart(2,'0') }}",
                        "options": {"timeout": 15000}},
         "id": uid(), "name": "Fetch Today Data",
         "type": "n8n-nodes-base.httpRequest",
@@ -292,7 +292,7 @@ morning_nodes = [
             "resource": "message", "operation": "sendMessage",
             "chatId": f"={OWNER_CHAT_ID}" if OWNER_CHAT_ID else "={{ $vars.OWNER_CHAT_ID }}",
             "text": "={{ $json.message }}",
-            "additionalFields": {"parse_mode": "HTML", "disable_web_page_preview": True}
+            "additionalFields": {"parse_mode": "HTML"}
         },
         "id": uid(), "name": "Send Morning Briefing",
         "type": "n8n-nodes-base.telegram",
@@ -436,7 +436,7 @@ evening_nodes = [
         "position": [240, 400]
     },
     {
-        "parameters": {"method": "GET", "url": "=" + API_DASHBOARD + "?year={{ new Date().getFullYear() }}&month={{ new Date().getMonth()+1 }}",
+        "parameters": {"method": "GET", "url": "=" + API_DASHBOARD + "?month={{ new Date().getFullYear() }}-{{ String(new Date().getMonth()+1).padStart(2,'0') }}",
                        "options": {"timeout": 15000}},
         "id": uid(), "name": "Fetch Data",
         "type": "n8n-nodes-base.httpRequest",
@@ -494,7 +494,7 @@ evening_nodes = [
             "resource": "message", "operation": "sendMessage",
             "chatId": f"={OWNER_CHAT_ID}" if OWNER_CHAT_ID else "={{ $vars.OWNER_CHAT_ID }}",
             "text": "={{ $json.message }}",
-            "additionalFields": {"parse_mode": "HTML", "disable_web_page_preview": True}
+            "additionalFields": {"parse_mode": "HTML"}
         },
         "id": uid(), "name": "Send Evening Check",
         "type": "n8n-nodes-base.telegram",

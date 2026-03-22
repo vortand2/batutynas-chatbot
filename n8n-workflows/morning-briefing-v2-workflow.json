@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "396fb219536b41919983",
+      "id": "1b30f9a678174f06a937",
       "name": "Cron 07:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -24,12 +24,12 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2?year={{ new Date().getFullYear() }}&month={{ new Date().getMonth()+1 }}",
+        "url": "=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2?month={{ new Date().getFullYear() }}-{{ String(new Date().getMonth()+1).padStart(2,'0') }}",
         "options": {
           "timeout": 15000
         }
       },
-      "id": "25810122891749129146",
+      "id": "f390b993f3ce4f1784c3",
       "name": "Fetch Today Data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -43,7 +43,7 @@
       "parameters": {
         "jsCode": "const CITY_COORDS = {\n  'Klaipėda': [55.7033, 21.1443],\n  'Klaipeda': [55.7033, 21.1443],\n  'Vilnius': [54.6872, 25.2797],\n  'Kaunas': [54.8985, 23.9036],\n  'Šiauliai': [55.9349, 23.3137],\n  'Siauliai': [55.9349, 23.3137],\n  'Panevėžys': [55.7348, 24.3575],\n  'Panevezys': [55.7348, 24.3575],\n  'Tauragė': [55.2522, 22.2892],\n  'Taurage': [55.2522, 22.2892],\n  'Šilalė': [55.4917, 22.185],\n  'Silale': [55.4917, 22.185],\n  'Šilutė': [55.3481, 21.4742],\n  'Silute': [55.3481, 21.4742],\n  'Plungė': [55.9111, 21.845],\n  'Plunge': [55.9111, 21.845],\n  'Telšiai': [55.9831, 22.2456],\n  'Telsiai': [55.9831, 22.2456],\n  'Mažeikiai': [56.3092, 22.3425],\n  'Mazeikiai': [56.3092, 22.3425],\n  'Palanga': [55.9203, 21.0686],\n  'Jurbarkas': [55.0775, 22.7633],\n  'Pagramantis': [55.3167, 22.5167],\n  'Skuodas': [56.2692, 21.5278],\n  'Gargždai': [55.7125, 21.3917],\n  'Gargzdai': [55.7125, 21.3917],\n  'Kretinga': [55.8892, 21.2456],\n};\n\nconst data = $input.first().json;\nconst bookings = data.bookings || [];\nconst now = new Date();\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\n\n// Get unique delivery cities from tomorrow's bookings\nconst cities = new Set();\nbookings.filter(b => b.event_date === tmrwStr).forEach(b => {\n  if (b.city) cities.add(b.city);\n  if (b.delivery_address) {\n    // Try to extract city from address (last word or known city)\n    const words = b.delivery_address.split(/[\\s,]+/);\n    for (const w of words) {\n      if (CITY_COORDS[w]) { cities.add(w); break; }\n    }\n  }\n});\n\n// Find coordinates for matched cities\nconst matched = [];\nfor (const city of cities) {\n  // Try exact match first, then case-insensitive\n  if (CITY_COORDS[city]) {\n    matched.push({ city, lat: CITY_COORDS[city][0], lon: CITY_COORDS[city][1] });\n  } else {\n    const lower = city.toLowerCase();\n    for (const [k, v] of Object.entries(CITY_COORDS)) {\n      if (k.toLowerCase() === lower) {\n        matched.push({ city: k, lat: v[0], lon: v[1] });\n        break;\n      }\n    }\n  }\n}\n\n// Default to Klaipeda if no cities found (business HQ area)\nif (matched.length === 0) {\n  matched.push({ city: 'Klaipėda', lat: 55.7033, lon: 21.1443 });\n}\n\n// Use the first city for API call (Open-Meteo supports one location per request)\nconst primary = matched[0];\nconst weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${primary.lat}&longitude=${primary.lon}&daily=precipitation_probability_max,temperature_2m_max,temperature_2m_min,wind_speed_10m_max&timezone=Europe/Vilnius&forecast_days=2`;\n\nreturn [{ json: { ...data, weatherUrl, weatherCities: matched.map(m => m.city) } }];\n"
       },
-      "id": "8c9598b758264f81883c",
+      "id": "664bd4341afb4fd3b3fc",
       "name": "Prepare Weather",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -60,7 +60,7 @@
           "timeout": 10000
         }
       },
-      "id": "a2c577f710f9451ea270",
+      "id": "62aac8de95a44452a2a9",
       "name": "Fetch Weather",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -74,7 +74,7 @@
       "parameters": {
         "jsCode": "const data = $('Prepare Weather').first().json;\nconst bookings = data.bookings || [];\nconst stats = data.stats || {};\nconst now = new Date();\nconst today = now.toISOString().substring(0, 10);\nconst dayNames = ['Sekmadienis', 'Pirmadienis', 'Antradienis', 'Trečiadienis', 'Ketvirtadienis', 'Penktadienis', 'Šeštadienis'];\nconst monthNames = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];\n\nconst dayName = dayNames[now.getDay()];\nconst todayBookings = bookings.filter(b => b.event_date === today);\n\nconst tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);\nconst tmrwStr = tmrw.toISOString().substring(0, 10);\nconst tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);\n\nfunction fmtBooking(b) {\n  const equip = Array.isArray(b.equipment) && b.equipment.length > 0\n    ? b.equipment.map(e => `${e.icon || ''} ${e.name}`).join(', ')\n    : (b.raw_summary || '?');\n  let line = `- ${equip}`;\n  if (b.customer_name) line += ` | ${b.customer_name}`;\n  if (b.customer_phone) line += ` | ${b.customer_phone}`;\n  if (b.delivery_address) line += ` | ${b.delivery_address}`;\n  if (b.price) line += ` | ${b.price}€`;\n  return line;\n}\n\nconst todayList = todayBookings.length > 0\n  ? todayBookings.map(fmtBooking).join('\\n')\n  : 'Nėra užsakymų šiandien';\n\nconst tmrwList = tmrwBookings.length > 0\n  ? tmrwBookings.map(fmtBooking).join('\\n')\n  : 'Nėra užsakymų rytoj';\n\n// Weather data\nlet weatherSection = '';\ntry {\n  const weatherData = $('Fetch Weather').first().json;\n  const prepData = $('Prepare Weather').first().json;\n  const cities = prepData.weatherCities || [];\n  if (weatherData && weatherData.daily) {\n    const daily = weatherData.daily;\n    const idx = daily.time && daily.time.length > 1 ? 1 : 0;\n    const rainProb = daily.precipitation_probability_max ? daily.precipitation_probability_max[idx] : null;\n    const tempMax = daily.temperature_2m_max ? daily.temperature_2m_max[idx] : null;\n    const tempMin = daily.temperature_2m_min ? daily.temperature_2m_min[idx] : null;\n    const windMax = daily.wind_speed_10m_max ? daily.wind_speed_10m_max[idx] : null;\n    const city = cities.length > 0 ? cities[0] : 'Klaipėda';\n\n    if (rainProb !== null && rainProb >= 30) {\n      weatherSection = `\\nORAI RYTOJ (${city}): ${tempMin || '?'}–${tempMax || '?'}°C, lietaus tikimybė ${rainProb}%`;\n      if (windMax !== null) weatherSection += `, vėjas iki ${windMax} km/h`;\n      if ((rainProb >= 60 || (windMax !== null && windMax >= 40)) && tmrwBookings.length > 0) {\n        weatherSection += `\\n🚨 PERSPĖJIMAS: `;\n        if (windMax >= 40) weatherSection += `Stiprus vėjas (${windMax} km/h) — PAVOJINGA pripučiamiems batutams! `;\n        if (rainProb >= 60) weatherSection += `Didelis lietaus tikimybė (${rainProb}%). `;\n        weatherSection += `Yra ${tmrwBookings.length} užsakymas(-ai) rytoj — BŪTINA susisiekti su klientais dėl perkėlimo!`;\n      }\n    } else if (rainProb !== null) {\n      weatherSection = `\\nORAI RYTOJ (${city}): ${tempMin || '?'}–${tempMax || '?'}°C, giedra (lietaus ${rainProb}%)`;\n      if (windMax !== null && windMax >= 40) {\n        weatherSection += `\\n🚨 PERSPĖJIMAS: Stiprus vėjas (${windMax} km/h) — PAVOJINGA pripučiamiems batutams!`;\n        if (tmrwBookings.length > 0) weatherSection += ` Yra ${tmrwBookings.length} užsakymas(-ai) rytoj — BŪTINA susisiekti su klientais!`;\n      } else if (windMax !== null) {\n        weatherSection += `, vėjas ${windMax} km/h`;\n      }\n    }\n  }\n} catch(e) { weatherSection = ''; }\n\nconst prompt = `Tu esi Batutynas.lt batutų nuomos verslo asistentas. Parašyk TRUMPĄ ryto apžvalgą kaip Telegram žinutę.\n\nDATA: ${monthNames[now.getMonth()]} ${now.getDate()} d. (${dayName})\n\nŠIANDIENOS UŽSAKYMAI (${todayBookings.length}):\n${todayList}\n\nRYTOJAUS UŽSAKYMAI (${tmrwBookings.length}):\n${tmrwList}\n${weatherSection}\n\nMĖNESIO STATISTIKA:\n- Užsakymai: ${stats.month_count || 0}\n- Pajamos: ${stats.month_revenue || 0}€\n\nTAISYKLĖS:\n- Rašyk TIKTAI lietuviškai\n- Naudok Telegram HTML: <b>bold</b>, <i>italic</i>\n- Pradėk nuo emoji ir pasisveikinimo\n- Jei orai blogi (lietus >50% arba vėjas >40 km/h) — aiškiai perspėk ir pasiūlyk susisiekti su klientais dėl perkėlimo\n- Jei vėjas >40 km/h — tai PAVOJINGA pripučiamiems batutams, būtinai perspėk!\n- Jei orai geri arba nėra duomenų — NEMINĖK orų, sutelk dėmesį į užsakymus\n- Jei nėra užsakymų šiandien — padrąsink (pvz. \"gera diena pasiruošti savaitgaliui\" arba \"puikus laikas paskelbti akciją socialiniuose tinkluose\")\n- Paminėk kiekvieno užsakymo klientą, įrangą ir vietą\n- Pabaigoje — trumpa mėnesio statistika viena eilute\n- Maksimum 400 žodžių\n- NENAUDOK markdown (**, ##) — TIK HTML (<b>, <i>)\n- Nerašyk \"Gemini\" ar \"AI\" — tu esi verslo asistentas`;\n\nreturn [{ json: { prompt } }];"
       },
-      "id": "8acc9d32267545018b78",
+      "id": "89c7a86d3b3342838396",
       "name": "Build Morning Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -94,7 +94,7 @@
           "timeout": 30000
         }
       },
-      "id": "ed1a0d0989f84e8ea63b",
+      "id": "ba258aaecf78464ab141",
       "name": "Call Gemini",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -108,7 +108,7 @@
       "parameters": {
         "jsCode": "const input = $input.first().json;\n// Gemini REST API response format: candidates[0].content.parts[0].text\nconst text = input?.candidates?.[0]?.content?.parts?.[0]?.text\n  || input?.response?.text || input?.text || input?.output || '';\nif (!text) {\n  return [{ json: { message: '⚠️ Nepavyko sugeneruoti apžvalgos. Patikrinkite Gemini API.' } }];\n}\n// Convert any accidental markdown to HTML\nlet msg = text.replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/__(.*?)__/g, '<i>$1</i>');\n// Remove markdown headers\nmsg = msg.replace(/^#{1,3}\\s+/gm, '');\nreturn [{ json: { message: msg } }];"
       },
-      "id": "d1b28635d2624948be8f",
+      "id": "6cde4db045444350a419",
       "name": "Format Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -124,11 +124,10 @@
         "chatId": "=8258463322",
         "text": "={{ $json.message }}",
         "additionalFields": {
-          "parse_mode": "HTML",
-          "disable_web_page_preview": true
+          "parse_mode": "HTML"
         }
       },
-      "id": "4d9d5cb510e3436aa3a7",
+      "id": "2d520dbfe2da46d39175",
       "name": "Send Morning Briefing",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

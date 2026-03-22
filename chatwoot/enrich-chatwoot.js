@@ -188,7 +188,8 @@ function buildGroupEquipment(items, headerText, guestCount, btnText) {
     }
     // Convert overflow cards to select items
     var overflowSelectItems = overflowCards.map(function(c) {
-      return { title: c.title.substring(0, 20), value: c.actions[0].payload };
+      var t = c.title;
+      return { title: t.length > 20 ? t.substring(0, 19) + '\u2026' : t, value: c.actions[0].payload };
     });
     // Merge no-image recommended items + others + overflow into one dropdown
     var extraItems = buildTrampolineSelectItems(result.noImgItems.concat(others)).concat(overflowSelectItems);

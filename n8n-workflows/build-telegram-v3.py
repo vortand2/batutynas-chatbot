@@ -229,12 +229,6 @@ if (cleanText.startsWith('/')) {
       apiUrl = '""" + API_DASHBOARD + r"""' + `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;
       args.searchQuery = query.toLowerCase();
       args.multiMonth = true;
-      // Build URLs for last 12 months to enable full customer history
-      args.historyUrls = [];
-      for (let mi = 1; mi <= 12; mi++) {
-        const d = new Date(now); d.setMonth(d.getMonth() - mi);
-        args.historyUrls.push('""" + API_DASHBOARD + r"""' + `?year=${d.getFullYear()}&month=${d.getMonth() + 1}`);
-      }
       break;
     }
 
@@ -1128,7 +1122,8 @@ add_node({
                 {"id": "cond-text", "leftValue": "={{ $json.msgType }}", "rightValue": "text",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Text",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1149,7 +1144,8 @@ add_node({
                 {"id": "cond-voice", "leftValue": "={{ $json.msgType }}", "rightValue": "voice",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Voice",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1170,7 +1166,8 @@ add_node({
                 {"id": "cond-callback", "leftValue": "={{ $json.msgType }}", "rightValue": "callback",
                  "operator": {"type": "string", "operation": "equals"}}
             ], "combinator": "and"
-        }
+        },
+        "options": {}
     },
     "id": uid(), "name": "IF Is Callback",
     "type": "n8n-nodes-base.if", "typeVersion": 2,
@@ -1986,7 +1983,7 @@ SMTP_CRED_TELEGRAM = {"id": "UHVHpJrJED5CHOJh", "name": "SMTP account"}
 
 add_node({
     "parameters": {
-        "fromEmail": "info@batutynas.lt",
+        "fromEmail": "dovydasdobrovolskis@gmail.com",
         "toEmail": "={{ $('Format BK Reply').first().json.customerEmail }}",
         "subject": "={{ $('Format BK Reply').first().json.customerEmailSubject }}",
         "emailFormat": "text",

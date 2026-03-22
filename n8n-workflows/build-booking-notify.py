@@ -319,24 +319,6 @@ return [{ json: { chatBody: JSON.stringify(chatBody) } }];
 """.strip().replace('__OWNER_CHAT_ID__', OWNER_CHAT_ID)
 
 RETURN_CONFIRMATION_CODE = r"""
-// Check if chatbot-calendar-bridge returned a conflict
-let conflictMsg = '';
-try {
-  // If the Chatbot Calendar Bridge sub-workflow was called and returned conflict
-  const bridgeResult = $input.first().json;
-  if (bridgeResult && bridgeResult.conflict === true) {
-    conflictMsg = bridgeResult.message || '';
-  }
-} catch(e) {}
-
-if (conflictMsg) {
-  return [{
-    json: {
-      result: conflictMsg + ' Užklausa vis tiek išsiųsta administratoriui — jis susisieks su jumis dėl alternatyvių datų. The requested equipment is not available on this date. Alternative dates have been suggested. The inquiry was still sent to the owner.'
-    }
-  }];
-}
-
 return [{
   json: {
     result: 'Užklausa sėkmingai išsiųsta administratoriui ir išsaugota sistemoje. El. laiškas ir Telegram pranešimas išsiųsti. Klientui pasakykite, kad susisieksime per 2 darbo valandas. Booking inquiry sent successfully — email and Telegram notification delivered.'
@@ -548,10 +530,7 @@ workflow = {
     "name": "Batutynas: Booking Notification Tool",
     "nodes": nodes,
     "connections": connections,
-    "pinData": {},
-    "settings": {"executionOrder": "v1"},
-    "staticData": None,
-    "tags": []
+    "settings": {"executionOrder": "v1"}
 }
 
 output_path = os.path.join(os.path.dirname(__file__), "booking-notify-workflow.json")

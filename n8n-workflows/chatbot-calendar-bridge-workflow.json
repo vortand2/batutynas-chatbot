@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "e82953972a9e491cbd67",
+      "id": "7c8ae92e7e974b3cb597",
       "name": "Sub-Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
@@ -16,7 +16,7 @@
       "parameters": {
         "jsCode": "const data = $input.first().json;\n\n// Only process actual bookings, not catalog/custom requests\nif (data.requestType && data.requestType !== 'booking') {\n  return [{ json: { skip: true, reason: 'Not a booking request' } }];\n}\n\n// Build Calendar Bridge create body\nconst body = {\n  equipment: data.trampolinePreference || '',\n  customer_name: data.contactName || '',\n  customer_phone: data.contactPhone || '',\n  date: data.date || '',\n  location: data.address || data.location || '',\n  price: 0,  // Chatbot doesn't collect price\n  addons: [],\n  notes: [\n    data.eventType && data.eventType !== 'Nenurodyta' ? `Renginys: ${data.eventType}` : '',\n    data.guestCount && data.guestCount !== 'Nenurodyta' ? `Svečiai: ${data.guestCount}` : '',\n    data.groupType && data.groupType !== 'Nenurodyta' ? `Grupė: ${data.groupType}` : '',\n    data.notes || ''\n  ].filter(Boolean).join('; ')\n};\n\n// Parse addons from comma-separated string\nif (data.addons && data.addons !== 'Nenurodyta') {\n  body.addons = data.addons.split(',').map(a => a.trim()).filter(Boolean);\n}\n\n// Build availability check URL\nconst availUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability' + '?date=' + encodeURIComponent(body.date);\n// Build next-free URL for alternative dates if conflict found\nconst nextFreeUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-next-free' + '?equipment=' + encodeURIComponent(body.equipment) + '&days=14';\n\nreturn [{ json: { skip: false, calendarBody: body, availUrl, nextFreeUrl } }];"
       },
-      "id": "d082ddf70afb4aa6907d",
+      "id": "5c1e1f9a2d43409dad40",
       "name": "Format for Calendar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -30,7 +30,8 @@
         "conditions": {
           "options": {
             "caseSensitive": true,
-            "leftValue": ""
+            "leftValue": "",
+            "typeValidation": "strict"
           },
           "conditions": [
             {
@@ -44,9 +45,10 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "7b5db10ff6a046eab3b8",
+      "id": "bfd299a81f12464fb605",
       "name": "IF Is Booking",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -63,7 +65,7 @@
           "timeout": 10000
         }
       },
-      "id": "f12be436916c415bb348",
+      "id": "a993da13b8834f00adde",
       "name": "Check Availability",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -75,9 +77,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const formatted = $('Format for Calendar').first().json;\nconst availData = $input.first().json;\nconst equipment = formatted.calendarBody.equipment || '';\n\n// Check if the equipment is in the \"booked\" list\nconst booked = availData.booked || [];\nconst isConflict = booked.some(b => {\n  const bName = (b.name || '').toLowerCase();\n  const eqName = equipment.toLowerCase();\n  // Full-word match to prevent substring false positives\n  return bName === eqName || bName.includes(eqName) || eqName.includes(bName);\n});\n\nreturn [{ json: { isConflict, calendarBody: formatted.calendarBody, nextFreeUrl: formatted.nextFreeUrl } }];"
+        "jsCode": "const formatted = $('Format for Calendar').first().json;\nconst availData = $input.first().json;\nconst equipment = formatted.calendarBody.equipment || '';\n\n// Check if the equipment is in the \"booked\" list using full-word regex\n// (prevents substring false positives like \"Mega ruožas\" matching \"Giga ruožas\")\nconst booked = availData.booked || [];\nconst eqLower = equipment.toLowerCase();\nconst eqEscaped = eqLower.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\nconst eqRe = new RegExp('(^|[\\\\s,;|/])' + eqEscaped + '($|[\\\\s,;|/])', 'i');\nconst isConflict = booked.some(b => {\n  const bName = (b.name || '').toLowerCase();\n  return bName === eqLower || eqRe.test(b.name || '');\n});\n\nreturn [{ json: { isConflict, calendarBody: formatted.calendarBody, nextFreeUrl: formatted.nextFreeUrl } }];"
       },
-      "id": "d674e30f8d394777ace3",
+      "id": "0be5db94fe784fea8390",
       "name": "Check Conflict",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -91,7 +93,8 @@
         "conditions": {
           "options": {
             "caseSensitive": true,
-            "leftValue": ""
+            "leftValue": "",
+            "typeValidation": "strict"
           },
           "conditions": [
             {
@@ -105,9 +108,10 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "1f9754209db742b08e9f",
+      "id": "604e927ee87a442aabff",
       "name": "IF No Conflict",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -127,7 +131,7 @@
           "timeout": 15000
         }
       },
-      "id": "1096cd3d2a414d5eb626",
+      "id": "19ebf9a5cb3b4769ac6c",
       "name": "Create Calendar Event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -141,7 +145,7 @@
       "parameters": {
         "jsCode": "const resp = $input.first().json;\nif (resp.error) {\n  return [{ json: { success: false, error: resp.error } }];\n}\nreturn [{ json: { success: true, eventId: resp.id || resp.eventId || 'created' } }];"
       },
-      "id": "b314220df7ef4fd09feb",
+      "id": "64517ad63ca641d68b49",
       "name": "Return Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -158,7 +162,7 @@
           "timeout": 10000
         }
       },
-      "id": "768eb5be1c5042f5b55d",
+      "id": "5aae7636a86f4a20a938",
       "name": "Fetch Next Free",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -172,13 +176,26 @@
       "parameters": {
         "jsCode": "const prev = $('Check Conflict').first().json;\nconst nextFreeData = $input.first().json;\nconst equipment = prev.calendarBody.equipment || 'Įranga';\nconst date = prev.calendarBody.date || '';\n\nconst freeDates = nextFreeData.freeDates || [];\nlet altDates = '';\nif (freeDates.length > 0) {\n  altDates = freeDates.slice(0, 5).map(d => d.date + ' (' + d.weekday + ')').join(', ');\n}\n\nreturn [{ json: {\n  success: false,\n  conflict: true,\n  conflict_equipment: equipment,\n  conflict_date: date,\n  alternative_dates: altDates,\n  message: `Deja, ${equipment} ${date} jau užimtas.` +\n    (altDates ? ` Laisvos datos: ${altDates}` : ' Artimiausiomis dienomis laisvų datų nėra.')\n}}];"
       },
-      "id": "fa61a76f9c65433d80f3",
+      "id": "93ef4be37f49475a9331",
       "name": "Return Conflict",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1840,
         360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { success: true, skipped: true, reason: 'Not a booking request' } }];"
+      },
+      "id": "5dcc1267cd4f49009cd6",
+      "name": "Return Skip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        400
       ]
     }
   ],
@@ -214,7 +231,13 @@
             "index": 0
           }
         ],
-        []
+        [
+          {
+            "node": "Return Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Availability": {

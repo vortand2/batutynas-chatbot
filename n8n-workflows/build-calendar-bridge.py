@@ -296,7 +296,7 @@ function parseCalendarEvent(event) {
     delivery_time: delivery_time,
     price: price,
     status: 'Confirmed', // Calendar events are confirmed by default
-    payment_status: price ? 'Unpaid' : 'Unpaid',
+    payment_status: 'Unpaid',
     entry_source: entry_source,
     equipment: equipment ? [{
       name: equipment.name,
@@ -696,8 +696,9 @@ if (addons) title += ' + ' + addons;
 if (price) title += ' | ' + price + '€';
 
 // Build description
+const deliveryTime = body.delivery_time || '8:00';
 const descParts = [];
-descParts.push('Pristatymas: 8:00');
+descParts.push('Pristatymas: ' + deliveryTime);
 if (location) descParts.push(location);
 if (customerPhone) descParts.push(customerPhone);
 if (customerName) descParts.push(customerName);
