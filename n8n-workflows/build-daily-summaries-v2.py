@@ -118,7 +118,11 @@ const todayBookings = bookings.filter(b => b.event_date === today);
 
 const tmrw = new Date(now); tmrw.setDate(tmrw.getDate() + 1);
 const tmrwStr = tmrw.toISOString().substring(0, 10);
+const crossMonth = tmrw.getMonth() !== now.getMonth();
 const tmrwBookings = bookings.filter(b => b.event_date === tmrwStr);
+const tmrwNote = crossMonth && tmrwBookings.length === 0
+  ? ' (Rytoj — kitas mėnuo. Patikrinkite Google Calendar.)'
+  : '';
 
 function fmtBooking(b) {
   const equip = Array.isArray(b.equipment) && b.equipment.length > 0
@@ -183,7 +187,7 @@ DATA: ${monthNames[now.getMonth()]} ${now.getDate()} d. (${dayName})
 ŠIANDIENOS UŽSAKYMAI (${todayBookings.length}):
 ${todayList}
 
-RYTOJAUS UŽSAKYMAI (${tmrwBookings.length}):
+RYTOJAUS UŽSAKYMAI (${tmrwBookings.length}):${tmrwNote}
 ${tmrwList}
 ${weatherSection}
 

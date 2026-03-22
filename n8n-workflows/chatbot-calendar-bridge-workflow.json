@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "f1345f8c655b400bb146",
+      "id": "4f13f01787fc439f965f",
       "name": "Sub-Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
@@ -16,7 +16,7 @@
       "parameters": {
         "jsCode": "const data = $input.first().json;\n\n// Only process actual bookings, not catalog/custom requests\nif (data.requestType && data.requestType !== 'booking') {\n  return [{ json: { skip: true, reason: 'Not a booking request' } }];\n}\n\n// Build Calendar Bridge create body\nconst body = {\n  equipment: data.trampolinePreference || '',\n  customer_name: data.contactName || '',\n  customer_phone: data.contactPhone || '',\n  date: data.date || '',\n  location: data.address || data.location || '',\n  price: 0,  // Chatbot doesn't collect price\n  addons: [],\n  notes: [\n    data.eventType && data.eventType !== 'Nenurodyta' ? `Renginys: ${data.eventType}` : '',\n    data.guestCount && data.guestCount !== 'Nenurodyta' ? `Svečiai: ${data.guestCount}` : '',\n    data.groupType && data.groupType !== 'Nenurodyta' ? `Grupė: ${data.groupType}` : '',\n    data.notes || ''\n  ].filter(Boolean).join('; ')\n};\n\n// Parse addons from comma-separated string\nif (data.addons && data.addons !== 'Nenurodyta') {\n  body.addons = data.addons.split(',').map(a => a.trim()).filter(Boolean);\n}\n\n// Build availability check URL\nconst availUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability' + '?date=' + encodeURIComponent(body.date);\n// Build next-free URL for alternative dates if conflict found\nconst nextFreeUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-next-free' + '?equipment=' + encodeURIComponent(body.equipment) + '&days=14';\n\nreturn [{ json: { skip: false, calendarBody: body, availUrl, nextFreeUrl } }];"
       },
-      "id": "6a8ca40c79b9446bbd42",
+      "id": "57e1f5c1ee3f44f59bf3",
       "name": "Format for Calendar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -48,7 +48,7 @@
         },
         "options": {}
       },
-      "id": "953173fe7f9b48b08a91",
+      "id": "fddb468693fb4923bff0",
       "name": "IF Is Booking",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -65,7 +65,7 @@
           "timeout": 10000
         }
       },
-      "id": "965d65b723cb4058ad6d",
+      "id": "1a14d853768047cb9c2f",
       "name": "Check Availability",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -79,7 +79,7 @@
       "parameters": {
         "jsCode": "const formatted = $('Format for Calendar').first().json;\nconst availData = $input.first().json;\nconst equipment = formatted.calendarBody.equipment || '';\n\n// Check if the equipment is in the \"booked\" list using full-word regex\n// (prevents substring false positives like \"Mega ruožas\" matching \"Giga ruožas\")\nconst booked = availData.booked || [];\nconst eqLower = equipment.toLowerCase();\nconst eqEscaped = eqLower.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\nconst eqRe = new RegExp('(^|[\\\\s,;|/])' + eqEscaped + '($|[\\\\s,;|/])', 'i');\nconst isConflict = booked.some(b => {\n  const bName = (b.name || '').toLowerCase();\n  return bName === eqLower || eqRe.test(b.name || '');\n});\n\nreturn [{ json: { isConflict, calendarBody: formatted.calendarBody, nextFreeUrl: formatted.nextFreeUrl } }];"
       },
-      "id": "6328318ff11f408c9f59",
+      "id": "f01d52811ed342b9a5aa",
       "name": "Check Conflict",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -111,7 +111,7 @@
         },
         "options": {}
       },
-      "id": "037a272c76d04be38d45",
+      "id": "b7fc77676152486a864b",
       "name": "IF No Conflict",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -131,7 +131,7 @@
           "timeout": 15000
         }
       },
-      "id": "faa9d8ee5973425f82fa",
+      "id": "7111877a2a374b6c92c7",
       "name": "Create Calendar Event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -145,7 +145,7 @@
       "parameters": {
         "jsCode": "const resp = $input.first().json;\nif (resp.error || resp.success === false) {\n  return [{ json: { success: false, error: resp.error || resp.message || 'Calendar create failed' } }];\n}\nreturn [{ json: { success: true, eventId: resp.id || resp.eventId || 'created' } }];"
       },
-      "id": "4a20989c055247f89300",
+      "id": "a665d1895df94f039864",
       "name": "Return Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -162,7 +162,7 @@
           "timeout": 10000
         }
       },
-      "id": "1cf3a180317e48c38b48",
+      "id": "c45de54e70de48ad8d92",
       "name": "Fetch Next Free",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -176,7 +176,7 @@
       "parameters": {
         "jsCode": "const prev = $('Check Conflict').first().json;\nconst nextFreeData = $input.first().json;\nconst equipment = prev.calendarBody.equipment || 'Įranga';\nconst date = prev.calendarBody.date || '';\n\nconst freeDates = nextFreeData.freeDates || [];\nlet altDates = '';\nif (freeDates.length > 0) {\n  altDates = freeDates.slice(0, 5).map(d => d.date + ' (' + d.weekday + ')').join(', ');\n}\n\nreturn [{ json: {\n  success: false,\n  conflict: true,\n  conflict_equipment: equipment,\n  conflict_date: date,\n  alternative_dates: altDates,\n  message: `Deja, ${equipment} ${date} jau užimtas.` +\n    (altDates ? ` Laisvos datos: ${altDates}` : ' Artimiausiomis dienomis laisvų datų nėra.')\n}}];"
       },
-      "id": "dde238ed56d640fb9097",
+      "id": "45d33fad71244cd6ae96",
       "name": "Return Conflict",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -189,7 +189,7 @@
       "parameters": {
         "jsCode": "return [{ json: { success: true, skipped: true, reason: 'Not a booking request' } }];"
       },
-      "id": "63a30200bb7345e48575",
+      "id": "27884fc742334855888f",
       "name": "Return Skip",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

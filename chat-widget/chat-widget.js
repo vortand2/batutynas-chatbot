@@ -16,11 +16,6 @@
     en: { name: 'English', placeholder: 'Type your message...', welcome: 'Hi! How can I help you today?', escalate: 'Talk to a human', welcomeTitle: 'Welcome!' }
   };
 
-  const QUICK_PROMPTS = {
-    lt: ['Planuoju \u0161vent\u0119', 'Noriu pirkti batut\u0105', 'Kainos', 'Kontaktai'],
-    en: ['Plan an event', 'Buy a trampoline', 'Prices', 'Contacts']
-  };
-
   let config = {
     webhookUrl: '',
     authToken: '', // Bearer token for webhook authentication

@@ -1464,6 +1464,26 @@ add_node({
 })
 connect("IF Is Voice", "Get File URL", 0)  # true branch of IF Is Voice
 
+# ── 11b. Download Voice File (binary) ────────────────────────────────────────
+
+add_node({
+    "parameters": {
+        "method": "GET",
+        "url": f"=https://api.telegram.org/file/bot{BOT_TOKEN}/{{{{ $json.result.file_path }}}}",
+        "options": {
+            "response": {"response": {"responseFormat": "file"}},
+            "timeout": 15000
+        }
+    },
+    "id": uid(),
+    "name": "Download Voice File",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": pos(1030, 600),
+    "continueOnFail": True
+})
+connect("Get File URL", "Download Voice File")
+
 # ── 12. Transcribe Audio (Groq Whisper) ──────────────────────────────────────
 
 add_node({
@@ -1479,7 +1499,7 @@ add_node({
                 {"name": "model", "value": "whisper-large-v3-turbo"},
                 {"name": "language", "value": "lt"},
                 {"name": "file", "parameterType": "formBinaryData",
-                 "inputDataFieldName": f"=https://api.telegram.org/file/bot{BOT_TOKEN}/{{{{ $json.result.file_path }}}}"}
+                 "inputDataFieldName": "data"}
             ]
         },
         "options": {"timeout": 30000}
@@ -1491,7 +1511,7 @@ add_node({
     "position": pos(1140, 600),
     "credentials": {"httpHeaderAuth": GROQ_CRED}
 })
-connect("Get File URL", "Transcribe Audio")
+connect("Download Voice File", "Transcribe Audio")
 
 # ── 13. Extract Intent (xAI Grok) ───────────────────────────────────────────
 
