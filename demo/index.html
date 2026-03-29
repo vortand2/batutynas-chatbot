@@ -1942,8 +1942,20 @@
 </head>
 <body>
 
-<!-- === DEMO BAR === -->
-<div class="demo-bar">
+<script>
+  var _pageDemoMode = new URLSearchParams(window.location.search).has('demo');
+  if (!_pageDemoMode) {
+    document.addEventListener('DOMContentLoaded', function() {
+      var bar = document.getElementById('demoBar');
+      var store = document.getElementById('demoStore');
+      if (bar) bar.style.display = 'none';
+      if (store) store.style.display = 'none';
+    });
+  }
+</script>
+
+<!-- === DEMO BAR (only visible in demo mode: ?demo) === -->
+<div class="demo-bar" id="demoBar">
   <div class="demo-bar-left">
     <span class="demo-badge">Live Demo</span>
     <span class="demo-bar-title">Spauskite pokalbio burbuliuką arba bandykite scenarijų <span>&rarr;</span></span>
@@ -1959,8 +1971,8 @@
   </div>
 </div>
 
-<!-- === STORE === -->
-<div class="store">
+<!-- === STORE (only visible in demo mode: ?demo) === -->
+<div class="store" id="demoStore">
   <nav class="store-nav">
     <div class="store-logo">
       <div class="store-logo-icon">B</div>
@@ -3320,6 +3332,8 @@
 
 /* ===== MOCK BACKEND — DO NOT REMOVE DURING WIDGET SYNC ===== */
 /* This intercepts fetch() calls so the demo works fully offline */
+/* Production mode: load without ?demo param. Demo mode: add ?demo to URL */
+var _isDemoMode = new URLSearchParams(window.location.search).has('demo');
 (function() {
   var _realFetch = window.fetch;
   var _lastFlow = 'birthday'; // default flow state for mock
@@ -4026,28 +4040,52 @@
     if (hash === _lastBookingHash) { return; }
     _lastBookingHash = hash;
     try { sessionStorage.setItem('_bk_hash', hash); } catch(e) {}
-    // MOCK: demo mode — booking submission simulated, never hits production
+    if (_isDemoMode) { return; }
+    var payload = {
+      group_type: bookingObj.group_type || 'rental',
+      date: bookingObj.date || '',
+      location: bookingObj.location || '',
+      address: bookingObj.address || '',
+      event_type: bookingObj.event_type || '',
+      guest_count: bookingObj.guest_count || '',
+      contact_name: bookingObj.contact_name || '',
+      contact_phone: bookingObj.contact_phone || '',
+      trampoline_preference: bookingObj.trampoline || bookingObj.trampoline_preference || '',
+      addons: bookingObj.addons || '',
+      notes: bookingObj.notes || '',
+      request_type: 'booking'
+    };
+    var ac = new AbortController();
+    var tid = setTimeout(function() { ac.abort(); }, 15000);
+    _realFetch('https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: ac.signal
+    }).then(function() {}).catch(function() {}).finally(function() { clearTimeout(tid); });
   }
 
-  // 6. Fetch interceptor — only intercept the chat webhook, NOT booking-notify or other webhooks
-  var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
-  window.fetch = function(url, opts) {
-    if (typeof url === 'string' && url === _mockWebhookUrl) {
-      return new Promise(function(resolve) {
-        var body = {};
-        try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) {}
-        var userMsg = body.chatInput || body.message || '';
-        setTimeout(function() {
-          var aiResponse = mockAIResponse(userMsg);
-          var enriched = enrichResponse(aiResponse);
-          resolve(new Response(JSON.stringify({ output: enriched }), {
-            status: 200, headers: { 'Content-Type': 'application/json' }
-          }));
-        }, 800);
-      });
-    }
-    return _realFetch.apply(this, arguments);
-  };
+  // 6. Fetch interceptor — only active in demo mode (?demo param)
+  if (_isDemoMode) {
+    var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
+    window.fetch = function(url, opts) {
+      if (typeof url === 'string' && url === _mockWebhookUrl) {
+        return new Promise(function(resolve) {
+          var body = {};
+          try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) {}
+          var userMsg = body.chatInput || body.message || '';
+          setTimeout(function() {
+            var aiResponse = mockAIResponse(userMsg);
+            var enriched = enrichResponse(aiResponse);
+            resolve(new Response(JSON.stringify({ output: enriched }), {
+              status: 200, headers: { 'Content-Type': 'application/json' }
+            }));
+          }, 800);
+        });
+      }
+      return _realFetch.apply(this, arguments);
+    };
+  }
 })();
 /* ===== END MOCK BACKEND ===== */
 
