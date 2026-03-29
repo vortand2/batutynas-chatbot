@@ -347,6 +347,9 @@ Naudok [MENU_GROUP_BIRTHDAY:N] su svečių skaičiumi. Jei klientas sakė „Api
 [MENU_GROUP_BIRTHDAY:10]
 
 **5 — Papildomos pramogos:**
+Jei klientas JAU pasirinko papildomas pramogas (pvz. paminėjo „Dart", „Rodeo", „Saldėsių aparatai" ar pan.) — PRALEISK šį žingsnį ir eik tiesiai prie 6 žingsnio (kontaktai). Neklausink dar kartą!
+
+Jei klientas DAR nepasirinko papildomų pramogų:
 Beje, su kiekvienu batutu gausite 1 nemokamą dovaną pasirinkimui (cukraus vata, popcorn, šerbetas, burbulai, sumo kostiumai arba fotoaparatas)! O gal norėtumėte papildyti šventę dar kuo nors?
 
 [ADDON_UPSELL]
