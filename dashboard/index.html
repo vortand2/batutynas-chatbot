@@ -1987,7 +1987,7 @@ function getBookingsForMonth(year, month) {
     }
     while (current < last) {
       if (current.getFullYear() === year && current.getMonth() === month) {
-        var key = current.toISOString().slice(0, 10);
+        var key = fmtKey(current);
         if (!byDay[key]) byDay[key] = [];
         byDay[key].push(b);
       }
@@ -2509,7 +2509,7 @@ function buildBookingCard(b) {
   // Determine entry source icon
   var sourceIcon = '';
   var sourceTitle = '';
-  var src = b.entry_source || '';
+  var src = b.entry_source || 'manual';
   if (src === 'Telegram') {
     sourceIcon = '\uD83D\uDCF1'; sourceTitle = 'Telegram';
   } else if (src === 'Chatwoot' || src === 'Chat') {
@@ -2596,7 +2596,7 @@ function buildBookingCard(b) {
 
   // Footer: price + status/payment badges
   html += '<div class="booking-card-footer">';
-  html += '<div class="booking-card-price">' + price + '</div>';
+  html += '<div class="booking-card-price">' + escHtml(price) + '</div>';
   html += '<div class="booking-card-badges">';
   html += '<span class="badge ' + (STATUS_CLASS[statusKey] || '') + '">' +
     escHtml(STATUS_LT[statusKey] || statusKey) + '</span> ';
@@ -2609,7 +2609,9 @@ function buildBookingCard(b) {
   html += '<div class="booking-card-actions">';
   html += '<button class="booking-action-btn" data-action="edit" data-tooltip="Redaguoti">\u270F\uFE0F</button>';
   html += '<button class="booking-action-btn" data-action="move" data-tooltip="Perkelti">\uD83D\uDCC5</button>';
-  html += '<button class="booking-action-btn booking-action-delete" data-action="delete" data-tooltip="I\u0161trinti">\uD83D\uDDD1\uFE0F</button>';
+  if (src !== 'manual') {
+    html += '<button class="booking-action-btn booking-action-delete" data-action="delete" data-tooltip="I\u0161trinti">\uD83D\uDDD1\uFE0F</button>';
+  }
   html += '</div>';
 
   card.innerHTML = html;
@@ -3161,7 +3163,6 @@ function saveBookingEdit(bookingId, formData, onComplete) {
       if (typeof onComplete === 'function') onComplete();
     })
     .catch(function(err) {
-      console.error('I\u0161saugoti nepavyko:', err);
       showToast('Klaida i\u0161saugant u\u017esakym\u0105. Bandykite dar kart\u0105.', 'error');
       if (typeof onComplete === 'function') onComplete();
     })
@@ -3280,14 +3281,17 @@ function openCreateModal(prefilledDate) {
     if (!eq || !dt) { availBadge.textContent = ''; return; }
     availBadge.textContent = '...';
     availBadge.style.color = 'var(--text-muted)';
-    fetch(API_AVAILABILITY + '?date=' + dt + '&equipment=' + encodeURIComponent(eq))
+    var ac = new AbortController();
+    var tid = setTimeout(function() { ac.abort(); }, 15000);
+    fetch(API_AVAILABILITY + '?date=' + dt + '&equipment=' + encodeURIComponent(eq), { signal: ac.signal })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var available = !d.booked || !d.booked.some(function(b) { return b.name === eq; });
         availBadge.textContent = available ? '\u2705 Laisva' : '\u26a0\ufe0f U\u017eimta';
         availBadge.style.color = available ? 'var(--green)' : 'var(--orange)';
       })
-      .catch(function() { availBadge.textContent = ''; });
+      .catch(function() { availBadge.textContent = ''; })
+      .finally(function() { clearTimeout(tid); });
   }
   selEquip.addEventListener('change', checkAvail);
   inpDate.addEventListener('change', checkAvail);
@@ -3857,9 +3861,8 @@ function _rerenderCurrentDay() {
     var acc = document.getElementById('dayAccordion');
     if (acc && acc.dataset.date === state.selectedDate) {
       var dateToShow = state.selectedDate;
+      acc.remove();
       toggleDayAccordion(dateToShow);
-      // Wait for close animation (250ms) plus safety buffer before reopening
-      setTimeout(function() { toggleDayAccordion(dateToShow); }, 280);
     }
   } else {
     showDayPanel(state.selectedDate);

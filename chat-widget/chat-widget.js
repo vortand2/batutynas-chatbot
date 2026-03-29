@@ -327,7 +327,7 @@
       'data-chat-addon-continue', 'data-chat-no-addon-send', 'data-chat-no-addon-back',
       'data-chat-zoom', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
       'target', 'rel', 'src', 'alt', 'placeholder', 'id', 'role', 'tabindex', 'rows',
-      'aria-label', 'aria-pressed', 'aria-hidden', 'aria-describedby', 'loading', 'autocomplete', 'style'];
+      'aria-label', 'aria-pressed', 'aria-hidden', 'aria-describedby', 'loading', 'autocomplete'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
     var tmp = document.createElement('div');
@@ -1074,11 +1074,9 @@
         if (!textToRetry) return;
         var systemBubble = retryBtn.closest('.woo-chat-msg');
         if (systemBubble) {
-          var container = document.getElementById('woo-chat-messages');
-          var bubbles = Array.from(container.querySelectorAll('.woo-chat-msg'));
-          var domIdx = bubbles.indexOf(systemBubble);
-          if (domIdx >= 0 && domIdx < state.messages.length && state.messages[domIdx].role === 'system') {
-            state.messages.splice(domIdx, 1);
+          var msgIdx = parseInt(systemBubble.getAttribute('data-msg-index'), 10);
+          if (!isNaN(msgIdx) && msgIdx >= 0 && msgIdx < state.messages.length && state.messages[msgIdx].role === 'system') {
+            state.messages.splice(msgIdx, 1);
             saveSession();
           }
         }

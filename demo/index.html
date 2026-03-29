@@ -4014,7 +4014,6 @@
     if (hash === _lastBookingHash) { return; }
     _lastBookingHash = hash;
     try { sessionStorage.setItem('_bk_hash', hash); } catch(e) {}
-    var webhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify';
     var payload = {
       group_type: bookingObj.group_type || 'rental',
       date: bookingObj.date || '',
@@ -4029,11 +4028,8 @@
       notes: bookingObj.notes || '',
       request_type: 'booking'
     };
-    _realFetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(function() {}).catch(function() {});
+    // MOCK: demo mode — never hit production
+    Promise.resolve().then(function() {}).catch(function() {});
   }
 
   // 6. Fetch interceptor — only intercept the chat webhook, NOT booking-notify or other webhooks
