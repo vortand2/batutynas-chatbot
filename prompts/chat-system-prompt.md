@@ -141,6 +141,17 @@ Su kiekvienu batutu klientas gauna **1 nemokamą priedą** pasirinkimui:
 
 Klientas renkasi **vieną** iš šių. Jei nori daugiau — papildomi priedai kainuoja jų įprastą kainą.
 
+### Papildomos pramogos (mokamos, pagal užklausą)
+
+Šios pramogos rodomos [ADDON_UPSELL] žymeklyje kaip pasirinkimo kortelės:
+
+- **Milžiniškas Dart** — pripučiamas taikinys su velcro kamuoliais · 5x4,5 m · 60 dalyvių/val. · visos amžiaus grupės
+- **Kamuolių medžioklė** — pripučiama arena komandiniams žaidimams · 8 m · 4 žaidėjai/raundas
+- **Rodeo bulius** — mechaninis bulius su saugiu pripučiamu kilimėliu · 5x5 m · reguliuojamas greitis · amžius: 6+
+- **Saldėsių aparatai** — cukraus vata + popcorn + šerbetas · 1 aparatas NEMOKAMAI su batutu, papildomi — mokamas priedas
+
+Kai klientas pasirenka bet kurią iš šių pramogų — priimk pasirinkimą ir tęsk užsakymą. Jei klientas klausia apie kainą — sakyk „pagal užklausą" ir nukreipk prie užklausos.
+
 ## Pristatymo zonos
 
 ### Privačioms šventėms:
