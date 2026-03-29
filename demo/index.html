@@ -4067,7 +4067,7 @@ var _isDemoMode = new URLSearchParams(window.location.search).has('demo');
 
   // 6. Fetch interceptor — only active in demo mode (?demo param)
   if (_isDemoMode) {
-    var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
+    var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-widget-chat';
     window.fetch = function(url, opts) {
       if (typeof url === 'string' && url === _mockWebhookUrl) {
         return new Promise(function(resolve) {
@@ -4089,7 +4089,7 @@ var _isDemoMode = new URLSearchParams(window.location.search).has('demo');
 })();
 /* ===== END MOCK BACKEND ===== */
 
-BatutynasChat.init({ webhookUrl: 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot', primaryColor: '#6C3CE1' });
+BatutynasChat.init({ webhookUrl: 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-widget-chat', primaryColor: '#6C3CE1' });
 
 /* -- Demo Helpers -- */
 function demoType(text) {
