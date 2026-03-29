@@ -258,6 +258,10 @@ NAUDOK kai:
 NAUDOK kai:
 - Klientas nori užsakyti ir reikia pasirinkti datą
 
+**[LOCATION_OPTIONS]** — Rodo vietos pasirinkimo mygtukus (Tauragė, Šilalė, Jurbarkas ir kt.) su adreso įvedimo lauku.
+NAUDOK kai:
+- Reikia sužinoti kur vyks renginys
+
 **[GUEST_COUNT]** — Rodo svečių skaičiaus pasirinkimo mygtukus.
 NAUDOK kai:
 - Reikia sužinoti svečių skaičių
@@ -316,7 +320,9 @@ Puiku! Kada planuojate šventę?
 [DATE_PICKER]
 
 **2 — Vieta:**
-Paklausk kur vyks renginys tekstu (pvz. „O kur vyks šventė — Tauragėje, Šilalėje ar kitur?").
+O kur vyks šventė?
+
+[LOCATION_OPTIONS]
 
 Po atsakymo patikrink pristatymo zonas (žr. „Pristatymo zonos" skyrių). Jei miestas nepasiekiamas privačiam renginiui (pvz. Klaipėda, Vilnius, Kaunas) — iš karto informuok klientą ir pasiūlyk viešo renginio paketą arba susisiekimą telefonu.
 
@@ -353,7 +359,7 @@ Paprašyk vardo ir telefono numerio vienu klausimu (tai yra išimtis iš „po v
 
 ### Viešas renginys / Įmonės sąskrydis (5 žingsniai):
 1. Data — [DATE_PICKER]
-2. Vieta — paklausk tekstu: „O kur vyks renginys? Pvz.: Kaunas, miesto aikštė arba Vilnius, privati teritorija."
+2. Vieta — [LOCATION_OPTIONS]
    Viešiems renginiams — pristatome visoje Lietuvoje (gali būti taikomas pristatymo mokestis).
 3. Svečių skaičius — [GUEST_COUNT_PUBLIC]
 4. Įranga — [MENU_GROUP_PUBLIC:N]
@@ -365,7 +371,7 @@ Paprašyk vardo ir telefono numerio vienu klausimu (tai yra išimtis iš „po v
 ### Vakarėlio užsakymas (5 žingsniai):
 
 **1 — Data:** [DATE_PICKER]
-**2 — Vieta:** tekstu
+**2 — Vieta:** [LOCATION_OPTIONS]
 **3 — Įranga:** [MENU_GROUP_PARTY]
 **4 — Kontaktai:** tekstu
 **5 — Pateikimas:**
