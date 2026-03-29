@@ -319,7 +319,7 @@
 
   function sanitizeHtml(html) {
     var ALLOWED_TAGS = ['div', 'span', 'p', 'br', 'strong', 'em', 'b', 'i', 'a', 'button',
-      'input', 'textarea', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label'];
+      'input', 'textarea', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'label', 'small'];
     var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
       'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
       'data-chat-custom-submit', 'data-chat-address', 'data-chat-address-confirm',
@@ -770,7 +770,6 @@
             errEl = document.createElement('div');
             errEl.className = 'form-error';
             errEl.setAttribute('role', 'alert');
-            errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
             emailInput.parentElement.appendChild(errEl);
           }
           errEl.textContent = 'Neteisingas el. pašto formatas';
@@ -879,11 +878,11 @@
             msg = trampolineSelection + ' + Papildomos: ' + selected.join(', ');
           } else {
             // No addons chosen — ask "are you sure?" (they're free)
-            var confirmHtml = '<div class="chat-no-addon-confirm" style="background:#fffbe6;border:1px solid #ffe082;border-radius:12px;padding:14px 16px;margin-top:10px;text-align:center;">'
-              + '<div style="font-size:14px;margin-bottom:10px;">Papildomos pramogos yra <strong>NEMOKAMOS</strong>! Tikrai nenorite jokių?</div>'
-              + '<div style="display:flex;gap:8px;justify-content:center;">'
-              + '<button type="button" data-chat-no-addon-back style="padding:8px 16px;border-radius:8px;border:1px solid var(--chat-primary);background:white;color:var(--chat-primary);font-size:13px;font-weight:600;cursor:pointer;">Grįžti ir pasirinkti</button>'
-              + '<button type="button" data-chat-no-addon-send="' + trampolineSelection.replace(/"/g, '&quot;') + '" style="padding:8px 16px;border-radius:8px;border:none;background:var(--chat-primary);color:white;font-size:13px;font-weight:600;cursor:pointer;">Tęsti be pramogų</button>'
+            var confirmHtml = '<div class="chat-no-addon-confirm">'
+              + '<div class="confirm-text">Papildomos pramogos yra <strong>NEMOKAMOS</strong>! Tikrai nenorite jokių?</div>'
+              + '<div class="confirm-actions">'
+              + '<button type="button" class="confirm-back" data-chat-no-addon-back>Grįžti ir pasirinkti</button>'
+              + '<button type="button" class="confirm-send" data-chat-no-addon-send="' + trampolineSelection.replace(/"/g, '&quot;') + '">Tęsti be pramogų</button>'
               + '</div></div>';
             var chatBubbleForConfirm = addonContinueBtn.closest('.woo-chat-msg');
             if (chatBubbleForConfirm) {
@@ -1012,8 +1011,7 @@
               errEl = document.createElement('div');
               errEl.className = 'form-error';
               errEl.setAttribute('role', 'alert');
-              errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
-              emailInput.parentElement.appendChild(errEl);
+                emailInput.parentElement.appendChild(errEl);
             }
             errEl.textContent = !formData.email ? 'El. paštas privalomas' : 'Neteisingas el. pašto formatas';
           }
@@ -1031,8 +1029,7 @@
               errEl2 = document.createElement('div');
               errEl2.className = 'form-error';
               errEl2.setAttribute('role', 'alert');
-              errEl2.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
-              phoneInput.parentElement.appendChild(errEl2);
+                phoneInput.parentElement.appendChild(errEl2);
             }
             errEl2.textContent = 'Telefono numeris per trumpas';
           }

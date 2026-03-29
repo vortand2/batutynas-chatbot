@@ -1645,3 +1645,13 @@
   line-height: 1.6;
   color: #9a3412;
 }
+
+/* No-addon confirm dialog */
+.chat-no-addon-confirm { background: #fffbe6; border: 1px solid #ffe082; border-radius: 12px; padding: 14px 16px; margin-top: 10px; text-align: center; }
+.chat-no-addon-confirm .confirm-text { font-size: 14px; margin-bottom: 10px; }
+.chat-no-addon-confirm .confirm-actions { display: flex; gap: 8px; justify-content: center; }
+.chat-no-addon-confirm .confirm-back { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--chat-primary); background: white; color: var(--chat-primary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.chat-no-addon-confirm .confirm-send { padding: 8px 16px; border-radius: 8px; border: none; background: var(--chat-primary); color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* Form validation errors */
+.form-error { color: #e74c3c; font-size: 11px; margin-top: 2px; }

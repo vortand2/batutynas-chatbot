@@ -1927,6 +1927,16 @@
   }
 }
 
+/* No-addon confirm dialog */
+.chat-no-addon-confirm { background: #fffbe6; border: 1px solid #ffe082; border-radius: 12px; padding: 14px 16px; margin-top: 10px; text-align: center; }
+.chat-no-addon-confirm .confirm-text { font-size: 14px; margin-bottom: 10px; }
+.chat-no-addon-confirm .confirm-actions { display: flex; gap: 8px; justify-content: center; }
+.chat-no-addon-confirm .confirm-back { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--chat-primary); background: white; color: var(--chat-primary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.chat-no-addon-confirm .confirm-send { padding: 8px 16px; border-radius: 8px; border: none; background: var(--chat-primary); color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* Form validation errors */
+.form-error { color: #e74c3c; font-size: 11px; margin-top: 2px; }
+
   </style>
 
 </head>
@@ -2832,7 +2842,6 @@
             errEl = document.createElement('div');
             errEl.className = 'form-error';
             errEl.setAttribute('role', 'alert');
-            errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
             emailInput.parentElement.appendChild(errEl);
           }
           errEl.textContent = 'Neteisingas el. pašto formatas';
@@ -2941,11 +2950,11 @@
             msg = trampolineSelection + ' + Papildomos: ' + selected.join(', ');
           } else {
             // No addons chosen — ask "are you sure?" (they're free)
-            var confirmHtml = '<div class="chat-no-addon-confirm" style="background:#fffbe6;border:1px solid #ffe082;border-radius:12px;padding:14px 16px;margin-top:10px;text-align:center;">'
-              + '<div style="font-size:14px;margin-bottom:10px;">Papildomos pramogos yra <strong>NEMOKAMOS</strong>! Tikrai nenorite jokių?</div>'
-              + '<div style="display:flex;gap:8px;justify-content:center;">'
-              + '<button type="button" data-chat-no-addon-back style="padding:8px 16px;border-radius:8px;border:1px solid var(--chat-primary);background:white;color:var(--chat-primary);font-size:13px;font-weight:600;cursor:pointer;">Grįžti ir pasirinkti</button>'
-              + '<button type="button" data-chat-no-addon-send="' + trampolineSelection.replace(/"/g, '&quot;') + '" style="padding:8px 16px;border-radius:8px;border:none;background:var(--chat-primary);color:white;font-size:13px;font-weight:600;cursor:pointer;">Tęsti be pramogų</button>'
+            var confirmHtml = '<div class="chat-no-addon-confirm">'
+              + '<div class="confirm-text">Papildomos pramogos yra <strong>NEMOKAMOS</strong>! Tikrai nenorite jokių?</div>'
+              + '<div class="confirm-actions">'
+              + '<button type="button" class="confirm-back" data-chat-no-addon-back>Grįžti ir pasirinkti</button>'
+              + '<button type="button" class="confirm-send" data-chat-no-addon-send="' + trampolineSelection.replace(/"/g, '&quot;') + '">Tęsti be pramogų</button>'
               + '</div></div>';
             var chatBubbleForConfirm = addonContinueBtn.closest('.woo-chat-msg');
             if (chatBubbleForConfirm) {
@@ -3074,8 +3083,7 @@
               errEl = document.createElement('div');
               errEl.className = 'form-error';
               errEl.setAttribute('role', 'alert');
-              errEl.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
-              emailInput.parentElement.appendChild(errEl);
+                emailInput.parentElement.appendChild(errEl);
             }
             errEl.textContent = !formData.email ? 'El. paštas privalomas' : 'Neteisingas el. pašto formatas';
           }
@@ -3093,7 +3101,6 @@
               errEl2 = document.createElement('div');
               errEl2.className = 'form-error';
               errEl2.setAttribute('role', 'alert');
-              errEl2.style.cssText = 'color:#e74c3c;font-size:11px;margin-top:2px;';
               phoneInput.parentElement.appendChild(errEl2);
             }
             errEl2.textContent = 'Telefono numeris per trumpas';
@@ -3351,7 +3358,12 @@
     { name: 'Popcorn', icon: '🍿', img: '', type: 'Užkandis', capacity: 'Neribota', price: 'NEMOKAMAI', bg: '#fff8e1', min: 1, max: 999, cat: 'addon', detail: 'Popcorn aparatas · Įprasta kaina 40 € · NEMOKAMAI su batutu' },
     { name: 'Muilo burbulų mašina', icon: '🫧', img: '', type: 'Pramoga', capacity: 'Neribota', price: 'NEMOKAMAI', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', detail: 'Burbulų mašina · Įprasta kaina 20 € · NEMOKAMAI su batutu' },
     { name: 'Sumo kostiumai', icon: '🥋', img: '', type: 'Interaktyvi pramoga', capacity: '2 dalyviai', price: 'NEMOKAMAI', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', detail: '2 sumo kostiumai · Įprasta kaina 40 € · NEMOKAMAI su batutu' },
-    { name: 'Momentinis fotoaparatas', icon: '📸', img: '', type: 'Nuotraukos', capacity: 'Neribota', price: 'NEMOKAMAI', bg: '#f5f0ff', min: 1, max: 999, cat: 'addon', detail: 'Instax Mini fotoaparatas · Įprasta kaina 20 € · NEMOKAMAI su batutu' }
+    { name: 'Momentinis fotoaparatas', icon: '📸', img: '', type: 'Nuotraukos', capacity: 'Neribota', price: 'NEMOKAMAI', bg: '#f5f0ff', min: 1, max: 999, cat: 'addon', detail: 'Instax Mini fotoaparatas · Įprasta kaina 20 € · NEMOKAMAI su batutu' },
+
+    // --- party-equipment (party group only) ---
+    { name: 'Disco paviljonas', icon: '🎨', img: '', type: 'LED apšvietimas · 4x4 m', capacity: 'Iki 20 žmonių', price: 'NEMOKAMAI', bg: '#f0f0ff', min: 1, max: 999, cat: 'party-equipment', detail: 'LED apšvietimas + garso sistema · NEMOKAMAI su batutu' },
+    { name: 'Putų šou', icon: '🫧', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', price: 'NEMOKAMAI', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', detail: 'Putų mašina + pripučiamas baseinas · NEMOKAMAI su batutu' },
+    { name: 'Banketo stalai ir kėdės', icon: '🪑', img: '', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', price: 'Mokamas priedas', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', detail: 'Banketo stalai + kėdės · Mokamas priedas' }
   ];
 
   // 2. Helper functions
@@ -4014,22 +4026,7 @@
     if (hash === _lastBookingHash) { return; }
     _lastBookingHash = hash;
     try { sessionStorage.setItem('_bk_hash', hash); } catch(e) {}
-    var payload = {
-      group_type: bookingObj.group_type || 'rental',
-      date: bookingObj.date || '',
-      location: bookingObj.location || '',
-      address: bookingObj.address || '',
-      event_type: bookingObj.event_type || '',
-      guest_count: bookingObj.guest_count || '',
-      contact_name: bookingObj.contact_name || '',
-      contact_phone: bookingObj.contact_phone || '',
-      trampoline_preference: bookingObj.trampoline || bookingObj.trampoline_preference || '',
-      addons: bookingObj.addons || '',
-      notes: bookingObj.notes || '',
-      request_type: 'booking'
-    };
-    // MOCK: demo mode — never hit production
-    Promise.resolve().then(function() {}).catch(function() {});
+    // MOCK: demo mode — booking submission simulated, never hits production
   }
 
   // 6. Fetch interceptor — only intercept the chat webhook, NOT booking-notify or other webhooks
