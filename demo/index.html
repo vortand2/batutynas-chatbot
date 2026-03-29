@@ -3321,6 +3321,7 @@
 /* ===== MOCK BACKEND — DO NOT REMOVE DURING WIDGET SYNC ===== */
 /* This intercepts fetch() calls so the demo works fully offline */
 (function() {
+  var _isDemoMode = new URLSearchParams(window.location.search).has('demo');
   var _realFetch = window.fetch;
   var _lastFlow = 'birthday'; // default flow state for mock
   var _lastStep = ''; // tracks current step (e.g. 'phone') to prevent catch-all restart
@@ -4026,29 +4027,44 @@
     // MOCK: demo mode — booking submission simulated, never hits production
   }
 
-  // 6. Fetch interceptor — only intercept the chat webhook, NOT booking-notify or other webhooks
-  var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot';
+  // 6. Fetch interceptor — demo mode: mock AI; production mode: enrich real AI response
+  var _widgetWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-widget-chat';
   window.fetch = function(url, opts) {
-    if (typeof url === 'string' && url === _mockWebhookUrl) {
-      return new Promise(function(resolve) {
-        var body = {};
-        try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) {}
-        var userMsg = body.chatInput || body.message || '';
-        setTimeout(function() {
-          var aiResponse = mockAIResponse(userMsg);
-          var enriched = enrichResponse(aiResponse);
-          resolve(new Response(JSON.stringify({ output: enriched }), {
-            status: 200, headers: { 'Content-Type': 'application/json' }
-          }));
-        }, 800);
-      });
+    if (typeof url === 'string' && url === _widgetWebhookUrl) {
+      if (_isDemoMode) {
+        // Demo mode: mock AI response locally
+        return new Promise(function(resolve) {
+          var body = {};
+          try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) {}
+          var userMsg = body.chatInput || body.message || '';
+          setTimeout(function() {
+            var aiResponse = mockAIResponse(userMsg);
+            var enriched = enrichResponse(aiResponse);
+            resolve(new Response(JSON.stringify({ output: enriched }), {
+              status: 200, headers: { 'Content-Type': 'application/json' }
+            }));
+          }, 800);
+        });
+      } else {
+        // Production mode: call real webhook, then enrich the response
+        return _realFetch.apply(this, arguments).then(function(res) {
+          return res.clone().json().then(function(data) {
+            var raw = data.response || data.output || data.text || '';
+            var enriched = enrichResponse(raw);
+            var enrichedData = { output: enriched, session_id: data.session_id || '' };
+            return new Response(JSON.stringify(enrichedData), {
+              status: 200, headers: { 'Content-Type': 'application/json' }
+            });
+          }).catch(function() { return res; });
+        });
+      }
     }
     return _realFetch.apply(this, arguments);
   };
 })();
 /* ===== END MOCK BACKEND ===== */
 
-BatutynasChat.init({ webhookUrl: 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-chatwoot', primaryColor: '#6C3CE1' });
+BatutynasChat.init({ webhookUrl: 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-widget-chat', primaryColor: '#6C3CE1' });
 
 /* -- Demo Helpers -- */
 function demoType(text) {
