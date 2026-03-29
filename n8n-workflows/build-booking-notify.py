@@ -420,7 +420,8 @@ add_node({
                 "rightValue": True,
                 "operator": {"type": "boolean", "operation": "equals"}
             }]
-        }
+        },
+        "options": {}
     },
     "id": uid(),
     "name": "IF Should Save to DB",

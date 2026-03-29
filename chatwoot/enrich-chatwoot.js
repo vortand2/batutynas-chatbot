@@ -16,9 +16,11 @@ if (!conversationId) {
 // Fallback to hardcoded URL if variable not set (for backwards compatibility)
 var chatwootBase = (typeof $vars !== 'undefined' && $vars.CHATWOOT_BASE_URL) ? $vars.CHATWOOT_BASE_URL : 'https://batutynas-chatwoot-chatwoot.0uvai5.easypanel.host/api/v1/accounts/1';
 
-// Telegram notification — same bot + owner as booking-notify-workflow
-var TELEGRAM_BOT_URL = 'https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage';
-var TELEGRAM_OWNER_CHAT = '8258463322';
+// Telegram notification — read from n8n environment variables (Settings → Environment Variables)
+// Set BATUTYNAS_BOT_TOKEN and BATUTYNAS_OWNER_CHAT_ID in n8n instance env or Docker env
+var TELEGRAM_BOT_TOKEN = (typeof $env !== 'undefined' && $env.BATUTYNAS_BOT_TOKEN) ? $env.BATUTYNAS_BOT_TOKEN : '';
+var TELEGRAM_BOT_URL = TELEGRAM_BOT_TOKEN ? 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage' : '';
+var TELEGRAM_OWNER_CHAT = (typeof $env !== 'undefined' && $env.BATUTYNAS_OWNER_CHAT_ID) ? $env.BATUTYNAS_OWNER_CHAT_ID : '';
 
 function formatOutput(msgs, extraItems) {
   var url = chatwootBase + '/conversations/' + conversationId + '/messages';
@@ -280,7 +282,10 @@ function buildGroupPartyEquipment() {
   if (result.noImgItems.length > 0) {
     var selectItems = result.noImgItems.map(function(t) {
       var pop = t.popular ? ' \u{1F525}' : '';
-      return { title: t.icon + ' ' + t.name + pop + ' \u2014 ' + (t.shortDesc || t.capacity), value: t.name };
+      var partyName = (isMessenger && t.messengerName) ? t.messengerName : t.name;
+      var title = t.icon + ' ' + partyName + pop;
+      if (!isMessenger) title += ' \u2014 ' + (t.shortDesc || t.capacity);
+      return { title: title, value: t.name };
     });
     messages.push({
       content: result.cards.length > 0 ? 'Taip pat turime:' : '\u{1F389} Vakarėlio įranga:',
@@ -413,7 +418,8 @@ function buildAddonUpsell() {
   var skipItems = [];
   if (result.noImgItems.length > 0) {
     result.noImgItems.forEach(function(t) {
-      skipItems.push({ title: t.icon + ' ' + t.name, value: t.name });
+      var addonName = (isMessenger && t.messengerName) ? t.messengerName : t.name;
+      skipItems.push({ title: t.icon + ' ' + addonName, value: t.name });
     });
   }
   skipItems.push({ title: '\u27A1\uFE0F Viskas, tęsime!', value: 'Tęsti be papildomų pramogų' });
@@ -592,21 +598,21 @@ function buildHumanHandoff() {
     message_type: 'outgoing'
   };
 
-  var label = contactName ? contactName : 'Ne\u017einomas klientas';
+  var label = contactName ? contactName.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : 'Ne\u017einomas klientas';
   var channel = isMessenger ? 'Facebook Messenger' : 'Svetain\u0117s widget';
   var telegramText = '\u{1F4DE} <b>Klientas nori kalb\u0117ti!</b>\n\n'
     + '\u{1F464} ' + label + '\n'
     + '\u{1F4AC} ' + channel + '\n\n'
     + '\u{1F4A1} <i>' + (isMessenger ? 'Atidarykite Facebook Page Inbox ir atsakykite.' : 'Atidarykite Chatwoot ir atsakykite.') + '</i>';
 
-  var telegramItem = {
+  var telegramItem = (TELEGRAM_BOT_URL && TELEGRAM_OWNER_CHAT) ? {
     _url: TELEGRAM_BOT_URL,
     _body: JSON.stringify({
       chat_id: TELEGRAM_OWNER_CHAT,
       text: telegramText,
       parse_mode: 'HTML'
     })
-  };
+  } : null;
 
   return { messages: [customerMsg], telegram: telegramItem };
 }

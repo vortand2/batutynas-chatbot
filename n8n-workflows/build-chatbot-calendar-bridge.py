@@ -277,9 +277,7 @@ workflow = {
     "name": "Batutynas: Chatbot → Calendar Bridge",
     "nodes": nodes,
     "connections": connections,
-    "active": False,
-    "settings": {"executionOrder": "v1"},
-    "tags": [{"name": "batutynas"}, {"name": "chatbot"}, {"name": "calendar"}]
+    "settings": {"executionOrder": "v1"}
 }
 
 out_path = os.path.join(os.path.dirname(__file__), "chatbot-calendar-bridge-workflow.json")
