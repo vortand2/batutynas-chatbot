@@ -4065,11 +4065,12 @@ var _isDemoMode = new URLSearchParams(window.location.search).has('demo');
     }).then(function() {}).catch(function() {}).finally(function() { clearTimeout(tid); });
   }
 
-  // 6. Fetch interceptor — only active in demo mode (?demo param)
-  if (_isDemoMode) {
-    var _mockWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-widget-chat';
-    window.fetch = function(url, opts) {
-      if (typeof url === 'string' && url === _mockWebhookUrl) {
+  // 6. Fetch interceptor — demo mode: mock AI; production mode: enrich real AI response
+  var _widgetWebhookUrl = 'https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-widget-chat';
+  window.fetch = function(url, opts) {
+    if (typeof url === 'string' && url === _widgetWebhookUrl) {
+      if (_isDemoMode) {
+        // Demo mode: mock AI response locally
         return new Promise(function(resolve) {
           var body = {};
           try { body = JSON.parse(opts && opts.body ? opts.body : '{}'); } catch(e) {}
@@ -4082,10 +4083,22 @@ var _isDemoMode = new URLSearchParams(window.location.search).has('demo');
             }));
           }, 800);
         });
+      } else {
+        // Production mode: call real webhook, then enrich the response
+        return _realFetch.apply(this, arguments).then(function(res) {
+          return res.clone().json().then(function(data) {
+            var raw = data.response || data.output || data.text || '';
+            var enriched = enrichResponse(raw);
+            var enrichedData = { output: enriched, session_id: data.session_id || '' };
+            return new Response(JSON.stringify(enrichedData), {
+              status: 200, headers: { 'Content-Type': 'application/json' }
+            });
+          }).catch(function() { return res; });
+        });
       }
-      return _realFetch.apply(this, arguments);
-    };
-  }
+    }
+    return _realFetch.apply(this, arguments);
+  };
 })();
 /* ===== END MOCK BACKEND ===== */
 
