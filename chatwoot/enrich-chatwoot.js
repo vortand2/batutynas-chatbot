@@ -113,8 +113,8 @@ var TRAMPOLINES = [
   { name: 'Momentinis fotoaparatas', messengerName: 'Fotoaparatas', icon: '\u{1F4F8}', img: '', type: 'Nuotraukos', capacity: 'Neribota', bg: '#f5f0ff', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 20\u20ac \u00b7 NEMOKAMAI su batutu' },
 
   // --- party-equipment (party group only) ---
-  { name: 'Disco paviljonas', icon: '\u{1F3AA}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f0f0ff', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'NEMOKAMAI su batutu' },
-  { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'NEMOKAMAI su batutu' },
+  { name: 'Disco paviljonas', icon: '\u{1F3AA}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f0f0ff', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Kaina pagal užklausą' },
+  { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Kaina pagal užklausą' },
   { name: 'Banketo stalai ir kėdės', icon: '\u{1FA91}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Mokamas priedas' }
 ];
 
