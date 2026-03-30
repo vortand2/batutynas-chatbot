@@ -1635,6 +1635,141 @@
   }
 }
 
+/* ================================================================
+   MOBILE POLISH — fixes from comprehensive audit (21 issues)
+   ================================================================ */
+
+/* Momentum scrolling for all touch devices */
+.woo-chat-messages {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Message bubbles — wider on mobile, prevent word overflow */
+.woo-chat-msg {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Booking confirm text wrap */
+.booking-confirm {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.booking-confirm p {
+  word-break: break-word;
+}
+
+/* Escalation link — always 44px touch target */
+.woo-chat-escalate {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image zoom overlay — respect notch/safe area */
+.t-zoom-close {
+  top: max(16px, env(safe-area-inset-top, 16px));
+  right: max(16px, env(safe-area-inset-right, 16px));
+}
+
+/* Send button SVG — larger visual target */
+.woo-chat-send svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Tablet breakpoint (481-600px) — fill gaps */
+@media (max-width: 600px) {
+  .woo-chat-lang-select {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .chat-date-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .chat-address-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .chat-menu-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+  .woo-chat-escalate {
+    padding: 12px 16px;
+  }
+  .woo-chat-msg {
+    max-width: 88%;
+  }
+}
+
+/* Small mobile (≤480px) — tighter layout */
+@media (max-width: 480px) {
+  .woo-chat-msg {
+    max-width: 92%;
+  }
+  .woo-chat-lang-select {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .welcome-actions {
+    gap: 6px;
+    padding: 0 14px 12px;
+  }
+  .welcome-action-btn {
+    padding: 11px 14px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+  .t-detail-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    top: 4px;
+    left: 4px;
+  }
+  .woo-chat-input-area {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+}
+
+/* Ultra-narrow phones (≤375px) — iPhone SE, Galaxy S */
+@media (max-width: 375px) {
+  .woo-chat-window {
+    width: 100%;
+    max-width: 100%;
+    left: 0;
+    right: 0;
+    bottom: 62px;
+    border-radius: 16px 16px 0 0;
+    height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px));
+  }
+  #woo-ai-chat-widget {
+    right: 0;
+    bottom: 8px;
+  }
+  .chat-trampoline-thumb {
+    height: 100px;
+    font-size: 32px;
+  }
+  .chat-trampoline-info {
+    padding: 8px 10px 10px;
+  }
+  .t-name { font-size: 12px; }
+  .t-meta { font-size: 10px; }
+  .t-price { font-size: 11px; }
+  .chat-trampoline-grid.t-grid-compact {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
 /* ═══ Human Handoff Notice ═══ */
 .chat-handoff-notice {
   background: #fff7ed;
