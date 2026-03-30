@@ -434,6 +434,20 @@
 
   // --- Actions ---
 
+  function _isMobileViewport() { return window.innerWidth <= 480; }
+
+  function _setMobileBodyLock(lock) {
+    if (_isMobileViewport()) {
+      if (lock) {
+        document.body.classList.add('woo-chat-mobile-open');
+      } else {
+        document.body.classList.remove('woo-chat-mobile-open');
+      }
+    } else {
+      document.body.classList.remove('woo-chat-mobile-open');
+    }
+  }
+
   function toggleChat() {
     if (state._animating) return;
     if (state.open) {
@@ -447,6 +461,7 @@
           state.open = false;
           state.animatedOpen = false;
           state._animating = false;
+          _setMobileBodyLock(false);
           render();
         }
         win.classList.add('woo-animate-out');
@@ -455,12 +470,14 @@
       } else {
         state.open = false;
         state.animatedOpen = false;
+        _setMobileBodyLock(false);
         render();
         var tb = document.querySelector('.woo-chat-toggle'); if (tb) tb.focus();
       }
     } else {
       state.open = true;
       state._hasUnread = false;
+      _setMobileBodyLock(true);
       render();
     }
   }

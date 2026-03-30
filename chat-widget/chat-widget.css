@@ -502,6 +502,7 @@
   color: white;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .welcome-hero::before {
   content: '';
@@ -1504,15 +1505,49 @@
 @media (max-width: 480px) {
   .woo-chat-window {
     position: fixed;
-    width: auto;
+    width: 100%;
     left: 0;
     right: 0;
     top: 0;
     bottom: 0;
-    height: 100dvh;
-    height: 100vh;
+    height: 100%;
+    max-height: 100dvh;
+    max-height: -webkit-fill-available;
     border-radius: 0;
     z-index: 2147483647;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .woo-chat-window .woo-chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .woo-chat-window .woo-chat-header {
+    flex-shrink: 0;
+  }
+
+  .woo-chat-window .woo-chat-input-area {
+    flex-shrink: 0;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .woo-chat-window .woo-chat-escalate {
+    flex-shrink: 0;
+  }
+
+  /* Prevent body scroll when chat is open */
+  body.woo-chat-mobile-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
   }
 
   #woo-ai-chat-widget {
@@ -1726,14 +1761,31 @@
     padding: 8px 12px;
     font-size: 13px;
   }
+  .welcome-hero {
+    padding: 20px 16px 16px;
+  }
+  .welcome-emoji-row {
+    font-size: 24px;
+    letter-spacing: 6px;
+    margin-bottom: 8px;
+  }
+  .welcome-hero h2 {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  .welcome-divider {
+    padding: 8px 0 4px;
+    font-size: 12px;
+  }
   .welcome-actions {
-    gap: 6px;
-    padding: 0 14px 12px;
+    gap: 5px;
+    padding: 0 12px 10px;
   }
   .welcome-action-btn {
-    padding: 11px 14px;
+    padding: 10px 14px;
     font-size: 13px;
     min-height: 44px;
+    border-radius: 12px;
   }
   .t-detail-btn {
     width: 44px;
