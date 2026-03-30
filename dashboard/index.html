@@ -2751,10 +2751,12 @@ var EQUIP_CAT_LT = {
   'addon': 'Priedas', 'party-equipment': 'Vakarėlio įranga'
 };
 
+var _todayAvailability = null; // cached today's availability from API
+
 function renderEquipment() {
   var container = document.getElementById('equipStrip');
 
-  // Find which equipment is booked today
+  // Find which equipment is booked today from state.bookings
   var todayStr = new Date().toISOString().substring(0, 10);
   var bookedToday = {};
   (state.bookings || []).forEach(function(b) {
@@ -2763,12 +2765,39 @@ function renderEquipment() {
     }
   });
 
+  // Also use availability API data if available
+  if (_todayAvailability) {
+    (_todayAvailability.booked || []).forEach(function(eq) {
+      if (!bookedToday[eq.name]) bookedToday[eq.name] = { customer_name: 'Užimta', customer_phone: '' };
+    });
+  }
+
+  _renderEquipTable(container, bookedToday);
+
+  // Fetch fresh availability from API (non-blocking, updates table when ready)
+  var ac = new AbortController();
+  setTimeout(function() { ac.abort(); }, 10000);
+  fetch(API_BASE.replace('batutynas-dashboard-v2', 'batutynas-availability') + '?date=' + todayStr + '&t=' + Date.now(), { signal: ac.signal })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (!data) return;
+      _todayAvailability = data;
+      // Merge API availability with booking data
+      (data.booked || []).forEach(function(eq) {
+        if (!bookedToday[eq.name]) bookedToday[eq.name] = { customer_name: 'Užimta', customer_phone: '' };
+      });
+      _renderEquipTable(container, bookedToday);
+    })
+    .catch(function() {});
+}
+
+function _renderEquipTable(container, bookedToday) {
   var html = '<table class="equip-table">';
   html += '<thead><tr>';
-  html += '<th>Įranga</th>';
+  html += '<th>\u012Eranga</th>';
   html += '<th class="col-cat">Tipas</th>';
-  html += '<th>Būsena</th>';
-  html += '<th class="col-date">Šiandienos užsakymas</th>';
+  html += '<th>B\u016Bsena</th>';
+  html += '<th class="col-date">\u0160iandienos u\u017esakymas</th>';
   html += '</tr></thead><tbody>';
 
   state.equipment.forEach(function(eq) {
@@ -2778,13 +2807,13 @@ function renderEquipment() {
     var badgeClass = 'equip-badge equip-badge-' + (statusKey || 'available').toLowerCase().replace(/\s+/g, '-');
     var statusText = EQUIP_STATUS_LT[statusKey] || statusKey;
     var catText = EQUIP_CAT_LT[eq.category] || eq.category || '';
-    var todayName = bookedBy ? (bookedBy.customer_name || bookedBy.customer_phone || '—') : '';
+    var todayName = bookedBy ? (bookedBy.customer_name || bookedBy.customer_phone || '\u2014') : '';
     var todayId = bookedBy ? (bookedBy.calendarEventId || bookedBy.id || '') : '';
     var todayShortId = todayId ? '#' + todayId.substring(0, 8) : '';
-    var todayText = bookedBy ? escHtml(todayName) + (todayShortId ? ' <span class="equip-date">' + escHtml(todayShortId) + '</span>' : '') : '—';
+    var todayText = bookedBy ? escHtml(todayName) + (todayShortId ? ' <span class="equip-date">' + escHtml(todayShortId) + '</span>' : '') : '\u2014';
 
     html += '<tr>';
-    html += '<td><span class="equip-icon">' + escHtml(eq.icon || '🎪') + '</span> <span class="equip-name">' + escHtml(eq.name) + '</span></td>';
+    html += '<td><span class="equip-icon">' + escHtml(eq.icon || '\uD83C\uDFAA') + '</span> <span class="equip-name">' + escHtml(eq.name) + '</span></td>';
     html += '<td class="col-cat"><span class="equip-cat">' + escHtml(catText) + '</span></td>';
     html += '<td><span class="' + badgeClass + '">' + escHtml(statusText) + '</span></td>';
     html += '<td class="col-date"><span class="equip-date">' + todayText + '</span></td>';
