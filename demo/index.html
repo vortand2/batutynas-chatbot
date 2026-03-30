@@ -2418,13 +2418,13 @@ html.woo-chat-mobile-open {
     if (state.open && !state._scrollToStart) {
       scrollToBottom();
     }
-    if (state.open) {
+    if (state.open && !_isMobileViewport()) {
       var input = document.getElementById('woo-chat-input');
       if (input) input.focus();
     }
 
     // Mobile keyboard handling
-    if (state.open && window.visualViewport && window.innerWidth <= 480) {
+    if (state.open && window.visualViewport && _isMobileViewport()) {
       var vv = window.visualViewport;
       var initialHeight = vv.height;
 
@@ -2432,10 +2432,13 @@ html.woo-chat-mobile-open {
         var diff = initialHeight - vv.height;
         var win = document.querySelector('.woo-chat-window');
         if (!win) return;
-        if (diff > 100) {
-          win.style.height = vv.height - 80 + 'px';
+        if (diff > 50) {
+          // Keyboard is showing — resize chat to fit above it
+          win.style.height = vv.height + 'px';
+          win.style.top = vv.offsetTop + 'px';
         } else {
           win.style.height = '';
+          win.style.top = '';
         }
         scrollToBottom();
       }

@@ -284,7 +284,7 @@
     if (state.open && !state._scrollToStart) {
       scrollToBottom();
     }
-    if (state.open) {
+    if (state.open && !_isMobileViewport()) {
       var input = document.getElementById('woo-chat-input');
       if (input) input.focus();
     }
