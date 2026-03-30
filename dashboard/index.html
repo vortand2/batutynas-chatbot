@@ -2411,6 +2411,42 @@ function showDayPanel(dateKey) {
   }, 140);
 }
 
+function showSearchResults(query) {
+  var q = query.toLowerCase();
+  var matches = state.bookings.filter(function(b) {
+    return matchesSearchQuery(b);
+  });
+
+  // Sort by date descending (newest first)
+  matches.sort(function(a, b) {
+    return (b.event_date || '').localeCompare(a.event_date || '');
+  });
+
+  document.getElementById('panelDate').innerHTML =
+    '\uD83D\uDD0D Paie\u0161ka: <strong>' + escHtml(query) + '</strong>';
+  document.getElementById('panelMeta').textContent =
+    matches.length > 0
+      ? matches.length + ' u\u017esakym' + pluralLT(matches.length) + ' rast' + (matches.length === 1 ? 'as' : 'a')
+      : 'Nieko nerasta';
+
+  var panelBody = document.getElementById('panelBody');
+  panelBody.innerHTML = '';
+
+  if (matches.length === 0) {
+    panelBody.innerHTML =
+      '<div class="empty-state">' +
+      '<div class="empty-state-icon">\uD83D\uDD0D</div>' +
+      '<div class="empty-state-text">Pagal \u201E' + escHtml(query) + '\u201C nieko nerasta</div>' +
+      '</div>';
+  } else {
+    matches.forEach(function(b, idx) {
+      var card = buildBookingCard(b);
+      card.style.animationDelay = (idx * 60) + 'ms';
+      panelBody.appendChild(card);
+    });
+  }
+}
+
 function clearDayPanel() {
   document.getElementById('panelDate').textContent = 'Pasirinkite dien\u0105';
   document.getElementById('panelMeta').textContent = '';
@@ -4037,13 +4073,18 @@ document.addEventListener('DOMContentLoaded', function() {
       _searchTimer = setTimeout(function() {
         state.searchQuery = searchInput.value.trim();
         renderCalendar();
-        if (state.selectedDate) {
-          if (isMobile()) {
-            var acc = document.getElementById('dayAccordion');
-            if (acc) { acc.remove(); toggleDayAccordion(state.selectedDate); }
-          } else {
-            showDayPanel(state.selectedDate);
-          }
+        if (state.searchQuery) {
+          // Show all matching bookings in side panel regardless of selected date
+          showSearchResults(state.searchQuery);
+        } else if (state.selectedDate) {
+          showDayPanel(state.selectedDate);
+        } else {
+          // Clear panel back to default
+          document.getElementById('panelDate').textContent = 'Pasirinkite dien\u0105';
+          document.getElementById('panelMeta').textContent = '';
+          document.getElementById('panelBody').innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">\uD83D\uDCC5</div>' +
+            '<div class="empty-state-text">Pasirinkite dien\u0105 kalendoriuje</div></div>';
         }
       }, 250);
     });
