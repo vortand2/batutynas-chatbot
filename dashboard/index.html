@@ -312,17 +312,11 @@ body {
 }
 
 .equipment-strip {
-  display: flex;
   overflow-x: auto;
-  gap: 10px;
-  padding-bottom: 8px;
   -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  max-height: 500px;
+  overflow-y: auto;
 }
-
-.equipment-strip::-webkit-scrollbar { display: none; }
 
 /* ================================================================
    RESPONSIVE BREAKPOINTS
@@ -346,12 +340,7 @@ body {
     overflow-y: auto;
   }
   .equipment-strip {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 10px;
-    overflow-x: unset;
-    padding-bottom: 0;
-    scroll-snap-type: unset;
+    max-height: 600px;
   }
   .mobile-only { display: none; }
   .desktop-only { display: block; }
@@ -659,34 +648,61 @@ body {
 .badge.pay-unpaid  { background: var(--red-dim); color: var(--red); }
 
 /* ================================================================
-   EQUIPMENT PILL
+   EQUIPMENT TABLE
    ================================================================ */
-.equip-pill {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  min-width: 150px;
-  scroll-snap-align: start;
-  transition: transform .2s var(--ease-bounce), box-shadow .2s, border-color .15s;
+.equip-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
 }
-
-.equip-pill:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-  border-color: var(--border-strong);
+.equip-table thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
 }
-
-.equip-icon { font-size: 1.3rem; margin-bottom: 6px; }
-.equip-name { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.equip-status { display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
-
-.equip-available .equip-status { color: var(--green); }
-.equip-reserved .equip-status  { color: var(--yellow); }
-.equip-rented .equip-status    { color: var(--blue); }
-.equip-in-transit .equip-status { color: var(--accent); }
-.equip-needs-cleaning .equip-status { color: var(--yellow); }
-.equip-damaged .equip-status   { color: var(--red); }
+.equip-table tbody tr {
+  transition: background .15s;
+}
+.equip-table tbody tr:hover {
+  background: var(--accent-dim);
+}
+.equip-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.equip-table .equip-icon { font-size: 1.1rem; }
+.equip-table .equip-name { font-weight: 600; color: var(--text); }
+.equip-table .equip-cat { font-size: 0.75rem; color: var(--text-secondary); }
+.equip-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.equip-badge-available { background: #dcfce7; color: #15803d; }
+.equip-badge-reserved  { background: #fef9c3; color: #a16207; }
+.equip-badge-rented    { background: #dbeafe; color: #1d4ed8; }
+.equip-badge-booked    { background: #dbeafe; color: #1d4ed8; }
+.equip-badge-damaged   { background: #fee2e2; color: #dc2626; }
+.equip-table .equip-date { font-size: 0.75rem; color: var(--text-secondary); }
+@media (max-width: 639px) {
+  .equip-table .col-cat, .equip-table .col-date { display: none; }
+  .equip-table td, .equip-table thead th { padding: 8px 10px; }
+}
 
 /* ================================================================
    PANEL HEADER & BODY
@@ -1775,7 +1791,7 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
 <section class="equipment-section">
   <div class="equipment-header">
     <div class="equipment-header-icon">&#127914;</div>
-    <div class="equipment-title">&#302;rangos b&#363;sena</div>
+    <div class="equipment-title">&#302;rangos b&#363;sena (dabar)</div>
   </div>
   <div class="equipment-strip" id="equipStrip"></div>
 </section>
@@ -2637,27 +2653,54 @@ function buildBookingCard(b) {
 }
 
 // ================================================================
-// EQUIPMENT STRIP
+// EQUIPMENT TABLE
 // ================================================================
 
+var EQUIP_CAT_LT = {
+  'park': 'Parkas', 'obstacle': 'Kliūčių ruožas', 'mega': 'Mega batutas',
+  'compact': 'Kompaktiškas', 'toddler': 'Mažiesiems', 'interactive': 'Interaktyvi pramoga',
+  'addon': 'Priedas', 'party-equipment': 'Vakarėlio įranga'
+};
+
 function renderEquipment() {
-  var strip = document.getElementById('equipStrip');
-  strip.innerHTML = '';
+  var container = document.getElementById('equipStrip');
+
+  // Find which equipment is booked today
+  var todayStr = new Date().toISOString().substring(0, 10);
+  var bookedToday = {};
+  (state.bookings || []).forEach(function(b) {
+    if (b.event_date === todayStr || (b.event_date <= todayStr && (b.end_date || b.event_date) >= todayStr)) {
+      (b.equipment || []).forEach(function(e) { bookedToday[e.name] = b; });
+    }
+  });
+
+  var html = '<table class="equip-table">';
+  html += '<thead><tr>';
+  html += '<th>Įranga</th>';
+  html += '<th class="col-cat">Tipas</th>';
+  html += '<th>Būsena</th>';
+  html += '<th class="col-date">Šiandien</th>';
+  html += '</tr></thead><tbody>';
 
   state.equipment.forEach(function(eq) {
     var statusKey = eq.current_status || eq.status || 'Available';
-    var statusClass = EQUIP_STATUS_CLASS[statusKey] || 'equip-available';
+    var bookedBy = bookedToday[eq.name];
+    if (bookedBy) statusKey = 'Booked';
+    var badgeClass = 'equip-badge equip-badge-' + (statusKey || 'available').toLowerCase().replace(/\s+/g, '-');
+    var statusText = EQUIP_STATUS_LT[statusKey] || statusKey;
+    var catText = EQUIP_CAT_LT[eq.category] || eq.category || '';
+    var todayText = bookedBy ? escHtml(bookedBy.customer_name || bookedBy.customer_phone || '—') : '—';
 
-    var pill = document.createElement('div');
-    pill.className = 'equip-pill ' + statusClass;
-
-    pill.innerHTML =
-      '<span class="equip-icon">' + escHtml(eq.icon || '\uD83C\uDFAA') + '</span>' +
-      '<span class="equip-name">' + escHtml(eq.name) + '</span>' +
-      '<span class="equip-status">' + escHtml(EQUIP_STATUS_LT[statusKey] || statusKey) + '</span>';
-
-    strip.appendChild(pill);
+    html += '<tr>';
+    html += '<td><span class="equip-icon">' + escHtml(eq.icon || '🎪') + '</span> <span class="equip-name">' + escHtml(eq.name) + '</span></td>';
+    html += '<td class="col-cat"><span class="equip-cat">' + escHtml(catText) + '</span></td>';
+    html += '<td><span class="' + badgeClass + '">' + escHtml(statusText) + '</span></td>';
+    html += '<td class="col-date"><span class="equip-date">' + todayText + '</span></td>';
+    html += '</tr>';
   });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
 }
 
 // ================================================================
