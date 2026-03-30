@@ -437,14 +437,33 @@
   function _isMobileViewport() { return window.innerWidth <= 480; }
 
   function _setMobileBodyLock(lock) {
-    if (_isMobileViewport()) {
-      if (lock) {
-        document.body.classList.add('woo-chat-mobile-open');
-      } else {
-        document.body.classList.remove('woo-chat-mobile-open');
+    var widget = document.getElementById('woo-ai-chat-widget');
+    if (_isMobileViewport() && lock) {
+      document.body.classList.add('woo-chat-mobile-open');
+      if (widget) {
+        widget.classList.add('woo-mobile-open');
+        // Override inline styles to expand container to full viewport
+        widget.style.top = '0';
+        widget.style.left = '0';
+        widget.style.right = '0';
+        widget.style.bottom = '0';
+        widget.style.width = '100%';
+        widget.style.height = '100%';
+        widget.style.isolation = 'auto';
       }
     } else {
       document.body.classList.remove('woo-chat-mobile-open');
+      if (widget) {
+        widget.classList.remove('woo-mobile-open');
+        // Restore original positioning
+        widget.style.top = '';
+        widget.style.left = '';
+        widget.style.right = '';
+        widget.style.bottom = '';
+        widget.style.width = '';
+        widget.style.height = '';
+        widget.style.isolation = '';
+      }
     }
   }
 
