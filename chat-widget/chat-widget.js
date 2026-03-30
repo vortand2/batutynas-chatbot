@@ -154,7 +154,13 @@
     }
     var chatWindow = el('div', { className: windowClasses });
 
-    // Header with online dot
+    // Header with online dot + close button
+    var closeBtn = el('button', {
+      className: 'woo-chat-header-close',
+      innerHTML: '&times;',
+      'aria-label': 'Uždaryti',
+      onClick: toggleChat
+    });
     var header = el('div', { className: 'woo-chat-header' }, [
       el('div', { className: 'woo-chat-header-info' }, [
         el('div', { className: 'woo-chat-header-avatar', innerHTML: '&#129302;' }),
@@ -163,7 +169,8 @@
           el('p', { innerHTML: '<span class="online-dot"></span> AI Asistentas' })
         ])
       ]),
-      createLanguageSelect()
+      createLanguageSelect(),
+      closeBtn
     ]);
     chatWindow.appendChild(header);
 

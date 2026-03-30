@@ -181,6 +181,27 @@
   pointer-events: none;
 }
 
+.woo-chat-header-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.woo-chat-header-close:hover { opacity: 1; }
+
 .woo-chat-header-info {
   display: flex;
   align-items: center;
