@@ -434,13 +434,22 @@
 
   // --- Actions ---
 
-  function _isMobileViewport() { return window.innerWidth <= 480; }
+  function _isMobileViewport() { return window.matchMedia('(max-width: 600px)').matches; }
+
+  var _savedScrollY = 0;
 
   function _setMobileBodyLock(lock) {
     if (_isMobileViewport() && lock) {
+      _savedScrollY = window.scrollY;
       document.body.classList.add('woo-chat-mobile-open');
-    } else {
+      document.body.style.top = -_savedScrollY + 'px';
+    } else if (!lock) {
       document.body.classList.remove('woo-chat-mobile-open');
+      document.body.style.top = '';
+      if (_savedScrollY) {
+        window.scrollTo(0, _savedScrollY);
+        _savedScrollY = 0;
+      }
     }
   }
 

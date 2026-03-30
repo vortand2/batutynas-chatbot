@@ -2,7 +2,7 @@
 <html lang="lt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Batutynas.lt — AI Pokalbiu Robotas Demo</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏰</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1776,6 +1776,22 @@
     width: calc(100vw - 48px);
     max-width: 390px;
   }
+  .woo-chat-window.open {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    height: -webkit-fill-available;
+    border-radius: 0;
+    z-index: 2147483647;
+  }
+  .woo-chat-window.open .woo-chat-header {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
   .woo-chat-input,
   .chat-date-input,
   .chat-email-input,
@@ -1783,6 +1799,15 @@
   .chat-custom-input {
     font-size: 16px;
   }
+}
+
+/* Body scroll lock when chat open on mobile */
+body.woo-chat-mobile-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
 }
 
 /* Mobile Responsive */
@@ -1795,9 +1820,18 @@
     bottom: 0;
     width: 100%;
     max-width: none;
-    height: 100%;
+    height: 100dvh;
+    height: -webkit-fill-available;
     border-radius: 0;
     z-index: 2147483647;
+  }
+
+  .woo-chat-window.open .woo-chat-header {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+
+  .woo-chat-window.open .woo-chat-input-area {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   }
 
   #woo-ai-chat-widget {
@@ -2511,6 +2545,30 @@
     return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
   }
 
+  // --- Mobile body lock ---
+
+  function _isMobileViewport() {
+    return window.matchMedia('(max-width: 600px)').matches;
+  }
+
+  var _savedScrollY = 0;
+
+  function _setMobileBodyLock(lock) {
+    if (lock && _isMobileViewport()) {
+      _savedScrollY = window.scrollY;
+      document.body.classList.add('woo-chat-mobile-open');
+      document.body.style.top = -_savedScrollY + 'px';
+    } else if (!lock) {
+      // Always unlock — even if viewport changed since locking
+      document.body.classList.remove('woo-chat-mobile-open');
+      document.body.style.top = '';
+      if (_savedScrollY) {
+        window.scrollTo(0, _savedScrollY);
+        _savedScrollY = 0;
+      }
+    }
+  }
+
   // --- Actions ---
 
   function toggleChat() {
@@ -2526,6 +2584,7 @@
           state.open = false;
           state.animatedOpen = false;
           state._animating = false;
+          _setMobileBodyLock(false);
           render();
         }
         win.classList.add('woo-animate-out');
@@ -2534,12 +2593,14 @@
       } else {
         state.open = false;
         state.animatedOpen = false;
+        _setMobileBodyLock(false);
         render();
         var tb = document.querySelector('.woo-chat-toggle'); if (tb) tb.focus();
       }
     } else {
       state.open = true;
       state._hasUnread = false;
+      _setMobileBodyLock(true);
       render();
     }
   }
