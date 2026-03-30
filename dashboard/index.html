@@ -309,7 +309,19 @@ body {
   font-weight: 700;
   font-size: 0.95rem;
   color: var(--text);
+  flex: 1;
 }
+
+.equip-search {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  outline: none;
+  width: 200px;
+  transition: border-color .15s;
+}
+.equip-search:focus { border-color: var(--accent); }
 
 .equipment-strip {
   overflow-x: auto;
@@ -1711,7 +1723,7 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
     <span class="header-title">Batutynas</span>
   </div>
   <div class="header-actions">
-    <input type="search" id="searchInput" class="header-search" placeholder="Iesokti kliento..." autocomplete="off" />
+    <input type="search" id="searchInput" class="header-search" placeholder="Ieškoti kliento..." autocomplete="off" />
     <span class="header-updated" id="lastUpdated"></span>
     <button class="header-btn" id="refreshBtn" title="Atnaujinti">&#8635;</button>
   </div>
@@ -1792,6 +1804,7 @@ input[type="time"].edit-input::-webkit-calendar-picker-indicator {
   <div class="equipment-header">
     <div class="equipment-header-icon">&#127914;</div>
     <div class="equipment-title">&#302;rangos b&#363;sena (dabar)</div>
+    <input type="search" id="equipSearch" class="equip-search" placeholder="Filtruoti &#303;rang&#261;..." autocomplete="off" />
   </div>
   <div class="equipment-strip" id="equipStrip"></div>
 </section>
@@ -2679,7 +2692,7 @@ function renderEquipment() {
   html += '<th>Įranga</th>';
   html += '<th class="col-cat">Tipas</th>';
   html += '<th>Būsena</th>';
-  html += '<th class="col-date">Šiandien</th>';
+  html += '<th class="col-date">Šiandienos užsakymas</th>';
   html += '</tr></thead><tbody>';
 
   state.equipment.forEach(function(eq) {
@@ -2689,7 +2702,10 @@ function renderEquipment() {
     var badgeClass = 'equip-badge equip-badge-' + (statusKey || 'available').toLowerCase().replace(/\s+/g, '-');
     var statusText = EQUIP_STATUS_LT[statusKey] || statusKey;
     var catText = EQUIP_CAT_LT[eq.category] || eq.category || '';
-    var todayText = bookedBy ? escHtml(bookedBy.customer_name || bookedBy.customer_phone || '—') : '—';
+    var todayName = bookedBy ? (bookedBy.customer_name || bookedBy.customer_phone || '—') : '';
+    var todayId = bookedBy ? (bookedBy.calendarEventId || bookedBy.id || '') : '';
+    var todayShortId = todayId ? '#' + todayId.substring(0, 8) : '';
+    var todayText = bookedBy ? escHtml(todayName) + (todayShortId ? ' <span class="equip-date">' + escHtml(todayShortId) + '</span>' : '') : '—';
 
     html += '<tr>';
     html += '<td><span class="equip-icon">' + escHtml(eq.icon || '🎪') + '</span> <span class="equip-name">' + escHtml(eq.name) + '</span></td>';
@@ -2701,6 +2717,19 @@ function renderEquipment() {
 
   html += '</tbody></table>';
   container.innerHTML = html;
+
+  // Re-apply filter if search has text
+  var searchVal = document.getElementById('equipSearch');
+  if (searchVal && searchVal.value) filterEquipTable(searchVal.value);
+}
+
+function filterEquipTable(query) {
+  var rows = document.querySelectorAll('.equip-table tbody tr');
+  var q = (query || '').toLowerCase();
+  rows.forEach(function(row) {
+    var text = row.textContent.toLowerCase();
+    row.style.display = q && text.indexOf(q) === -1 ? 'none' : '';
+  });
 }
 
 // ================================================================
@@ -4017,6 +4046,14 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
       }, 250);
+    });
+  }
+
+  // Equipment table filter
+  var equipSearchInput = document.getElementById('equipSearch');
+  if (equipSearchInput) {
+    equipSearchInput.addEventListener('input', function() {
+      filterEquipTable(equipSearchInput.value);
     });
   }
 
