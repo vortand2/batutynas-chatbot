@@ -2424,9 +2424,9 @@ function showSearchResults(query) {
   panelMeta.textContent = 'Ie\u0161koma...';
   panelBody.innerHTML = '<div class="empty-state"><div class="empty-state-icon" style="animation:spin 1s linear infinite">\u23F3</div></div>';
 
-  // Build month list: current view month ± 3 months
+  // Build month list: current view month ± 6 months (12 total)
   var months = [];
-  for (var offset = -3; offset <= 3; offset++) {
+  for (var offset = -6; offset <= 6; offset++) {
     var d = new Date(state.viewYear, state.viewMonth + offset, 1);
     months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
   }
