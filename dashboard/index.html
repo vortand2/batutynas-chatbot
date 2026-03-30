@@ -2411,40 +2411,80 @@ function showDayPanel(dateKey) {
   }, 140);
 }
 
+// Search across multiple months (current ±3 months)
+var _searchAbort = null;
 function showSearchResults(query) {
-  var q = query.toLowerCase();
-  var matches = state.bookings.filter(function(b) {
-    return matchesSearchQuery(b);
+  if (_searchAbort) { _searchAbort.abort(); _searchAbort = null; }
+
+  var panelDate = document.getElementById('panelDate');
+  var panelMeta = document.getElementById('panelMeta');
+  var panelBody = document.getElementById('panelBody');
+
+  panelDate.innerHTML = '\uD83D\uDD0D Paie\u0161ka: <strong>' + escHtml(query) + '</strong>';
+  panelMeta.textContent = 'Ie\u0161koma...';
+  panelBody.innerHTML = '<div class="empty-state"><div class="empty-state-icon" style="animation:spin 1s linear infinite">\u23F3</div></div>';
+
+  // Build month list: current view month ± 3 months
+  var months = [];
+  for (var offset = -3; offset <= 3; offset++) {
+    var d = new Date(state.viewYear, state.viewMonth + offset, 1);
+    months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+  }
+
+  var controller = new AbortController();
+  _searchAbort = controller;
+
+  var fetches = months.map(function(m) {
+    return fetch(API_BASE + '?month=' + m + '&t=' + Date.now(), { signal: controller.signal })
+      .then(function(r) { return r.ok ? r.json() : { bookings: [] }; })
+      .catch(function() { return { bookings: [] }; });
   });
 
-  // Sort by date descending (newest first)
-  matches.sort(function(a, b) {
-    return (b.event_date || '').localeCompare(a.event_date || '');
-  });
+  Promise.all(fetches).then(function(results) {
+    if (_searchAbort !== controller) return; // superseded
 
-  document.getElementById('panelDate').innerHTML =
-    '\uD83D\uDD0D Paie\u0161ka: <strong>' + escHtml(query) + '</strong>';
-  document.getElementById('panelMeta').textContent =
-    matches.length > 0
+    // Combine all bookings, deduplicate by id
+    var seen = {};
+    var allBookings = [];
+    results.forEach(function(data) {
+      (data.bookings || []).forEach(function(b) {
+        var id = b.calendarEventId || b.id;
+        if (!seen[id]) { seen[id] = true; allBookings.push(b); }
+      });
+    });
+
+    // Filter by search query
+    var q = query.toLowerCase();
+    var matches = allBookings.filter(function(b) {
+      var text = [
+        b.customer_name || '', b.customer_phone || '', b.delivery_address || '',
+        b.city || '', b.raw_summary || '',
+        (b.equipment || []).map(function(e) { return e.name; }).join(' ')
+      ].join(' ').toLowerCase();
+      return text.indexOf(q) !== -1;
+    });
+
+    matches.sort(function(a, b) {
+      return (b.event_date || '').localeCompare(a.event_date || '');
+    });
+
+    panelMeta.textContent = matches.length > 0
       ? matches.length + ' u\u017esakym' + pluralLT(matches.length) + ' rast' + (matches.length === 1 ? 'as' : 'a')
       : 'Nieko nerasta';
 
-  var panelBody = document.getElementById('panelBody');
-  panelBody.innerHTML = '';
-
-  if (matches.length === 0) {
-    panelBody.innerHTML =
-      '<div class="empty-state">' +
-      '<div class="empty-state-icon">\uD83D\uDD0D</div>' +
-      '<div class="empty-state-text">Pagal \u201E' + escHtml(query) + '\u201C nieko nerasta</div>' +
-      '</div>';
-  } else {
-    matches.forEach(function(b, idx) {
-      var card = buildBookingCard(b);
-      card.style.animationDelay = (idx * 60) + 'ms';
-      panelBody.appendChild(card);
-    });
-  }
+    panelBody.innerHTML = '';
+    if (matches.length === 0) {
+      panelBody.innerHTML =
+        '<div class="empty-state"><div class="empty-state-icon">\uD83D\uDD0D</div>' +
+        '<div class="empty-state-text">Pagal \u201E' + escHtml(query) + '\u201C nieko nerasta</div></div>';
+    } else {
+      matches.forEach(function(b, idx) {
+        var card = buildBookingCard(b);
+        card.style.animationDelay = (idx * 60) + 'ms';
+        panelBody.appendChild(card);
+      });
+    }
+  });
 }
 
 function clearDayPanel() {
