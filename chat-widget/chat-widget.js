@@ -438,31 +438,24 @@
 
   function _setMobileBodyLock(lock) {
     var widget = document.getElementById('woo-ai-chat-widget');
+    var win = widget ? widget.querySelector('.woo-chat-window') : null;
     if (_isMobileViewport() && lock) {
       document.body.classList.add('woo-chat-mobile-open');
       if (widget) {
         widget.classList.add('woo-mobile-open');
-        // Override inline styles to expand container to full viewport
-        widget.style.top = '0';
-        widget.style.left = '0';
-        widget.style.right = '0';
-        widget.style.bottom = '0';
-        widget.style.width = '100%';
-        widget.style.height = '100%';
-        widget.style.isolation = 'auto';
+        widget.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:2147483646;isolation:auto;font-family:Nunito,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.5;';
+      }
+      if (win) {
+        win.style.cssText = 'display:flex;position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;max-width:none;max-height:none;border-radius:0;flex-direction:column;overflow:hidden;z-index:2147483647;background:white;border:none;box-shadow:none;';
       }
     } else {
       document.body.classList.remove('woo-chat-mobile-open');
       if (widget) {
         widget.classList.remove('woo-mobile-open');
-        // Restore original positioning
-        widget.style.top = '';
-        widget.style.left = '';
-        widget.style.right = '';
-        widget.style.bottom = '';
-        widget.style.width = '';
-        widget.style.height = '';
-        widget.style.isolation = '';
+        widget.style.cssText = '';
+      }
+      if (win) {
+        win.style.cssText = '';
       }
     }
   }
