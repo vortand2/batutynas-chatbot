@@ -213,7 +213,7 @@ function parseCalendarEvent(event) {
   const phone = extractPhone(description) || extractPhone(summary);
 
   // Parse description lines for customer info
-  const lines = description.split(/\\n/).map(l => l.trim()).filter(Boolean);
+  const lines = description.split(/\n/).map(l => l.trim()).filter(Boolean);
   let customerName = null;
   let location = null;
 
