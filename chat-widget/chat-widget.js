@@ -447,16 +447,11 @@
 
   function _setMobileBodyLock(lock) {
     if (_isMobileViewport() && lock) {
-      _savedScrollY = window.scrollY;
       document.body.classList.add('woo-chat-mobile-open');
-      document.body.style.top = -_savedScrollY + 'px';
+      document.documentElement.classList.add('woo-chat-mobile-open');
     } else if (!lock) {
       document.body.classList.remove('woo-chat-mobile-open');
-      document.body.style.top = '';
-      if (_savedScrollY) {
-        window.scrollTo(0, _savedScrollY);
-        _savedScrollY = 0;
-      }
+      document.documentElement.classList.remove('woo-chat-mobile-open');
     }
   }
 

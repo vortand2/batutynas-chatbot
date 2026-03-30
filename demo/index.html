@@ -1825,10 +1825,10 @@
 /* Body scroll lock when chat open on mobile */
 body.woo-chat-mobile-open {
   overflow: hidden !important;
-  position: fixed !important;
-  width: 100% !important;
-  height: 100% !important;
   touch-action: none;
+}
+html.woo-chat-mobile-open {
+  overflow: hidden !important;
 }
 
 /* Mobile Responsive */
@@ -2583,17 +2583,11 @@ body.woo-chat-mobile-open {
 
   function _setMobileBodyLock(lock) {
     if (lock && _isMobileViewport()) {
-      _savedScrollY = window.scrollY;
       document.body.classList.add('woo-chat-mobile-open');
-      document.body.style.top = -_savedScrollY + 'px';
+      document.documentElement.classList.add('woo-chat-mobile-open');
     } else if (!lock) {
-      // Always unlock — even if viewport changed since locking
       document.body.classList.remove('woo-chat-mobile-open');
-      document.body.style.top = '';
-      if (_savedScrollY) {
-        window.scrollTo(0, _savedScrollY);
-        _savedScrollY = 0;
-      }
+      document.documentElement.classList.remove('woo-chat-mobile-open');
     }
   }
 
