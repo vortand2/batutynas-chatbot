@@ -1482,8 +1482,14 @@
 /* BUG-M3: Intermediate breakpoint for 481-600px devices */
 @media (max-width: 600px) {
   .woo-chat-window {
-    width: calc(100vw - 48px);
-    max-width: 390px;
+    position: fixed;
+    width: calc(100vw - 32px);
+    max-width: 420px;
+    height: calc(100dvh - 100px);
+    bottom: 80px;
+    right: 16px;
+    left: auto;
+    z-index: 2147483647;
   }
   .woo-chat-input,
   .chat-date-input,
@@ -1497,17 +1503,21 @@
 /* Mobile Responsive */
 @media (max-width: 480px) {
   .woo-chat-window {
+    position: fixed;
     width: auto;
-    left: 8px;
-    right: 8px;
-    height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px));
-    bottom: 70px;
-    border-radius: 16px 16px 0 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100dvh;
+    height: 100vh;
+    border-radius: 0;
+    z-index: 2147483647;
   }
 
   #woo-ai-chat-widget {
     bottom: 12px;
-    right: 0;
+    right: 12px;
   }
 
   /* BUG-M1: iOS safe-area padding for input area */
@@ -1741,19 +1751,6 @@
 
 /* Ultra-narrow phones (≤375px) — iPhone SE, Galaxy S */
 @media (max-width: 375px) {
-  .woo-chat-window {
-    width: 100%;
-    max-width: 100%;
-    left: 0;
-    right: 0;
-    bottom: 62px;
-    border-radius: 16px 16px 0 0;
-    height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px));
-  }
-  #woo-ai-chat-widget {
-    right: 0;
-    bottom: 8px;
-  }
   .chat-trampoline-thumb {
     height: 100px;
     font-size: 32px;
