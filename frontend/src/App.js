@@ -45,11 +45,11 @@ function Landing() {
             Pradėti pokalbį
             <ArrowRight size={18} />
           </button>
-          <a href="tel:+37068558996"
+          <a href="tel:+37064880388"
             className="flex items-center justify-center gap-3 bg-white text-violet-700 border-2 border-violet-200 font-bold px-8 py-4 rounded-2xl hover:bg-violet-50 hover:border-violet-300 active:scale-95 transition-all duration-200 text-base shadow-sm"
           >
             <Phone size={18} />
-            +370 685 58996
+            +370 648 80388
           </a>
         </div>
 

@@ -113,7 +113,7 @@ Kompaktiškos aikštelės, Individuali gamyba su logotipu.
 
 SAUGA: Maks. 1 vaikas vienu metu. Vaikai iki 6 m. – prižiūrimi suaugusiojo. Tik be batų.
 
-KONTAKTAI: +37068558996 | dovydasdobrovolskis@gmail.com | batutynas.lt
+KONTAKTAI: +37064880388 | info@batutynas.lt | batutynas.lt
 
 SVARBU: Jei klientas nori rezervuoti, užsisakyti arba sužinoti kainą – \
 paprašyk jų naudoti pokalbio mygtukus (Vaiko gimtadieniui, Įmonės renginiui, Šventės nuomai, Pirkti batutą). \
@@ -179,7 +179,10 @@ async def send_email(subject: str, html: str):
     if not RESEND_API_KEY:
         logger.warning("RESEND_API_KEY not set – skipping email"); return
     try:
-        params = {"from": "Batutynas <onboarding@resend.dev>", "to": [OWNER_EMAIL], "subject": subject, "html": html}
+        recipients = [OWNER_EMAIL]
+        if "info@batutynas.lt" not in recipients:
+            recipients.append("info@batutynas.lt")
+        params = {"from": "Batutynas <onboarding@resend.dev>", "to": recipients, "subject": subject, "html": html}
         await asyncio.to_thread(resend.Emails.send, params)
     except Exception as e:
         logger.error("Email send failed: %s", e)
@@ -332,7 +335,7 @@ def clean_ai_response(text: str) -> str:
 @api_router.post("/chat")
 async def chat(data: ChatRequest):
     if not GEMINI_API_KEY:
-        return {"reply": "Atsiprašome, AI asistentas šiuo metu neveikia. Skambinkite: +37068558996"}
+        return {"reply": "Atsiprašome, AI asistentas šiuo metu neveikia. Skambinkite: +37064880388"}
     try:
         chat_session = _get_chat_session(data.session_id)
         response = await chat_session.send_message(data.message)
@@ -341,7 +344,7 @@ async def chat(data: ChatRequest):
         logger.error("Gemini chat error: %s", e)
         # Reset broken session so next message starts fresh
         _chat_sessions.pop(data.session_id, None)
-        return {"reply": "Atsiprašome, įvyko klaida. Skambinkite tiesiogiai: +37068558996"}
+        return {"reply": "Atsiprašome, įvyko klaida. Skambinkite tiesiogiai: +37064880388"}
 
 
 def _parse_bridge_response(data: dict) -> bool:

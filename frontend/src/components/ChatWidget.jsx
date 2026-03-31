@@ -11,7 +11,7 @@ import {
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // ── Discount banner — set string to activate, null to hide ───────────────────
-// Example: "🎉 Gegužės akcija: -20% visiems batutams! Skambinti: +37068558996"
+// Example: "🎉 Gegužės akcija: -20% visiems batutams! Skambinti: +37064880388"
 const DISCOUNT_BANNER = null;
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
@@ -473,8 +473,8 @@ const FAQSection = ({ onEscalate }) => {
       ))}
       <div className="mt-4 p-4 bg-purple-50 rounded-2xl border border-purple-100 space-y-3">
         <p className="text-sm font-bold text-purple-700">Kontaktai</p>
-        <a href="tel:+37068558996" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Phone size={15} className="text-violet-500" /> +370 685 58996</a>
-        <a href="mailto:dovydasdobrovolskis@gmail.com" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Mail size={15} className="text-violet-500" /> dovydasdobrovolskis@gmail.com</a>
+        <a href="tel:+37064880388" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Phone size={15} className="text-violet-500" /> +370 648 80388</a>
+        <a href="mailto:info@batutynas.lt" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Mail size={15} className="text-violet-500" /> info@batutynas.lt</a>
         <a href="https://batutynas.lt" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Globe size={15} className="text-violet-500" /> batutynas.lt</a>
       </div>
       <button onClick={onEscalate} data-testid="escalate-to-human"
@@ -570,7 +570,7 @@ const ChatWidget = () => {
       const { data } = await axios.post(`${API_URL}/chat`, { session_id: sessionIdRef.current, message: text });
       setMessages(prev => prev.map(m => m.id === `typ-${ts}` ? { ...m, type: 'text', content: data.reply } : m));
     } catch {
-      setMessages(prev => prev.map(m => m.id === `typ-${ts}` ? { ...m, type: 'text', content: 'Atsiprašome, įvyko klaida. Skambinkite: +37068558996' } : m));
+      setMessages(prev => prev.map(m => m.id === `typ-${ts}` ? { ...m, type: 'text', content: 'Atsiprašome, įvyko klaida. Skambinkite: +37064880388' } : m));
     } finally {
       setIsAiTyping(false);
     }
@@ -634,7 +634,7 @@ const ChatWidget = () => {
           data: { buttons: [{ id: 'reset', label: '← Grįžti į pradžią', Icon: null, color: '' }] } },
       ]);
     } catch {
-      addMsgs([{ id: `err-${Date.now()}`, role: 'bot', type: 'text', content: 'Atsiprašome, įvyko klaida. Skambinkite: +37068558996', data: {} }]);
+      addMsgs([{ id: `err-${Date.now()}`, role: 'bot', type: 'text', content: 'Atsiprašome, įvyko klaida. Skambinkite: +37064880388', data: {} }]);
     } finally {
       setIsSubmitting(false);
     }
