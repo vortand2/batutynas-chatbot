@@ -1,0 +1,536 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "Batutynas Chatbot",
+    "updated": "2026-02",
+    "description": "Visi n8n workflow'ai, webhook'ai ir jų konfigūracija Batutynas chatbot sistemai",
+    "chatbot_base_url": "https://batutynas.lt",
+    "n8n_base_url": "https://n8n-n8n.0uvai5.easypanel.host"
+  },
+
+  "overview": {
+    "flow": [
+      "1. Klientas užpildo formą chatbot'e (web arba Messenger)",
+      "2. Chatbot siunčia POST į n8n: batutynas-booking-notify",
+      "3. n8n išsiunčia Telegram žinutę savininkui su bk_ok / bk_no mygtukais",
+      "4. Savininkas paspaudžia bk_ok arba bk_no Telegram'e",
+      "5. n8n siunčia POST į chatbot: /api/webhook/n8n-sync (statusas atnaujinamas)",
+      "6. Jei patvirtinta – admin panelė arba n8n sukuria Google Calendar įvykį"
+    ]
+  },
+
+  "chatbot_sync_endpoint": {
+    "purpose": "n8n → chatbot sinchronizavimas po savininko sprendimo Telegram'e",
+    "url": "POST https://batutynas.lt/api/webhook/n8n-sync",
+    "security_header": {
+      "name": "x-sync-secret",
+      "value": "__N8N_SYNC_SECRET__",
+      "note": "Privalomas header'is. Jei nesutampa – 401 klaida"
+    },
+    "request_body": {
+      "orderId": "string – MongoDB užsakymo ID (UUID formatas)",
+      "status": "confirmed | rejected",
+      "source": "telegram | n8n",
+      "bkId": "string – neprivaloma, išorinė DB ID",
+      "calendarEventId": "string – neprivaloma, Google Calendar įvykio ID"
+    },
+    "response_success": {
+      "success": true,
+      "order_id": "...",
+      "status": "confirmed",
+      "matched": 1
+    },
+    "response_not_found": {
+      "success": false,
+      "order_id": "...",
+      "matched": 0
+    }
+  },
+
+  "workflows": [
+    {
+      "id": "booking-notify",
+      "webhook_path": "batutynas-booking-notify",
+      "full_url": "POST https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify",
+      "trigger": "Chatbot siunčia šį webhook'ą kai klientas pateikia užsakymą",
+      "purpose": "Informuoti savininką per Telegram ir el. paštą apie naują užsakymą, leisti patvirtinti arba atmesti",
+
+      "input_payload": {
+        "requestType": "booking | catalog",
+        "orderId": "string – UUID",
+        "flowType": "birthday | company | party | purchase",
+        "name": "string – kliento vardas",
+        "phone": "string – telefono numeris",
+        "email": "string – el. paštas (tik purchase flow)",
+        "address": "string – pilnas adresas",
+        "equipment": "string – pasirinktas batutas",
+        "addons": "string arba array – priedai",
+        "date": "string – YYYY-MM-DD formatas",
+        "guests": "string – svečių / vaikų skaičius",
+        "company": "string – įmonės pavadinimas (tik company flow)",
+        "createdAt": "string – ISO 8601 laikas"
+      },
+
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "name": "Gauti užsakymą",
+          "config": {
+            "httpMethod": "POST",
+            "path": "batutynas-booking-notify",
+            "responseMode": "onReceived",
+            "responseCode": 200
+          }
+        },
+        {
+          "step": 2,
+          "type": "Set",
+          "name": "Formatuoti žinutę",
+          "config": {
+            "values": {
+              "telegramMessage": "=📦 *Naujas užsakymas*\n\n🎪 Batutas: {{ $json.equipment }}\n👤 Vardas: {{ $json.name }}\n📞 Tel: {{ $json.phone }}\n📅 Data: {{ $json.date }}\n📍 Adresas: {{ $json.address }}\n👥 Svečiai: {{ $json.guests }}\n🏢 Įmonė: {{ $json.company }}\n\n🆔 ID: {{ $json.orderId }}",
+              "orderId": "={{ $json.orderId }}"
+            }
+          }
+        },
+        {
+          "step": 3,
+          "type": "Telegram",
+          "name": "Siųsti Telegram žinutę su mygtukais",
+          "config": {
+            "operation": "sendMessage",
+            "chatId": "jūsų_telegram_chat_id",
+            "text": "={{ $json.telegramMessage }}",
+            "replyMarkup": "inlineKeyboard",
+            "inlineKeyboard": [
+              [
+                { "text": "✅ Patvirtinti (bk_ok)", "callbackData": "bk_ok::{{ $json.orderId }}" },
+                { "text": "❌ Atmesti (bk_no)",     "callbackData": "bk_no::{{ $json.orderId }}" }
+              ]
+            ]
+          },
+          "note": "Reikia: Telegram Bot Token – sukurkite per @BotFather"
+        },
+        {
+          "step": 4,
+          "type": "Telegram Trigger",
+          "name": "Laukti mygtuko paspaudimo",
+          "config": {
+            "updates": ["callback_query"],
+            "note": "Atskiras Trigger node – reaguoja kai savininkas paspaudžia bk_ok arba bk_no"
+          }
+        },
+        {
+          "step": 5,
+          "type": "Switch",
+          "name": "bk_ok / bk_no sprendimas",
+          "config": {
+            "mode": "expression",
+            "rules": [
+              {
+                "condition": "={{ $json.callback_query.data.startsWith('bk_ok') }}",
+                "output": "confirmed"
+              },
+              {
+                "condition": "={{ $json.callback_query.data.startsWith('bk_no') }}",
+                "output": "rejected"
+              }
+            ]
+          }
+        },
+        {
+          "step": 6,
+          "type": "HTTP Request",
+          "name": "Sinchronizuoti su chatbot (bk_ok arba bk_no)",
+          "config": {
+            "method": "POST",
+            "url": "https://batutynas.lt/api/webhook/n8n-sync",
+            "headers": {
+              "x-sync-secret": "__N8N_SYNC_SECRET__",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "orderId": "={{ $json.callback_query.data.split('::')[1] }}",
+              "status": "={{ $json.callback_query.data.startsWith('bk_ok') ? 'confirmed' : 'rejected' }}",
+              "source": "telegram"
+            },
+            "note": "Šis node atnaujina chatbot MongoDB ir admin dashboardą"
+          }
+        },
+        {
+          "step": 7,
+          "type": "Telegram",
+          "name": "Atsakyti savininkui",
+          "config": {
+            "operation": "answerCallbackQuery",
+            "text_if_ok": "✅ Patvirtinta! Kalendorius bus atnaujintas.",
+            "text_if_no": "❌ Atmesta."
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "availability",
+      "webhook_path": "batutynas-availability",
+      "full_url": "GET https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability",
+      "trigger": "Chatbot date picker kviečia kai klientas pasirenka batutą ir mėnesį",
+      "purpose": "Grąžinti užimtas datas iš Google Calendar (kad klientas negalėtų pasirinkti užimtos datos)",
+
+      "input_query_params": {
+        "date": "YYYY-MM-DD – tikrinama konkreti data",
+        "equipment": "string – batuto pavadinimas (pvz. 'Pilis')"
+      },
+
+      "output_response": {
+        "format": "Vienas iš šių formatų (n8n gali grąžinti bet kurį):",
+        "options": [
+          { "booked": true },
+          { "available": false },
+          { "reserved": true },
+          { "status": "booked | reserved | unavailable | taken" },
+          { "is_available": false },
+          { "free": false }
+        ],
+        "note": "Chatbot automatiškai supranta visus šiuos formatus"
+      },
+
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "name": "Gauti datų užklausą",
+          "config": {
+            "httpMethod": "GET",
+            "path": "batutynas-availability"
+          }
+        },
+        {
+          "step": 2,
+          "type": "Google Calendar",
+          "name": "Patikrinti Google Calendar",
+          "config": {
+            "operation": "getAll",
+            "calendarId": "jūsų_google_calendar_id@group.calendar.google.com",
+            "timeMin": "={{ $json.query.date }}T00:00:00Z",
+            "timeMax": "={{ $json.query.date }}T23:59:59Z",
+            "query": "={{ $json.query.equipment }}"
+          }
+        },
+        {
+          "step": 3,
+          "type": "Set",
+          "name": "Grąžinti atsakymą",
+          "config": {
+            "values": {
+              "booked": "={{ $json.data.length > 0 }}"
+            }
+          }
+        },
+        {
+          "step": 4,
+          "type": "Respond to Webhook",
+          "name": "Siųsti atsakymą",
+          "config": {
+            "respondWith": "json",
+            "responseBody": "={{ $json }}"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "dashboard-v2",
+      "webhook_path": "batutynas-dashboard-v2",
+      "full_url": "GET https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-dashboard-v2",
+      "trigger": "Admin panelė kviečia kai savininkas atidaro dashboardą",
+      "purpose": "Grąžinti mėnesio rezervacijas, statistiką ir įrangos būseną",
+
+      "input_query_params": {
+        "month": "YYYY-MM – neprivaloma, numatyta: dabartinis mėnuo"
+      },
+
+      "output_response": {
+        "bookings": "array – rezervacijos su data, klientu, batuto vardu",
+        "stats": {
+          "todayBookings": "number",
+          "weekRevenue": "number (EUR)",
+          "monthRevenue": "number (EUR)",
+          "freeEquipment": "number"
+        },
+        "equipment": "array – įrangos sąrašas su statusu (free/booked)"
+      },
+
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "name": "Gauti dashboard užklausą",
+          "config": {
+            "httpMethod": "GET",
+            "path": "batutynas-dashboard-v2"
+          }
+        },
+        {
+          "step": 2,
+          "type": "Google Calendar",
+          "name": "Gauti mėnesio rezervacijas",
+          "config": {
+            "operation": "getAll",
+            "calendarId": "jūsų_google_calendar_id@group.calendar.google.com",
+            "timeMin": "={{ $json.query.month ? $json.query.month + '-01T00:00:00Z' : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() }}",
+            "timeMax": "={{ $json.query.month ? $json.query.month + '-31T23:59:59Z' : new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).toISOString() }}"
+          }
+        },
+        {
+          "step": 3,
+          "type": "Code",
+          "name": "Skaičiuoti statistiką",
+          "config": {
+            "code": "// Skaičiuoti pajamas, šiandienos rezervacijas, laisvą įrangą\nconst events = $input.all();\nconst today = new Date().toISOString().split('T')[0];\nreturn [{ json: { bookings: events.map(e => e.json), stats: { todayBookings: events.filter(e => e.json.start?.date === today).length, monthRevenue: 0, weekRevenue: 0, freeEquipment: 0 }, equipment: [] } }];"
+          }
+        },
+        {
+          "step": 4,
+          "type": "Respond to Webhook",
+          "config": { "respondWith": "json" }
+        }
+      ]
+    },
+
+    {
+      "id": "calendar-create",
+      "webhook_path": "batutynas-calendar-create",
+      "full_url": "POST https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create",
+      "trigger": "Admin panelė kviečia kai savininkas patvirtina užsakymą per dashboardą",
+      "purpose": "Sukurti Google Calendar įvykį patvirtintam užsakymui",
+
+      "input_payload": {
+        "equipment": "string – batuto pavadinimas",
+        "customer_name": "string",
+        "phone": "string",
+        "address": "string",
+        "startDate": "YYYY-MM-DD",
+        "durationDays": "number – numatyta 1",
+        "price": "number – EUR",
+        "addons": "string arba array",
+        "notes": "string",
+        "source": "chatbot | admin | messenger",
+        "guests": "string",
+        "company": "string"
+      },
+
+      "output_response": {
+        "eventId": "string – Google Calendar įvykio ID",
+        "calendarUrl": "string – nuoroda į įvykį"
+      },
+
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "name": "Gauti rezervacijos duomenis",
+          "config": {
+            "httpMethod": "POST",
+            "path": "batutynas-calendar-create"
+          }
+        },
+        {
+          "step": 2,
+          "type": "Google Calendar",
+          "name": "Sukurti įvykį",
+          "config": {
+            "operation": "create",
+            "calendarId": "jūsų_google_calendar_id@group.calendar.google.com",
+            "summary": "={{ $json.equipment }} – {{ $json.customer_name }}",
+            "description": "=📞 {{ $json.phone }}\n📍 {{ $json.address }}\n👥 Svečiai: {{ $json.guests }}\n💶 Kaina: {{ $json.price }}€\n🎁 Priedai: {{ $json.addons }}\n📝 {{ $json.notes }}",
+            "start": "={{ $json.startDate }}",
+            "end": "={{ new Date(new Date($json.startDate).getTime() + $json.durationDays * 86400000).toISOString().split('T')[0] }}",
+            "allDay": true
+          }
+        },
+        {
+          "step": 3,
+          "type": "Respond to Webhook",
+          "config": {
+            "respondWith": "json",
+            "responseBody": "={ \"eventId\": $json.id, \"calendarUrl\": $json.htmlLink }"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "calendar-update",
+      "webhook_path": "batutynas-calendar-update",
+      "full_url": "POST https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-update",
+      "purpose": "Atnaujinti esamą Google Calendar įvykį",
+      "input_payload": {
+        "eventId": "string – Google Calendar įvykio ID",
+        "equipment": "string",
+        "customer_name": "string",
+        "startDate": "YYYY-MM-DD",
+        "durationDays": "number",
+        "price": "number",
+        "notes": "string"
+      },
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "config": { "httpMethod": "POST", "path": "batutynas-calendar-update" }
+        },
+        {
+          "step": 2,
+          "type": "Google Calendar",
+          "config": {
+            "operation": "update",
+            "calendarId": "jūsų_google_calendar_id@group.calendar.google.com",
+            "eventId": "={{ $json.eventId }}"
+          }
+        },
+        {
+          "step": 3,
+          "type": "Respond to Webhook",
+          "config": { "respondWith": "json" }
+        }
+      ]
+    },
+
+    {
+      "id": "calendar-delete",
+      "webhook_path": "batutynas-calendar-delete",
+      "full_url": "POST https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-delete",
+      "purpose": "Ištrinti Google Calendar įvykį",
+      "input_payload": {
+        "eventId": "string – Google Calendar įvykio ID"
+      },
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "config": { "httpMethod": "POST", "path": "batutynas-calendar-delete" }
+        },
+        {
+          "step": 2,
+          "type": "Google Calendar",
+          "config": {
+            "operation": "delete",
+            "calendarId": "jūsų_google_calendar_id@group.calendar.google.com",
+            "eventId": "={{ $json.eventId }}"
+          }
+        },
+        {
+          "step": 3,
+          "type": "Respond to Webhook",
+          "config": { "respondWith": "json", "responseBody": "{ \"success\": true }" }
+        }
+      ]
+    },
+
+    {
+      "id": "next-free",
+      "webhook_path": "batutynas-next-free",
+      "full_url": "GET https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-next-free",
+      "trigger": "Admin panelė kviečia kai savininkas ieško artimiausių laisvų datų įrangai",
+      "purpose": "Grąžinti artimiausias laisvas datas pasirinktai įrangai",
+
+      "input_query_params": {
+        "equipment": "string – batuto pavadinimas",
+        "days": "number – kiek dienų į priekį tikrinti (max 90)"
+      },
+
+      "output_response": {
+        "freeDates": "array – laisvų datų sąrašas ['YYYY-MM-DD', ...]"
+      },
+
+      "n8n_nodes": [
+        {
+          "step": 1,
+          "type": "Webhook",
+          "config": { "httpMethod": "GET", "path": "batutynas-next-free" }
+        },
+        {
+          "step": 2,
+          "type": "Google Calendar",
+          "name": "Gauti užimtas datas",
+          "config": {
+            "operation": "getAll",
+            "calendarId": "jūsų_google_calendar_id@group.calendar.google.com",
+            "timeMin": "={{ new Date().toISOString() }}",
+            "timeMax": "={{ new Date(Date.now() + ($json.query.days || 30) * 86400000).toISOString() }}",
+            "query": "={{ $json.query.equipment }}"
+          }
+        },
+        {
+          "step": 3,
+          "type": "Code",
+          "name": "Rasti laisvas datas",
+          "config": {
+            "code": "const bookedDates = new Set($input.all().map(e => e.json.start?.date).filter(Boolean));\nconst days = parseInt($('Webhook').item.json.query.days || 30);\nconst freeDates = [];\nfor (let i = 0; i < days; i++) {\n  const d = new Date(Date.now() + i * 86400000).toISOString().split('T')[0];\n  if (!bookedDates.has(d)) freeDates.push(d);\n}\nreturn [{ json: { freeDates: freeDates.slice(0, 10) } }];"
+          }
+        },
+        {
+          "step": 4,
+          "type": "Respond to Webhook",
+          "config": { "respondWith": "json" }
+        }
+      ]
+    }
+  ],
+
+  "telegram_setup": {
+    "title": "Telegram boto sukūrimas (žingsnis po žingsnio)",
+    "steps": [
+      "1. Raskite @BotFather Telegram'e ir parašykite /newbot",
+      "2. Įveskite boto pavadinimą: 'Batutynas Admin'",
+      "3. Įveskite boto username: pvz. 'batutynas_admin_bot'",
+      "4. @BotFather suteiks API token – išsaugokite jį n8n Telegram Credentials",
+      "5. Parašykite botui (or /start) kad aktyvuotumėte pokalbį",
+      "6. Gaukite savo chat_id: https://api.telegram.org/bot<TOKEN>/getUpdates",
+      "7. n8n Telegram node: Chat ID = jūsų Telegram chat_id"
+    ]
+  },
+
+  "google_calendar_setup": {
+    "title": "Google Calendar prijungimas n8n",
+    "steps": [
+      "1. n8n → Credentials → New → Google Calendar OAuth2",
+      "2. Atidarykite Google Cloud Console: https://console.cloud.google.com",
+      "3. Sukurkite naują projektą arba pasirinkite esamą",
+      "4. APIs & Services → Enable APIs → Google Calendar API → Enable",
+      "5. Credentials → Create Credentials → OAuth 2.0 Client ID",
+      "6. Application type: Web application",
+      "7. Authorized redirect URIs: pridėkite n8n suteiktą URI",
+      "8. Nukopijuokite Client ID ir Client Secret į n8n",
+      "9. Autorizuokite prieigą prie savo Google paskyros",
+      "10. Nukopijuokite Calendar ID iš Google Calendar nustatymų (Settings → Integrations)"
+    ]
+  },
+
+  "environment_variables_summary": {
+    "title": "Visi .env kintamieji viename sąraše",
+    "chatbot_server": {
+      "MONGO_URL": "mongodb://mongo:27017 (Docker) arba mongodb://localhost:27017",
+      "DB_NAME": "batutynas_db",
+      "CORS_ORIGINS": "https://batutynas.lt,https://www.batutynas.lt",
+      "OWNER_EMAIL": "dovydasdobrovolskis@gmail.com",
+      "RESEND_API_KEY": "re_... (iš resend.com)",
+      "GEMINI_API_KEY": "AIzaSy... (iš aistudio.google.com/apikey)",
+      "N8N_BASE_URL": "https://n8n-n8n.0uvai5.easypanel.host",
+      "N8N_WEBHOOK_URL": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify",
+      "CALENDAR_BRIDGE_URL": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability",
+      "ADMIN_PASSWORD": "__ADMIN_PASSWORD__",
+      "N8N_SYNC_SECRET": "__N8N_SYNC_SECRET__"
+    },
+    "messenger_bot": {
+      "MONGO_URL": "mongodb://mongo:27017",
+      "DB_NAME": "batutynas_db",
+      "FB_PAGE_ACCESS_TOKEN": "EAAG... (iš developers.facebook.com)",
+      "FB_VERIFY_TOKEN": "batutynas-verify-2026",
+      "N8N_BASE_URL": "https://n8n-n8n.0uvai5.easypanel.host",
+      "N8N_WEBHOOK_URL": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify"
+    }
+  }
+}

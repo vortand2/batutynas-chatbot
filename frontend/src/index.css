@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Figtree:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Widget animations ─────────────────────────────────────── */
+
+@keyframes chatMsgEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes chatWidgetEnter {
+  from { opacity: 0; transform: scale(0.85) translateY(24px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes pulseRing {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(124, 58, 237, 0.35); }
+  50%       { box-shadow: 0 0 0 12px rgba(124, 58, 237, 0);    }
+}
+
+.chat-msg-enter {
+  animation: chatMsgEnter 0.28s ease-out both;
+}
+
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.chat-widget-enter {
+  animation: chatWidgetEnter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (max-width: 639px) {
+  .chat-widget-enter {
+    animation: slideUpMobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+.pulse-ring {
+  animation: pulseRing 2.4s ease-in-out infinite;
+}
+
+/* ── Confetti ──────────────────────────────────────────────── */
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg) scale(1); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(520px) rotate(640deg) scale(0.6); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  pointer-events: none;
+  animation: confettiFall linear forwards;
+}
+
+/* ── Flow step slide-in ────────────────────────────────────── */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.chat-flow-enter {
+  animation: slideInRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Image skeleton shimmer ────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.img-skeleton {
+  background: linear-gradient(90deg, #f3e8ff 25%, #ede9fe 50%, #f3e8ff 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d8b4fe; border-radius: 4px; }
+
+/* ── Shadcn CSS variables ──────────────────────────────────── */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 263 70% 96%;
+    --accent-foreground: 263 70% 30%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 263 30% 90%;
+    --input: 263 30% 90%;
+    --ring: 263 70% 50%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+

@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    # No external port needed – only backend accesses it internally
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: ${DB_NAME:-batutynas_db}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      OWNER_EMAIL: ${OWNER_EMAIL}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      N8N_BASE_URL: ${N8N_BASE_URL}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      CALENDAR_BRIDGE_URL: ${CALENDAR_BRIDGE_URL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      N8N_SYNC_SECRET: ${N8N_SYNC_SECRET}
+
+  # ── React Frontend (nginx) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_BACKEND_URL: ${DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  # ── Messenger Bot (optional – only needed for Facebook Messenger) ──────────
+  # messenger:
+  #   build: ./messenger_version
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - mongo
+  #   environment:
+  #     MONGO_URL: mongodb://mongo:27017
+  #     DB_NAME: ${DB_NAME:-batutynas_db}
+  #     FB_PAGE_ACCESS_TOKEN: ${FB_PAGE_ACCESS_TOKEN}
+  #     FB_VERIFY_TOKEN: ${FB_VERIFY_TOKEN}
+  #     N8N_BASE_URL: ${N8N_BASE_URL}
+  #     N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+  #   ports:
+  #     - "8002:8002"
+
+volumes:
+  mongo_data:

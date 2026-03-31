@@ -1,0 +1,14 @@
+# Batutynas backend – minimal production dependencies
+# Install: pip install -r requirements.prod.txt
+
+fastapi==0.110.1
+uvicorn[standard]==0.25.0
+starlette==0.37.2
+motor==3.3.1
+pymongo==4.5.0
+python-dotenv==1.2.2
+httpx==0.28.1
+resend==2.26.0
+pydantic[email]==2.12.5
+python-multipart==0.0.22
+google-genai==1.68.0

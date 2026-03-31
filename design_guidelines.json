@@ -1,0 +1,136 @@
+{
+  "theme": "light",
+  "archetype": "Archetype 6: Vibrant Play mixed with Pastel & Soft",
+  "typography": {
+    "headings": {
+      "family": "Nunito",
+      "weights": ["700", "800"],
+      "usage": "Widget header, chat flow titles, welcome message"
+    },
+    "body": {
+      "family": "Figtree",
+      "weights": ["400", "500", "600"],
+      "usage": "Chat bubbles, quick reply buttons, form inputs"
+    },
+    "scale": {
+      "h1": "text-2xl sm:text-3xl",
+      "h2": "text-xl sm:text-2xl",
+      "h3": "text-lg",
+      "body": "text-sm",
+      "small": "text-xs"
+    }
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#7C3AED",
+      "foreground": "#FFFFFF",
+      "description": "Vibrant energetic violet for the main floating button, user chat bubbles, and primary submit buttons."
+    },
+    "secondary": {
+      "DEFAULT": "#FBBF24",
+      "foreground": "#581C87",
+      "description": "Bouncy amber/yellow for highlights, icons, and playful accents."
+    },
+    "background": {
+      "DEFAULT": "#FFFFFF",
+      "widget": "#FFFFFF",
+      "header": "#FAF5FF",
+      "bot_bubble": "#F3E8FF",
+      "bot_text": "#4C1D95"
+    },
+    "accent": {
+      "DEFAULT": "#E879F9",
+      "foreground": "#FFFFFF"
+    },
+    "surface": {
+      "DEFAULT": "#FFFFFF",
+      "border": "#E9D5FF"
+    }
+  },
+  "spacing_and_layout": {
+    "widget_container": "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-32px)] sm:w-[400px] h-[600px] max-h-[80vh] flex flex-col shadow-2xl rounded-3xl overflow-hidden bg-white border border-purple-100",
+    "chat_bubble": "p-3 sm:p-4 max-w-[85%] text-sm leading-relaxed",
+    "quick_replies": "flex flex-wrap gap-2 mt-2",
+    "form_container": "p-4 space-y-4 bg-white rounded-2xl border border-purple-100 mt-2"
+  },
+  "components": {
+    "floating_button": "h-14 w-14 rounded-full bg-violet-600 text-white shadow-lg hover:bg-violet-700 hover:scale-110 transition-transform flex items-center justify-center",
+    "bot_bubble": "bg-purple-100 text-purple-900 rounded-2xl rounded-bl-sm",
+    "user_bubble": "bg-violet-600 text-white rounded-2xl rounded-br-sm",
+    "quick_reply_button": "bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300 rounded-full px-4 py-2 text-sm font-medium transition-colors text-left",
+    "form_input": "w-full rounded-xl border-purple-200 bg-purple-50/50 focus:border-violet-500 focus:ring-violet-500",
+    "submit_button": "w-full rounded-xl bg-violet-600 text-white font-bold py-3 hover:bg-violet-700"
+  },
+  "motion": {
+    "widget_open": "spring animation, stiffness 260, damping 20, slightly bouncing up from the trigger button",
+    "message_enter": "slide up and fade in (translate-y-4 to translate-y-0, opacity 0 to 1)",
+    "hover_states": "scale-105 for quick replies and buttons"
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "usage": "Use Bot for default avatar, X for close, Send for message input, Phone/Calendar/MapPin for forms"
+    },
+    "image_urls": [
+      {
+        "category": "bot_avatar",
+        "url": "https://images.unsplash.com/photo-1767716134895-296cbd7aec1a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwxfHxjdXRlJTIwcm9ib3QlMjBhdmF0YXJ8ZW58MHx8fHwxNzc0OTQwNzY1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Cute friendly avatar for the chatbot profile. Used as a placeholder until the main Batutynas logo is applied."
+      },
+      {
+        "category": "welcome_media",
+        "url": "https://images.unsplash.com/photo-1751235600651-94bbbeb29567?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxraWRzJTIwanVtcGluZyUyMHRyYW1wb2xpbmV8ZW58MHx8fHwxNzc0OTQwNzUxfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Kids jumping on trampoline, used as a rich media card in the welcome message to establish trust and fun."
+      }
+    ]
+  },
+  "conversational_flows": [
+    {
+      "id": "child_birthday",
+      "label": "Vaiko gimtadieniui (Child Birthday)",
+      "flow": "Ask for date -> Ask for location/city -> Ask for child age (to recommend size) -> Collect Name & Phone -> Confirm Order"
+    },
+    {
+      "id": "company_event",
+      "label": "Įmonės renginiui (Company Event)",
+      "flow": "Ask for date -> Ask for estimated participant count -> Ask for location -> Collect Company Name, Contact Person, Phone -> Confirm Order"
+    },
+    {
+      "id": "party_rental",
+      "label": "Šventės nuomai (Party Rentals)",
+      "flow": "Ask for date -> Ask for location -> Show available options/sizes -> Collect Name & Phone -> Confirm Order"
+    },
+    {
+      "id": "purchase",
+      "label": "Pirkti batutą (Trampoline Purchase)",
+      "flow": "Show sizes (e.g., 3m, 4m) -> Ask for delivery address -> Collect Name & Phone -> Confirm Order"
+    },
+    {
+      "id": "faq_contact",
+      "label": "DUK ir Kontaktai (FAQ & Contact)",
+      "flow": "Show quick inline FAQ answers (Safety rules, weather policy) -> Show Contact info (Phone, Email) -> Option to escalate"
+    },
+    {
+      "id": "escalation",
+      "label": "Susisiekti su žmogumi (Talk to human)",
+      "flow": "Transition message -> Collect user message -> Notify owner -> Show 'We will get back to you soon' message"
+    }
+  ],
+  "accessibility_and_testing": {
+    "contrast": "Ensure white text on violet-600 passes WCAG AA. Ensure purple-900 on purple-100 passes.",
+    "data_testid_rules": "All interactive elements MUST have data-testid (e.g., `data-testid='chat-trigger'`, `data-testid='quick-reply-child_birthday'`, `data-testid='form-submit'`)."
+  },
+  "instructions_to_main_agent": [
+    "Build the UI entirely in React with Tailwind CSS and Framer Motion.",
+    "Implement the widget to be fixed at the bottom right of the screen.",
+    "When the widget is closed, show a pulsing violet floating action button with a chat icon.",
+    "When open, show a clean header with the 'Batutynas' brand and an avatar.",
+    "The first message should be a friendly welcome in Lithuanian, containing a rich image card (use the `welcome_media` image) and the 5 quick reply options.",
+    "Handle forms directly inside the chat flow using inline structured cards, rather than redirecting away.",
+    "For the forms, use clean, large input fields (`rounded-xl`, `bg-purple-50/50`) to feel modern and accessible.",
+    "Integrate Shadcn primitives (Input, Button, ScrollArea) but customize them heavily with the rounded, bouncy, violet theme described above.",
+    "Ensure all text is strictly in Lithuanian as requested by the user.",
+    "Avoid standard center-aligned boring lists. Use bento-style or staggered grids for selecting items like trampoline sizes.",
+    "Simulate the email notification/escalation in the backend via FastAPI, and store the conversation/order in MongoDB."
+  ]
+}

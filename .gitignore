@@ -33,6 +33,13 @@ secrets-to-purge.txt
 land-search-agent/
 other-examples/
 
+# Docker / build artifacts
+backups/
+frontend/node_modules/
+frontend/build/
+frontend/yarn.lock
+mongo_data/
+
 # Temp / test artifacts
 console-test.txt
 test-on-site.html
@@ -42,6 +49,7 @@ server.log
 server.pid
 __pycache__/
 tests/__pycache__/
+backend/tests/__pycache__/
 *.pyc
 crystal.png
 full-screen-image.html
