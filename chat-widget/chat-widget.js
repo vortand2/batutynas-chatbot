@@ -289,28 +289,25 @@
       if (input) input.focus();
     }
 
-    // Mobile keyboard handling
-    if (state.open && window.visualViewport && window.innerWidth <= 480) {
+  }
+
+  // visualViewport: set up once, keep CSS vars in sync for fullscreen chat + keyboard
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () {
       var vv = window.visualViewport;
-      var initialHeight = vv.height;
-
-      function onViewportResize() {
-        var diff = initialHeight - vv.height;
-        var win = document.querySelector('.woo-chat-window');
-        if (!win) return;
-        if (diff > 100) {
-          win.style.height = vv.height - 80 + 'px';
+      document.documentElement.style.setProperty('--vv-height', vv.height + 'px');
+      document.documentElement.style.setProperty('--vv-offset-top', vv.offsetTop + 'px');
+      var msgs = document.getElementById('woo-chat-messages');
+      if (msgs) {
+        var focused = document.activeElement;
+        if (focused && msgs.contains(focused) && focused !== msgs) {
+          focused.scrollIntoView({ block: 'center', behavior: 'smooth' });
         } else {
-          win.style.height = '';
+          var distFromBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
+          if (distFromBottom < 80) scrollToBottom();
         }
-        scrollToBottom();
       }
-
-      vv.addEventListener('resize', onViewportResize);
-      widget._cleanupViewport = function () {
-        vv.removeEventListener('resize', onViewportResize);
-      };
-    }
+    });
   }
 
   function createMessageBubble(msg, msgIndex) {
@@ -445,13 +442,44 @@
 
   var _savedScrollY = 0;
 
+  var _savedScrollY;
+
+  function _preventBackgroundScroll(e) {
+    var msgs = document.querySelector('.woo-chat-messages');
+    var target = e.target;
+    var insideMessages = msgs && msgs.contains(target);
+    if (!insideMessages) { e.preventDefault(); return; }
+    if (msgs.scrollTop <= 0 && e.touches && e.touches[0] && e.touches[0].clientY > 0) {
+      e.preventDefault();
+    } else if (msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight) {
+      e.preventDefault();
+    }
+  }
+
   function _setMobileBodyLock(lock) {
     if (_isMobileViewport() && lock) {
+      var scrollY = window.scrollY;
+      document.documentElement.style.setProperty('--scroll-lock-top', '-' + scrollY + 'px');
       document.body.classList.add('woo-chat-mobile-open');
       document.documentElement.classList.add('woo-chat-mobile-open');
+      _savedScrollY = scrollY;
+      document.addEventListener('touchmove', _preventBackgroundScroll, { passive: false });
+      if (window.visualViewport) {
+        var vv = window.visualViewport;
+        document.documentElement.style.setProperty('--vv-height', vv.height + 'px');
+        document.documentElement.style.setProperty('--vv-offset-top', vv.offsetTop + 'px');
+      }
     } else if (!lock) {
       document.body.classList.remove('woo-chat-mobile-open');
       document.documentElement.classList.remove('woo-chat-mobile-open');
+      document.documentElement.style.removeProperty('--scroll-lock-top');
+      document.documentElement.style.removeProperty('--vv-offset-top');
+      document.documentElement.style.removeProperty('--vv-height');
+      if (_savedScrollY !== undefined) {
+        window.scrollTo(0, _savedScrollY);
+        _savedScrollY = undefined;
+      }
+      document.removeEventListener('touchmove', _preventBackgroundScroll);
     }
   }
 
