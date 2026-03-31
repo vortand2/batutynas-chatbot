@@ -442,6 +442,10 @@
   from { opacity: 0; transform: translateY(16px) scale(0.92); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+@keyframes woo-mobileFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 .woo-chat-window.woo-animate-out {
   animation: woo-chatOut 0.2s ease forwards;
@@ -570,6 +574,8 @@
   flex-direction: column;
   gap: 8px;
   background: var(--chat-messages-bg);
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .woo-chat-messages::-webkit-scrollbar {
@@ -1803,16 +1809,19 @@
   }
   .woo-chat-window.open {
     position: fixed;
-    top: 0;
+    top: var(--vv-offset-top, 0);
     left: 0;
     right: 0;
-    bottom: 0;
     width: 100%;
     max-width: none;
-    height: 100dvh;
-    height: -webkit-fill-available;
+    height: var(--vv-height, 100dvh);
     border-radius: 0;
     z-index: 2147483647;
+    touch-action: none;
+    animation: none !important;
+  }
+  .woo-chat-window.open.woo-animate-in {
+    animation: woo-mobileFadeIn 0.2s ease forwards !important;
   }
   .woo-chat-window.open .woo-chat-header {
     padding-top: calc(16px + env(safe-area-inset-top, 0px));
@@ -1829,7 +1838,10 @@
 /* Body scroll lock when chat open on mobile */
 body.woo-chat-mobile-open {
   overflow: hidden !important;
-  touch-action: none;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: var(--scroll-lock-top, 0);
 }
 html.woo-chat-mobile-open {
   overflow: hidden !important;
@@ -1837,24 +1849,6 @@ html.woo-chat-mobile-open {
 
 /* Mobile Responsive */
 @media (max-width: 480px) {
-  .woo-chat-window.open {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: none;
-    height: 100dvh;
-    height: -webkit-fill-available;
-    border-radius: 0;
-    z-index: 2147483647;
-  }
-
-  .woo-chat-window.open .woo-chat-header {
-    padding-top: calc(16px + env(safe-area-inset-top, 0px));
-  }
-
   .woo-chat-window.open .woo-chat-input-area {
     padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   }
@@ -1924,7 +1918,7 @@ html.woo-chat-mobile-open {
   }
 
   .t-price {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .t-grid-compact .t-name {
@@ -2427,31 +2421,6 @@ html.woo-chat-mobile-open {
       if (input) input.focus();
     }
 
-    // Mobile keyboard handling
-    if (state.open && window.visualViewport && _isMobileViewport()) {
-      var vv = window.visualViewport;
-      var initialHeight = vv.height;
-
-      function onViewportResize() {
-        var diff = initialHeight - vv.height;
-        var win = document.querySelector('.woo-chat-window');
-        if (!win) return;
-        if (diff > 50) {
-          // Keyboard is showing — resize chat to fit above it
-          win.style.height = vv.height + 'px';
-          win.style.top = vv.offsetTop + 'px';
-        } else {
-          win.style.height = '';
-          win.style.top = '';
-        }
-        scrollToBottom();
-      }
-
-      vv.addEventListener('resize', onViewportResize);
-      widget._cleanupViewport = function () {
-        vv.removeEventListener('resize', onViewportResize);
-      };
-    }
   }
 
   function createMessageBubble(msg, msgIndex) {
@@ -2586,15 +2555,44 @@ html.woo-chat-mobile-open {
     return window.matchMedia('(max-width: 600px)').matches;
   }
 
-  var _savedScrollY = 0;
+  var _savedScrollY;
+
+  function _preventBackgroundScroll(e) {
+    var messagesEl = document.querySelector('.woo-chat-messages');
+    var target = e.target;
+    // Allow scrolling only inside .woo-chat-messages
+    var insideMessages = messagesEl && messagesEl.contains(target);
+    if (!insideMessages) {
+      e.preventDefault();
+      return;
+    }
+    // At scroll boundaries, prevent pull-through
+    if (messagesEl.scrollTop <= 0 && e.touches[0].clientY > 0) {
+      e.preventDefault();
+    } else if (messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight) {
+      e.preventDefault();
+    }
+  }
 
   function _setMobileBodyLock(lock) {
     if (lock && _isMobileViewport()) {
+      var scrollY = window.scrollY;
+      document.documentElement.style.setProperty('--scroll-lock-top', '-' + scrollY + 'px');
       document.body.classList.add('woo-chat-mobile-open');
       document.documentElement.classList.add('woo-chat-mobile-open');
+      _savedScrollY = scrollY;
+      document.addEventListener('touchmove', _preventBackgroundScroll, { passive: false });
     } else if (!lock) {
       document.body.classList.remove('woo-chat-mobile-open');
       document.documentElement.classList.remove('woo-chat-mobile-open');
+      document.documentElement.style.removeProperty('--scroll-lock-top');
+      document.documentElement.style.removeProperty('--vv-offset-top');
+      document.documentElement.style.removeProperty('--vv-height');
+      if (_savedScrollY !== undefined) {
+        window.scrollTo(0, _savedScrollY);
+        _savedScrollY = undefined;
+      }
+      document.removeEventListener('touchmove', _preventBackgroundScroll);
     }
   }
 
@@ -2630,6 +2628,12 @@ html.woo-chat-mobile-open {
       state.open = true;
       state._hasUnread = false;
       _setMobileBodyLock(true);
+      // Sync visualViewport immediately on open so --vv-height/offset-top are correct
+      if (window.visualViewport && _isMobileViewport()) {
+        var vv = window.visualViewport;
+        document.documentElement.style.setProperty('--vv-height', vv.height + 'px');
+        document.documentElement.style.setProperty('--vv-offset-top', vv.offsetTop + 'px');
+      }
       render();
     }
   }
@@ -3377,6 +3381,27 @@ html.woo-chat-mobile-open {
       initSession();
       attachDelegation();
       render();
+
+      // visualViewport: keep CSS custom property in sync so fullscreen chat tracks keyboard
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function () {
+          var vv = window.visualViewport;
+          document.documentElement.style.setProperty('--vv-height', vv.height + 'px');
+          document.documentElement.style.setProperty('--vv-offset-top', vv.offsetTop + 'px');
+          // Scroll focused input into view, or scroll to bottom only if already there
+          var msgs = document.getElementById('woo-chat-messages');
+          if (msgs) {
+            var focused = document.activeElement;
+            if (focused && msgs.contains(focused) && focused !== msgs) {
+              // User tapped an input inside messages — scroll to center so context above is visible
+              focused.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            } else {
+              var distFromBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
+              if (distFromBottom < 80) scrollToBottom();
+            }
+          }
+        });
+      }
 
       // Proactive greeting for new sessions — triggers welcome with menu when chat opens
       // (Handled in open() function — fetches welcome with [MAIN_MENU] buttons)
