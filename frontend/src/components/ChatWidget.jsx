@@ -18,7 +18,7 @@ const DISCOUNT_BANNER = null;
 
 // Shared trampoline definitions
 const T = {
-  pilis:          { id: 'pilis',          name: 'Pilis',          category: 'Mažiausiems',   badge: 'Iki 5 m.', desc: 'Saugus ir spalvingas patiems mažiausiems', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-1-yojROivTGOldDzbK.jpg' },
+  pilis:          { id: 'pilis',          name: 'Pilis',          category: 'Mažiausiems', desc: 'Saugus ir spalvingas patiems mažiausiems', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-1-yojROivTGOldDzbK.jpg' },
   monstrai:       { id: 'monstrai',       name: 'Monstrai',       category: 'Žaidimų centras', desc: '2026 m. su šokinėjimo pagalve ir smiginiumi', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165240_881_49-sRgMsjrVMtThU9QZ.png' },
   chameleonas:    { id: 'chameleonas',    name: 'Chameleonas',    category: 'Žaidimų centras', desc: '2026 m. ryškus modelis su darts zona', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165904_889_49-YAzOnlljvGg8uSaZ.png' },
   candy_pop:      { id: 'candy_pop',      name: 'Candy Pop',      category: 'Žaidimų centras', desc: '2026 m. su darts sienele ir pagalve', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210165543_886_49-oig3Em2dE8jQSwix.png' },
@@ -29,8 +29,8 @@ const T = {
   mega_waikiki:   { id: 'mega_waikiki',   name: 'Mega waikiki',   category: 'Dviejų dalių',   desc: 'Egzotiškas dviejų dalių batutas', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/a3-4-r-a-a3-4c_20251210170439_893_49-VO5WtchqawaPVo4Y.png' },
   mega_ruozas:    { id: 'mega_ruozas',    name: 'Mega ruožas',    category: 'Kliūčių ruožas', desc: 'Ilgas kliūčių ruožas aktyviai pramogai', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-12-22-at-11.06.55-ziiCN5QBR6kNIKiy.jpeg' },
   giga_ruozas:    { id: 'giga_ruozas',    name: 'Giga ruožas',    category: 'Kliūčių ruožas', desc: 'Didžiausias kliūčių ruožas masiniams renginiams', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/klia-aia3-ruoa3-4as5_-xMAasSCrKpRl9Lza.jpg' },
-  fantaziju_parkas: { id: 'fantaziju_parkas', name: 'Fantazijų parkas', category: 'Didysis parkas', badge: '150/val.', desc: '5 moduliai, 14×14m, iki 150 vaikų per valandą', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183914_625_1752853163044_photo_optimized-Pa9IAIUmCkWz0Pls.jpg' },
-  dziumandzi_parkas: { id: 'dziumandzi_parkas', name: 'Džiumandži parkas', category: 'Didysis parkas', badge: '2026 Nauja!', desc: '8.5m čiuožykla, iki 200 vaikų per valandą', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-12-10-at-11.20.54-1-SDSuAp44sw4kjZSS.jpeg' },
+  fantaziju_parkas: { id: 'fantaziju_parkas', name: 'Fantazijų parkas', category: 'Didysis parkas', desc: '5 moduliai, 14×14m, iki 150 vaikų per valandą', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250718_183914_625_1752853163044_photo_optimized-Pa9IAIUmCkWz0Pls.jpg' },
+  dziumandzi_parkas: { id: 'dziumandzi_parkas', name: 'Džiumandži parkas', category: 'Didysis parkas', desc: '8.5m čiuožykla, iki 200 vaikų per valandą', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/0e8dAXAD75sxRpD2/whatsapp-image-2025-12-10-at-11.20.54-1-SDSuAp44sw4kjZSS.jpeg' },
 };
 
 // Per-flow trampoline lists
