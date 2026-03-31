@@ -486,8 +486,8 @@ const FAQSection = ({ onEscalate }) => {
 };
 
 // ── Main ChatWidget ───────────────────────────────────────────────────────────
-const ChatWidget = () => {
-  const [isOpen, setIsOpen]               = useState(false);
+const ChatWidget = ({ embedded = false }) => {
+  const [isOpen, setIsOpen]               = useState(embedded);
   const [messages, setMessages]           = useState([]);
   const [submittedForms, setSubmittedForms] = useState(new Set());
   const [isSubmitting, setIsSubmitting]   = useState(false);
@@ -739,19 +739,28 @@ const ChatWidget = () => {
     return null;
   }, [handleButtonClick, handleTrampolineSelect, handleAddonsConfirm, handleFormSubmit, handleEscalate, isSubmitting, submittedForms, setDetailTrampoline]);
 
+  const handleClose = useCallback(() => {
+    if (embedded) {
+      window.parent.postMessage({ type: 'batutynas-close' }, '*');
+    } else {
+      setIsOpen(false);
+    }
+  }, [embedded]);
+
   const handleOpen = () => { setIsOpen(o => !o); setHasUnread(false); };
 
   return (
     <>
-      {/* Mobile backdrop */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setIsOpen(false)} />}
+      {/* Mobile backdrop (not in embedded mode) */}
+      {isOpen && !embedded && <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={handleClose} />}
 
       {/* Chat window */}
       {isOpen && (
         <div data-testid="chat-window"
-          className="fixed z-50 flex flex-col overflow-hidden bg-white chat-widget-enter
-            left-0 right-0 bottom-0 h-[82dvh] rounded-t-3xl shadow-2xl border-t border-x border-purple-100
-            sm:left-auto sm:right-6 sm:bottom-[88px] sm:w-[400px] sm:h-[540px] sm:rounded-3xl sm:border"
+          className={`flex flex-col overflow-hidden bg-white ${embedded
+            ? 'fixed inset-0 w-full h-full'
+            : 'fixed z-50 chat-widget-enter left-0 right-0 bottom-0 h-[82dvh] rounded-t-3xl shadow-2xl border-t border-x border-purple-100 sm:left-auto sm:right-6 sm:bottom-[88px] sm:w-[400px] sm:h-[540px] sm:rounded-3xl sm:border'
+          }`}
         >
           {/* Header */}
           <div className="flex items-center gap-2.5 px-4 py-3.5 bg-gradient-to-r from-violet-600 to-purple-700 flex-shrink-0 shadow-sm">
@@ -772,7 +781,7 @@ const ChatWidget = () => {
                 <span className="text-white text-xs font-bold">Meniu</span>
               </button>
             )}
-            <button onClick={() => setIsOpen(false)} data-testid="chat-close-btn"
+            <button onClick={handleClose} data-testid="chat-close-btn"
               className="w-11 h-11 rounded-2xl bg-white/15 hover:bg-white/30 flex items-center justify-center transition-all active:scale-90 flex-shrink-0">
               <X size={20} className="text-white" />
             </button>
@@ -824,28 +833,29 @@ const ChatWidget = () => {
         </div>
       )}
 
-      {/* FAB */}
-      <div className="fixed z-[60] bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col items-end gap-3">
-        {/* Tooltip label (desktop only, when closed) */}
-        {!isOpen && hasUnread && (
-          <div className="hidden sm:flex items-center gap-2 bg-white border border-purple-200 rounded-2xl px-4 py-2.5 shadow-lg shadow-purple-100 chat-msg-enter">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm font-semibold text-violet-700">Susisiekite su mumis!</span>
-          </div>
-        )}
-        <button onClick={handleOpen} data-testid="chat-trigger"
-          className={`relative h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-xl shadow-violet-300/50 hover:shadow-violet-400/60 hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center ${!isOpen ? 'pulse-ring' : ''}`}
-        >
-          <div className={`transition-all duration-200 ${isOpen ? 'rotate-0 scale-100' : 'rotate-0 scale-100'}`}>
-            {isOpen ? <X size={26} /> : <MessageCircle size={26} />}
-          </div>
-          {hasUnread && !isOpen && (
-            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-amber-400 rounded-full border-2 border-white shadow-sm flex items-center justify-center" data-testid="unread-badge">
-              <span className="text-xs font-black text-amber-900">!</span>
-            </span>
+      {/* FAB (hidden in embedded mode — embed.js provides its own) */}
+      {!embedded && (
+        <div className="fixed z-[60] bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col items-end gap-3">
+          {!isOpen && hasUnread && (
+            <div className="hidden sm:flex items-center gap-2 bg-white border border-purple-200 rounded-2xl px-4 py-2.5 shadow-lg shadow-purple-100 chat-msg-enter">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-sm font-semibold text-violet-700">Susisiekite su mumis!</span>
+            </div>
           )}
-        </button>
-      </div>
+          <button onClick={handleOpen} data-testid="chat-trigger"
+            className={`relative h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-600 text-white shadow-xl shadow-violet-300/50 hover:shadow-violet-400/60 hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center ${!isOpen ? 'pulse-ring' : ''}`}
+          >
+            <div className={`transition-all duration-200 ${isOpen ? 'rotate-0 scale-100' : 'rotate-0 scale-100'}`}>
+              {isOpen ? <X size={26} /> : <MessageCircle size={26} />}
+            </div>
+            {hasUnread && !isOpen && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-amber-400 rounded-full border-2 border-white shadow-sm flex items-center justify-center" data-testid="unread-badge">
+                <span className="text-xs font-black text-amber-900">!</span>
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </>
   );
 };
