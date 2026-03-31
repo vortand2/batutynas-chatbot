@@ -43,8 +43,8 @@ mongo_data/
 # Temp / test artifacts
 console-test.txt
 test-on-site.html
-package.json
-package-lock.json
+/package.json
+/package-lock.json
 server.log
 server.pid
 __pycache__/
