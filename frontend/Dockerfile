@@ -4,10 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
-
-# Remove Emergent-specific dev package (not needed in production build)
-RUN sed -i '/@emergentbase\/visual-edits/d' package.json
+COPY package.json ./
 
 # Install all dependencies (devDeps needed for craco build)
 RUN yarn install --no-frozen-lockfile
