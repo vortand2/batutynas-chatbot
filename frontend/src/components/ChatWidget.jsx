@@ -6,6 +6,7 @@ import {
   MessageCircle, X, Phone, Mail, Globe, ChevronDown, ChevronUp, ChevronRight,
   Loader2, CheckCircle2, UserCog, Gift, Building2, PartyPopper,
   ShoppingBag, HelpCircle, Check, Send, Sparkles, RotateCcw,
+  Disc3, Droplets, Utensils,
 } from 'lucide-react';
 
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -36,7 +37,12 @@ const T = {
 // Per-flow trampoline lists
 const BIRTHDAY_TRAMPOLINES = [T.pilis, T.monstrai, T.chameleonas, T.candy_pop, T.astuonkojis, T.vienaragiai, T.mega_raketa, T.mega_ufonautai, T.mega_waikiki, T.mega_ruozas, T.giga_ruozas];
 const COMPANY_TRAMPOLINES  = [T.fantaziju_parkas, T.dziumandzi_parkas, T.giga_ruozas, T.mega_ruozas, T.mega_raketa, T.mega_ufonautai, T.mega_waikiki, T.monstrai, T.chameleonas, T.candy_pop, T.astuonkojis, T.vienaragiai];
-const PARTY_TRAMPOLINES    = [T.monstrai, T.chameleonas, T.candy_pop, T.astuonkojis, T.vienaragiai, T.mega_raketa, T.mega_ufonautai, T.mega_waikiki, T.mega_ruozas, T.giga_ruozas];
+// ── Šventės nuomai – paslaugų sąrašas ────────────────────────────────────────
+const PARTY_SERVICES = [
+  { id: 'disco_pavilijonas', name: 'Disco Pavilijonas',       Icon: Disc3,     desc: 'Apšvietimas, garso sistema ir veidrodinė disko lempa' },
+  { id: 'putu_sou',          name: 'Pūtų šou',                Icon: Droplets,  desc: 'Putos ir spalvingos šviesos – nepamirštama pramoga' },
+  { id: 'banketo_stalai',    name: 'Banketo stalai ir kėdės', Icon: Utensils,  desc: 'Patogios sėdėjimo vietos jūsų svečiams' },
+];
 
 const PURCHASE_CATEGORIES = [
   { id: 'ciuozyklos',    name: 'Čiuožyklos',          category: 'Pirkimui', desc: 'Milžiniškas wow efektas Jūsų kieme', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/iguana_3-dz9hunkSFmwl9lEA.jpg' },
@@ -85,8 +91,8 @@ const FLOWS = {
     successMsg: 'Ačiū! Įmonės renginio užklausa gauta. Savininkas susisieks artimiausiu metu.',
   },
   party: { label: 'Šventės nuomai', Icon: PartyPopper, color: 'bg-amber-100 text-amber-600',
-    intro: 'Planuojate šventę? Pasirinkime jums tinkamiausią batutą!',
-    trampolines: PARTY_TRAMPOLINES, showAddons: true,
+    intro: 'Planuojate šventę? Pasirinkite paslaugas (galima kelias) ir priedus!',
+    services: PARTY_SERVICES, multiSelect: true, showAddons: true,
     fields: [
       { name: 'vardas',          label: 'Jūsų vardas',     type: 'text', placeholder: 'Vardas Pavardė',   required: true },
       { name: 'telefonas',       label: 'Tel. numeris',     type: 'tel',  placeholder: '+37060000000',     required: true },
@@ -348,6 +354,54 @@ const TrampolineSelector = ({ trampolines, onSelect, selectedId, flowId, onDetai
   </div>
 );
 
+// ── PartyServicesSelector (multi-select) ─────────────────────────────────────
+const PartyServicesSelector = ({ services, onConfirm, confirmed, selectedNames }) => {
+  const [selected, setSelected] = useState([]);
+  const toggle = id => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  if (confirmed) return (
+    <div className="space-y-2">
+      <p className="text-sm font-bold text-purple-700">Pasirinktos paslaugos:</p>
+      {selectedNames?.length > 0
+        ? <div className="flex flex-wrap gap-1.5">{selectedNames.map(n => <span key={n} className="text-xs bg-violet-100 text-violet-700 px-3 py-1 rounded-full font-semibold">{n}</span>)}</div>
+        : <p className="text-sm text-gray-500">Paslaugų nepasirinkta</p>
+      }
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-bold text-purple-700">Pasirinkite paslaugas (galima kelias):</p>
+      <div className="space-y-2">
+        {services.map(s => {
+          const isOn = selected.includes(s.id);
+          const SvcIcon = s.Icon;
+          return (
+            <div key={s.id} onClick={() => toggle(s.id)} data-testid={`service-toggle-${s.id}`}
+              className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${isOn ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-200 shadow-sm' : 'border-purple-100 hover:border-violet-300 hover:bg-purple-50/40'}`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isOn ? 'bg-violet-600' : 'bg-purple-100'}`}>
+                <SvcIcon size={20} className={isOn ? 'text-white' : 'text-violet-500'} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-purple-900">{s.name}</p>
+                <p className="text-xs text-gray-500 leading-tight mt-0.5">{s.desc}</p>
+              </div>
+              <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${isOn ? 'border-violet-600 bg-violet-600' : 'border-gray-300'}`}>
+                {isOn && <Check size={12} className="text-white" />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={() => onConfirm(selected.map(id => services.find(s => s.id === id)?.name).filter(Boolean))}
+        disabled={selected.length === 0} data-testid="services-confirm-btn"
+        className="w-full rounded-2xl bg-violet-600 text-white text-sm font-bold py-3.5 hover:bg-violet-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+        Tęsti {selected.length > 0 ? `(${selected.length} pasirinkta)` : '→'}
+      </button>
+    </div>
+  );
+};
+
 // ── AddonsSelector ────────────────────────────────────────────────────────────
 const AddonsSelector = ({ onConfirm, confirmed, selectedAddons: confirmedAddons }) => {
   const [selected, setSelected] = useState([]);
@@ -585,10 +639,29 @@ const ChatWidget = ({ embedded = false }) => {
       newMsgs.push({ id: `faq-${ts}`, role: 'bot', type: 'faq', content: '', data: {} });
     } else {
       newMsgs.push({ id: `intr-${ts}`, role: 'bot', type: 'text', content: FLOWS[flowId].intro, data: {} });
-      newMsgs.push({ id: `tsel-${ts}`, role: 'bot', type: 'trampoline_select', content: '', data: { flowId, selectedId: null } });
+      const isMulti = FLOWS[flowId]?.multiSelect === true;
+      newMsgs.push({ id: `tsel-${ts}`, role: 'bot', type: 'trampoline_select', content: '', data: {
+        flowId,
+        ...(isMulti
+          ? { multiSelect: true, confirmed: false, selectedNames: [] }
+          : { selectedId: null }
+        ),
+      }});
     }
     addMsgs(newMsgs);
   }, [addMsgs]);
+
+  const handleServicesConfirm = useCallback((msgId, flowId, serviceNames) => {
+    updateMsg(msgId, { confirmed: true, selectedNames: serviceNames });
+    orderRef.current.trampoline = serviceNames.join(', ');
+    const ts = Date.now();
+    const newMsgs = [{ id: `u-sv-${ts}`, role: 'user', type: 'text', content: `Paslaugos: ${serviceNames.join(', ')}`, data: {} }];
+    if (FLOWS[flowId]?.showAddons)
+      newMsgs.push({ id: `add-${ts}`, role: 'bot', type: 'addons_select', content: '', data: { flowId, confirmed: false, selectedAddons: [] } });
+    else
+      newMsgs.push({ id: `frm-${ts}`, role: 'bot', type: 'form', content: '', data: { flowId, trampoline: orderRef.current.trampoline } });
+    addMsgs(newMsgs);
+  }, [updateMsg, addMsgs]);
 
   const handleTrampolineSelect = useCallback((msgId, flowId, trampoline) => {
     updateMsg(msgId, { selectedId: trampoline.id });
@@ -701,10 +774,18 @@ const ChatWidget = ({ embedded = false }) => {
     if (msg.type === 'trampoline_select') return (
       <div key={msg.id} className="flex justify-start chat-flow-enter w-full">
         <div className="w-full bg-white border border-purple-100 rounded-2xl p-4 shadow-sm">
-          <TrampolineSelector trampolines={FLOWS[msg.data.flowId]?.trampolines || []}
-            onSelect={t => handleTrampolineSelect(msg.id, msg.data.flowId, t)}
-            selectedId={msg.data.selectedId} flowId={msg.data.flowId}
-            onDetail={t => setDetailTrampoline(t)} />
+          {msg.data.multiSelect
+            ? <PartyServicesSelector
+                services={FLOWS[msg.data.flowId]?.services || []}
+                onConfirm={names => handleServicesConfirm(msg.id, msg.data.flowId, names)}
+                confirmed={msg.data.confirmed}
+                selectedNames={msg.data.selectedNames}
+              />
+            : <TrampolineSelector trampolines={FLOWS[msg.data.flowId]?.trampolines || []}
+                onSelect={t => handleTrampolineSelect(msg.id, msg.data.flowId, t)}
+                selectedId={msg.data.selectedId} flowId={msg.data.flowId}
+                onDetail={t => setDetailTrampoline(t)} />
+          }
         </div>
       </div>
     );
@@ -737,7 +818,7 @@ const ChatWidget = ({ embedded = false }) => {
     );
 
     return null;
-  }, [handleButtonClick, handleTrampolineSelect, handleAddonsConfirm, handleFormSubmit, handleEscalate, isSubmitting, submittedForms, setDetailTrampoline]);
+  }, [handleButtonClick, handleTrampolineSelect, handleServicesConfirm, handleAddonsConfirm, handleFormSubmit, handleEscalate, isSubmitting, submittedForms, setDetailTrampoline]);
 
   const handleClose = useCallback(() => {
     if (embedded) {
