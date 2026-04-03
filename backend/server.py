@@ -691,31 +691,35 @@ async def admin_booking_delete(body: Dict[str, Any], _=Depends(require_admin)):
 
 @api_router.get("/admin/route/orders")
 async def get_route_orders(date: str, x_admin_token: Optional[str] = Header(None)):
-    """Return confirmed/pending orders for a given date (YYYY-MM-DD) for route planning.
+    """Return orders for a given date (YYYY-MM-DD) for route planning.
+    Merges two data sources:
+      1. MongoDB (chatbot orders with form_data.data matching)
+      2. n8n Calendar Bridge (Google Calendar bookings for that date)
     Includes add-ons with their unit costs factored into the total stop units."""
     if not _verify_admin_token(x_admin_token or ''):
         raise HTTPException(401, "Neprisijungęs")
+
+    result = []
+    seen_ids = set()
+
+    # ── Source 1: MongoDB chatbot orders ──────────────────────────────────────
     orders = await db.orders.find(
         {"status": {"$in": ["confirmed", "pending"]}, "form_data.data": date},
         {"_id": 0},
     ).to_list(200)
-    result = []
     for o in orders:
         fd = o.get("form_data", {})
-
         equipment = fd.get("batutas", "") or ""
-
-        # Normalise addons: may be list or comma-separated string
         raw_addons = fd.get("priedai", []) or []
         if isinstance(raw_addons, str):
             addons = [a.strip() for a in raw_addons.split(",") if a.strip()]
         else:
             addons = [str(a).strip() for a in raw_addons if a]
-
         total_units = _calculate_order_units(equipment, addons)
-
+        oid = o.get("id", "")
+        seen_ids.add(oid)
         result.append({
-            "orderId":   o.get("id", ""),
+            "orderId":   oid,
             "name":      fd.get("vardas") or fd.get("kontaktinis", "N/A"),
             "phone":     fd.get("telefonas", ""),
             "equipment": equipment,
@@ -724,7 +728,48 @@ async def get_route_orders(date: str, x_admin_token: Optional[str] = Header(None
             "address":   fd.get("vieta") or fd.get("adresas", ""),
             "flowType":  o.get("flow_type", ""),
             "status":    o.get("status", ""),
+            "source":    "chatbot",
         })
+
+    # ── Source 2: n8n Calendar Bridge (Google Calendar) ───────────────────────
+    if N8N_BASE_URL:
+        try:
+            month = date[:7]  # YYYY-MM
+            async with httpx.AsyncClient(timeout=15) as c:
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": month})
+                r.raise_for_status()
+                cal_data = r.json()
+            for b in cal_data.get("bookings", []):
+                # Only include bookings matching the target date
+                if b.get("event_date") != date:
+                    continue
+                bid = b.get("id") or b.get("calendarEventId", "")
+                if bid in seen_ids:
+                    continue
+                seen_ids.add(bid)
+                equipment = b.get("equipment") or b.get("raw_summary", "") or ""
+                raw_addons = b.get("addons", []) or []
+                if isinstance(raw_addons, str):
+                    addons = [a.strip() for a in raw_addons.split(",") if a.strip()]
+                else:
+                    addons = [str(a).strip() for a in raw_addons if a]
+                total_units = _calculate_order_units(equipment, addons)
+                result.append({
+                    "orderId":   bid,
+                    "name":      b.get("customer_name", "N/A"),
+                    "phone":     b.get("customer_phone", ""),
+                    "equipment": equipment,
+                    "addons":    addons,
+                    "units":     total_units,
+                    "address":   b.get("delivery_address", ""),
+                    "flowType":  "calendar",
+                    "status":    b.get("status", "Confirmed"),
+                    "source":    "calendar",
+                })
+        except Exception as e:
+            logger.warning("Calendar Bridge fetch for route orders failed: %s", e)
+            # Silently fall back to MongoDB-only results
+
     return {"orders": result, "date": date}
 
 
