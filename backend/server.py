@@ -18,7 +18,13 @@ from datetime import datetime, timezone, timedelta
 from google import genai as _genai
 from google.genai import types as _gtypes
 from bin_pack import bin_pack as _bin_pack, get_default_units
-from clarke_wright import clarke_wright_assign as _cw_assign, has_coordinates as _has_coords
+try:
+    from clarke_wright import clarke_wright_assign as _cw_assign, has_coordinates as _has_coords
+    _HAS_CW = True
+except ImportError:
+    _HAS_CW = False
+    def _has_coords(_stops): return False  # noqa: E704
+    def _cw_assign(_stops, _vehicles): return {}, []  # noqa: E704
 
 # ── Add-on size reference (units per add-on item) ─────────────────────────────
 # 'full' = takes entire vehicle; float = fractional trampoline-equivalent slots
@@ -1150,8 +1156,10 @@ async def optimize_route_multi(data: Dict[str, Any], x_admin_token: Optional[str
 
     if auto_assign:
         # Clarke-Wright (geo-aware, minimises total km) when coordinates are available.
-        # Falls back to greedy bin-packing (FFD) when stops lack lat/lng.
-        if _has_coords(delivery_stops):
+        # Falls back to greedy bin-packing (FFD) when stops lack lat/lng or CW unavailable.
+        # Note: frontend now handles assignment and sends auto_assign=false; this path
+        # is a backend-only fallback (e.g. direct API calls).
+        if _HAS_CW and _has_coords(delivery_stops):
             assignments, unassigned_ids = _cw_assign(delivery_stops, vehicles)
         else:
             assignments, unassigned_ids = _bin_pack(delivery_stops, vehicles)
