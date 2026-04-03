@@ -1449,10 +1449,7 @@ const RoutePlanner = () => {
       )}
 
       {/* ── Simulation panel ── */}
-      {/* Simulations hidden in production — add ?dev=true to URL to show */}
-      {new URLSearchParams(window.location.search).has('dev') && (
-        <SimulationPanel onLoad={loadSimulation} isLoading={isSimLoading} />
-      )}
+      <SimulationPanel onLoad={loadSimulation} isLoading={isSimLoading} />
 
       {/* ── Controls ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -1577,7 +1574,7 @@ const RoutePlanner = () => {
           </button>
 
           {/* Auto-assign */}
-          {vehicles.length > 0 && validCount > 0 && (
+          {vehicles.length > 0 && allStopIds.length > 0 && (
             <button
               onClick={autoAssign}
               disabled={isAssigning}
