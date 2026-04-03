@@ -835,9 +835,13 @@ const ChatWidget = ({ embedded = false }) => {
   }, [handleButtonClick, handleTrampolineSelect, handleServicesConfirm, handleAddonsConfirm, handleFormSubmit, handleEscalate, isSubmitting, submittedForms, setDetailTrampoline]);
 
   const handleClose = useCallback(() => {
-    setIsOpen(false); // always hide chat window inside this component
     if (embedded) {
-      window.parent.postMessage({ type: 'batutynas-close' }, '*'); // also tell parent to hide iframe wrapper
+      // In embedded mode: tell the parent to hide the iframe wrapper.
+      // Do NOT call setIsOpen(false) here — that would blank the iframe while
+      // the wrapper is still visible (white box regression).
+      window.parent.postMessage({ type: 'batutynas-close' }, '*');
+    } else {
+      setIsOpen(false);
     }
   }, [embedded]);
 
