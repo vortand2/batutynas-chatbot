@@ -22,11 +22,9 @@ from bin_pack import bin_pack as _bin_pack, get_default_units
 # ── Add-on size reference (units per add-on item) ─────────────────────────────
 # 'full' = takes entire vehicle; float = fractional trampoline-equivalent slots
 _ADDON_UNITS: dict[str, float | str] = {
+    # Large items
     "disco pavilijonas":      1.0,
     "disco":                  1.0,
-    "pūtų šou":               0.5,
-    "pūtų":                   0.5,
-    "bubble":                 0.5,
     "banketo stalai ir kėdės": "full",
     "banketo stailai":        "full",   # common typo
     "banketo":                "full",
@@ -36,6 +34,27 @@ _ADDON_UNITS: dict[str, float | str] = {
     "bull":                   2.0,
     "mega dart":              2.0,
     "dart":                   2.0,
+    # Chatbot add-ons (medium)
+    "pūtų šou":               0.5,
+    "pūtų":                   0.5,
+    "bubble":                 0.5,
+    "sumo kostiumai":         0.5,
+    "sumo":                   0.5,
+    # Chatbot add-ons (small machines)
+    "cukraus vata":           0.3,
+    "popcorn aparatas":       0.3,
+    "popcorn":                0.3,
+    "šerbeto aparatas":       0.3,
+    "šerbetas":               0.3,
+    "virtuali realybė":       0.3,
+    "vr":                     0.3,
+    # Chatbot add-ons (compact)
+    "jbl partybox":           0.2,
+    "jbl":                    0.2,
+    "burbulų mašina":         0.2,
+    "burbulai":               0.2,
+    "instax mini":            0.1,
+    "instax":                 0.1,
 }
 
 
@@ -1165,6 +1184,44 @@ async def optimize_route_multi(data: Dict[str, Any], x_admin_token: Optional[str
         "total_min":                total_min,
         "total_savings_km_estimate": round(total_savings, 1),
     }
+
+
+# ── Route plan storage (MongoDB) ──────────────────────────────────────────────
+
+@api_router.post("/admin/route/save")
+async def save_route_plan(data: Dict[str, Any], x_admin_token: Optional[str] = Header(None)):
+    """Save an optimized route plan for a date. Overwrites any existing plan for that date."""
+    if not _verify_admin_token(x_admin_token or ''):
+        raise HTTPException(401, "Neprisijungęs")
+    plan_date = data.get("date", "")
+    if not plan_date:
+        raise HTTPException(400, "date is required")
+    plan = {
+        "date":          plan_date,
+        "vehicles":      data.get("vehicles", []),
+        "stops":         data.get("stops", []),
+        "total_km":      data.get("total_km", 0),
+        "total_min":     data.get("total_min", 0),
+        "google_maps_urls": data.get("google_maps_urls", {}),
+        "saved_at":      datetime.now(timezone.utc).isoformat(),
+    }
+    await db.route_plans.update_one(
+        {"date": plan_date},
+        {"$set": plan},
+        upsert=True,
+    )
+    return {"success": True, "date": plan_date}
+
+
+@api_router.get("/admin/route/planned/{date}")
+async def get_route_plan(date: str, x_admin_token: Optional[str] = Header(None)):
+    """Retrieve a saved route plan for a specific date."""
+    if not _verify_admin_token(x_admin_token or ''):
+        raise HTTPException(401, "Neprisijungęs")
+    plan = await db.route_plans.find_one({"date": date}, {"_id": 0})
+    if not plan:
+        return {"found": False, "date": date}
+    return {"found": True, **plan}
 
 
 # ── App setup ─────────────────────────────────────────────────────────────────

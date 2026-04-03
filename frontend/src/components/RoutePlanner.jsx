@@ -210,11 +210,21 @@ const SIMULATIONS = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const detectAddonUnits = (addon) => {
   const n = (addon || '').toLowerCase();
+  // Full vehicle
   if (n.includes('banketo') || n.includes('stalai')) return 'full';
+  // Large (2 units)
   if (n.includes('jautis') || n.includes('bull') || n.includes('dart')) return 2;
+  // Large (1 unit)
   if (n.includes('disco')) return 1;
-  if (n.includes('šou') || n.includes('show') || n.includes('foto')) return 0.5;
-  return 0.5; // default: small add-on
+  // Medium (0.5)
+  if (n.includes('šou') || n.includes('show') || n.includes('sumo')) return 0.5;
+  // Small machines (0.3)
+  if (n.includes('cukraus') || n.includes('popcorn') || n.includes('šerbet') || n.includes('vr') || n.includes('virtuali')) return 0.3;
+  // Compact (0.2)
+  if (n.includes('jbl') || n.includes('burbul')) return 0.2;
+  // Tiny (0.1)
+  if (n.includes('instax')) return 0.1;
+  return 0.5; // default: unknown add-on
 };
 
 const detectUnits = (equipment, addons = []) => {
@@ -1187,12 +1197,34 @@ const RoutePlanner = () => {
         .filter(s => s.validStatus !== 'valid')
         .map(s => s.id);
       setUnassignedIds([...unassignedSids, ...nonValidIds]);
+
+      // Auto-save route plan to MongoDB
+      try {
+        const curStops = stopsByIdRef.current;
+        const savedVehicles = vehiclesRef.current.map(v => ({
+          id: v.id, name: v.name, capacity: v.capacity,
+          stopIds: assignments[v.id] || [],
+          stats: vehicleRoutes[v.id] || null,
+        }));
+        const savedStops = Object.values(curStops).filter(s => s.validStatus === 'valid').map(s => ({
+          id: s.id, equipment: s.equipment, address: s.formattedAddress || s.rawAddress,
+          name: s.name, type: s.type, units: s.units,
+        }));
+        await routeApi.post('/admin/route/save', {
+          date,
+          vehicles: savedVehicles,
+          stops: savedStops,
+          total_km: data.total_km || 0,
+          total_min: data.total_min || 0,
+          google_maps_urls: {},  // URLs computed client-side from saved stops
+        });
+      } catch { /* silent — save is best-effort */ }
     } catch (e) {
       setError('Automatinis paskirstymas nepavyko.');
     } finally {
       setIsAssigning(false);
     }
-  }, [origin, waitLocation]);
+  }, [origin, waitLocation, date]);
 
   // ── Per-vehicle optimization ────────────────────────────────────────────────
   const optimizeVehicle = useCallback(async (vehicleId) => {
@@ -1254,9 +1286,14 @@ const RoutePlanner = () => {
     setError('');
     setFetchInfo(null);
 
+    // Auto-generate pickup stops from delivery stops (same addresses, equipment picked up later)
+    const deliveryStops = scenario.stops.filter(s => s.type === 'delivery');
+    const autoPickups = deliveryStops.map(s => ({ ...s, type: 'pickup' }));
+    const allStops = [...scenario.stops, ...autoPickups];
+
     const newStopsById = {};
     const newUnassigned = [];
-    scenario.stops.forEach(s => {
+    allStops.forEach(s => {
       const stop = makeStop({ ...s, orderId: null });
       newStopsById[stop.id] = stop;
       newUnassigned.push(stop.id);
@@ -1276,7 +1313,7 @@ const RoutePlanner = () => {
     setUnassignedIds(newUnassigned);
     setVehicles(newVehicles);
     setSelectedVehicleId(newVehicles[0]?.id || null);
-    setFetchInfo({ count: scenario.stops.length, date: `Simuliacija ${scenario.id}` });
+    setFetchInfo({ count: allStops.length, deliveryCount: deliveryStops.length + scenario.stops.filter(s => s.type !== 'delivery').length, pickupCount: autoPickups.length, date: `Simuliacija ${scenario.id}` });
 
     // Auto-validate addresses
     const ids = Object.keys(newStopsById);
