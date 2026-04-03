@@ -5,8 +5,9 @@ import {
   Phone, MapPin, Calendar, TrendingUp, Package,
   Loader2, CheckCircle2, Clock, Search, RefreshCw,
   ArrowUpRight, ArrowDownRight, Users, Euro, Zap, AlertCircle,
-  LogOut, Lock, Bell, CheckCheck, XCircle, ClipboardList,
+  LogOut, Lock, Bell, CheckCheck, XCircle, ClipboardList, Navigation,
 } from 'lucide-react';
+import RoutePlanner from './RoutePlanner';
 
 const API_URL = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -631,7 +632,7 @@ export default function AdminDashboard() {
   };
 
   // ── Tabs ──
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'pending'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'pending' | 'route'
 
   // ── Calendar state ──
   const [year, setYear]   = useState(now.getFullYear());
@@ -837,6 +838,10 @@ export default function AdminDashboard() {
                 </span>
               )}
             </button>
+            <button onClick={() => setActiveTab('route')} data-testid="tab-route"
+              className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-bold transition-colors ${activeTab==='route' ? 'bg-white text-violet-700' : 'text-white/80 hover:bg-white/20'}`}>
+              <Navigation size={13} /> Maršrutas
+            </button>
           </div>
 
           {/* Month navigation (calendar tab only) */}
@@ -872,6 +877,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab('pending')} className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 ${activeTab==='pending' ? 'text-amber-300 border-b-2 border-amber-300' : 'text-white/50'}`}>
             <Bell size={13} /> Laukiančios {pending.length > 0 && `(${pending.length})`}
+          </button>
+          <button onClick={() => setActiveTab('route')} className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 ${activeTab==='route' ? 'text-white border-b-2 border-white' : 'text-white/50'}`}>
+            <Navigation size={13} /> Maršrutas
           </button>
         </div>
       </header>
@@ -955,6 +963,20 @@ export default function AdminDashboard() {
               </div>
               <p className="text-xs text-indigo-500 mt-2">orderId yra iš <strong>batutynas-booking-notify</strong> payload lauko — jis jau siunčiamas į Telegram.</p>
             </div>
+          </div>
+        )}
+
+        {/* ════════════════ ROUTE TAB ════════════════ */}
+        {activeTab === 'route' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                <Navigation size={16} className="text-violet-500" />
+                Pristatymo maršruto planuoklė
+              </h2>
+              <span className="text-xs text-gray-400 font-medium">Vilkite korteles, kad pakeistumėte eiliškumą</span>
+            </div>
+            <RoutePlanner />
           </div>
         )}
 

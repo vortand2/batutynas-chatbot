@@ -4,6 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import math
 import logging
 import asyncio
 import hashlib
@@ -11,11 +12,65 @@ import resend
 import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 import uuid
 from datetime import datetime, timezone
 from google import genai as _genai
 from google.genai import types as _gtypes
+from bin_pack import bin_pack as _bin_pack, get_default_units
+
+# ── Add-on size reference (units per add-on item) ─────────────────────────────
+# 'full' = takes entire vehicle; float = fractional trampoline-equivalent slots
+_ADDON_UNITS: dict[str, float | str] = {
+    "disco pavilijonas":      1.0,
+    "disco":                  1.0,
+    "pūtų šou":               0.5,
+    "pūtų":                   0.5,
+    "bubble":                 0.5,
+    "banketo stalai ir kėdės": "full",
+    "banketo stailai":        "full",   # common typo
+    "banketo":                "full",
+    "stalai ir kėdės":        "full",
+    "mechaninis jautis":      2.0,
+    "mechanical bull":        2.0,
+    "bull":                   2.0,
+    "mega dart":              2.0,
+    "dart":                   2.0,
+}
+
+
+def _get_addon_units(addon: str) -> float | str:
+    """Detect the size (unit cost) of a single add-on item."""
+    name = addon.lower().strip()
+    for key, units in _ADDON_UNITS.items():
+        if key in name:
+            return units
+    # Heuristic: names containing large-item keywords
+    if any(kw in name for kw in ("mega ", "giga ", "jautis", "bull")):
+        return 2.0
+    # Small service items
+    if any(kw in name for kw in ("šou", "show", "foto", "dekor", "muzika", "dj ")):
+        return 0.5
+    return 0.5   # unknown add-on → treat as small (half slot)
+
+
+def _calculate_order_units(equipment: str, addons: list[str]) -> float | str:
+    """Total unit cost for one order = equipment + all add-ons.
+
+    Returns 'full' if any item requires a full vehicle, otherwise a float sum.
+    """
+    base = get_default_units(equipment)
+    if base == "full":
+        return "full"
+
+    total = float(base)
+    for addon in addons:
+        au = _get_addon_units(addon)
+        if au == "full":
+            return "full"
+        total += float(au)
+    return round(total, 2)
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -50,6 +105,7 @@ N8N_WEBHOOK_URL      = os.environ.get('N8N_WEBHOOK_URL', '')
 CALENDAR_BRIDGE_URL  = os.environ.get('CALENDAR_BRIDGE_URL', '')
 ADMIN_PASSWORD       = os.environ.get('ADMIN_PASSWORD', '')
 N8N_SYNC_SECRET      = os.environ.get('N8N_SYNC_SECRET', '')   # shared secret for /webhook/n8n-sync
+GOOGLE_MAPS_API_KEY  = os.environ.get('GOOGLE_MAPS_API_KEY', '')  # Geocoding + Directions API
 
 VALID_FLOW_TYPES = {'birthday', 'company', 'party', 'purchase', 'faq'}
 
@@ -177,7 +233,8 @@ def _rows(data: dict) -> str:
 
 async def send_email(subject: str, html: str):
     if not RESEND_API_KEY:
-        logger.warning("RESEND_API_KEY not set – skipping email"); return
+        logger.warning("RESEND_API_KEY not set – skipping email")
+        return
     try:
         recipients = [OWNER_EMAIL]
         if "info@batutynas.lt" not in recipients:
@@ -569,6 +626,14 @@ async def admin_next_free(equipment: str, days: int = 30, _=Depends(require_admi
         return {"freeDates": [], "error": str(e)}
 
 
+def _safe_json(r: httpx.Response) -> dict:
+    """Parse JSON response safely – return raw text if body is empty or non-JSON."""
+    try:
+        return r.json()
+    except Exception:
+        return {"ok": True, "status": r.status_code, "raw": (r.text or "")[:300]}
+
+
 @api_router.post("/admin/booking/create")
 async def admin_booking_create(body: Dict[str, Any], _=Depends(require_admin)):
     if not N8N_BASE_URL:
@@ -577,10 +642,10 @@ async def admin_booking_create(body: Dict[str, Any], _=Depends(require_admin)):
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(_n8n_url("batutynas-calendar-create"), json=body)
             r.raise_for_status()
-            try:
-                return r.json()
-            except Exception:
-                return {"success": True, "status": r.status_code}
+            return _safe_json(r)
+    except httpx.HTTPStatusError as e:
+        logger.error("admin_booking_create HTTP error: %s", e)
+        raise HTTPException(502, f"n8n klaida: {e.response.status_code}")
     except Exception as e:
         logger.error("admin_booking_create proxy error: %s", e)
         raise HTTPException(502, str(e))
@@ -594,10 +659,10 @@ async def admin_booking_update(body: Dict[str, Any], _=Depends(require_admin)):
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(_n8n_url("batutynas-calendar-update"), json=body)
             r.raise_for_status()
-            try:
-                return r.json()
-            except Exception:
-                return {"success": True, "status": r.status_code}
+            return _safe_json(r)
+    except httpx.HTTPStatusError as e:
+        logger.error("admin_booking_update HTTP error: %s", e)
+        raise HTTPException(502, f"n8n klaida: {e.response.status_code}")
     except Exception as e:
         logger.error("admin_booking_update proxy error: %s", e)
         raise HTTPException(502, str(e))
@@ -611,13 +676,445 @@ async def admin_booking_delete(body: Dict[str, Any], _=Depends(require_admin)):
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(_n8n_url("batutynas-calendar-delete"), json=body)
             r.raise_for_status()
-            try:
-                return r.json()
-            except Exception:
-                return {"success": True, "status": r.status_code}
+            return _safe_json(r)
+    except httpx.HTTPStatusError as e:
+        logger.error("admin_booking_delete HTTP error: %s", e)
+        raise HTTPException(502, f"n8n klaida: {e.response.status_code}")
     except Exception as e:
         logger.error("admin_booking_delete proxy error: %s", e)
         raise HTTPException(502, str(e))
+
+
+# ── Route Planner endpoints ───────────────────────────────────────────────────
+# Standalone: these 3 endpoints power the RoutePlanner.jsx admin feature.
+# To integrate into another system, add these endpoints and set GOOGLE_MAPS_API_KEY.
+
+@api_router.get("/admin/route/orders")
+async def get_route_orders(date: str, x_admin_token: Optional[str] = Header(None)):
+    """Return confirmed/pending orders for a given date (YYYY-MM-DD) for route planning.
+    Includes add-ons with their unit costs factored into the total stop units."""
+    if not _verify_admin_token(x_admin_token or ''):
+        raise HTTPException(401, "Neprisijungęs")
+    orders = await db.orders.find(
+        {"status": {"$in": ["confirmed", "pending"]}, "form_data.data": date},
+        {"_id": 0},
+    ).to_list(200)
+    result = []
+    for o in orders:
+        fd = o.get("form_data", {})
+
+        equipment = fd.get("batutas", "") or ""
+
+        # Normalise addons: may be list or comma-separated string
+        raw_addons = fd.get("priedai", []) or []
+        if isinstance(raw_addons, str):
+            addons = [a.strip() for a in raw_addons.split(",") if a.strip()]
+        else:
+            addons = [str(a).strip() for a in raw_addons if a]
+
+        total_units = _calculate_order_units(equipment, addons)
+
+        result.append({
+            "orderId":   o.get("id", ""),
+            "name":      fd.get("vardas") or fd.get("kontaktinis", "N/A"),
+            "phone":     fd.get("telefonas", ""),
+            "equipment": equipment,
+            "addons":    addons,
+            "units":     total_units,
+            "address":   fd.get("vieta") or fd.get("adresas", ""),
+            "flowType":  o.get("flow_type", ""),
+            "status":    o.get("status", ""),
+        })
+    return {"orders": result, "date": date}
+
+
+@api_router.post("/admin/route/validate-addresses")
+async def validate_route_addresses(data: Dict[str, Any], x_admin_token: Optional[str] = Header(None)):
+    """Validate a list of addresses using Google Maps Geocoding API.
+    Returns formatted address + lat/lng for valid addresses.
+    Falls back to Nominatim (OSM) if no GOOGLE_MAPS_API_KEY is set."""
+    if not _verify_admin_token(x_admin_token or ''):
+        raise HTTPException(401, "Neprisijungęs")
+    addresses = data.get("addresses", [])
+    results = []
+    async with httpx.AsyncClient(timeout=10) as client:
+        for addr in addresses:
+            if not addr or not addr.strip():
+                results.append({"original": addr, "valid": False, "error": "Tuščias adresas"})
+                continue
+            query = addr.strip()
+            if "lietuva" not in query.lower() and "lithuania" not in query.lower():
+                query += ", Lietuva"
+            try:
+                if GOOGLE_MAPS_API_KEY:
+                    # Google Maps Geocoding API
+                    resp = await client.get(
+                        "https://maps.googleapis.com/maps/api/geocode/json",
+                        params={"address": query, "key": GOOGLE_MAPS_API_KEY, "language": "lt"},
+                    )
+                    geo = resp.json()
+                    if geo.get("status") == "OK" and geo.get("results"):
+                        r = geo["results"][0]
+                        results.append({
+                            "original":  addr,
+                            "formatted": r["formatted_address"],
+                            "lat": r["geometry"]["location"]["lat"],
+                            "lng": r["geometry"]["location"]["lng"],
+                            "valid": True,
+                        })
+                    else:
+                        results.append({"original": addr, "valid": False, "error": geo.get("status", "NOT_FOUND")})
+                else:
+                    # Fallback: Nominatim (OSM) – no API key required
+                    resp = await client.get(
+                        "https://nominatim.openstreetmap.org/search",
+                        params={"q": query, "format": "json", "limit": 1, "countrycodes": "lt"},
+                        headers={"User-Agent": "batutynas-route-planner/1.0"},
+                    )
+                    hits = resp.json()
+                    if hits:
+                        h = hits[0]
+                        results.append({
+                            "original":  addr,
+                            "formatted": h.get("display_name", addr),
+                            "lat": float(h["lat"]),
+                            "lng": float(h["lon"]),
+                            "valid": True,
+                        })
+                    else:
+                        results.append({"original": addr, "valid": False, "error": "NOT_FOUND"})
+            except Exception as exc:
+                results.append({"original": addr, "valid": False, "error": str(exc)[:120]})
+    return {"results": results}
+
+
+@api_router.post("/admin/route/optimize")
+async def optimize_route(data: Dict[str, Any], x_admin_token: Optional[str] = Header(None)):
+    """Optimize stop order using Google Maps Directions API with waypoint optimization.
+    Returns optimized_order (index array), total_distance_km, total_duration_min."""
+    if not _verify_admin_token(x_admin_token or ''):
+        raise HTTPException(401, "Neprisijungęs")
+    addresses = data.get("addresses", [])  # already-validated formatted addresses
+    origin    = data.get("origin", "Pagramantis, Lietuva")
+    if not origin.lower().endswith("lietuva") and not origin.lower().endswith("lithuania"):
+        origin += ", Lietuva"
+    if len(addresses) < 2:
+        return {"optimized_order": list(range(len(addresses))), "total_distance_km": 0, "total_duration_min": 0}
+    if not GOOGLE_MAPS_API_KEY:
+        return {"optimized_order": list(range(len(addresses))), "error": "GOOGLE_MAPS_API_KEY not set", "total_distance_km": 0, "total_duration_min": 0}
+    waypoints_str = "optimize:true|" + "|".join(addresses)
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                "https://maps.googleapis.com/maps/api/directions/json",
+                params={
+                    "origin":      origin,
+                    "destination": origin,   # round trip back to base
+                    "waypoints":   waypoints_str,
+                    "mode":        "driving",
+                    "key":         GOOGLE_MAPS_API_KEY,
+                    "language":    "lt",
+                },
+            )
+            result = resp.json()
+        if result.get("status") == "OK" and result.get("routes"):
+            route = result["routes"][0]
+            order = route.get("waypoint_order", list(range(len(addresses))))
+            legs  = route["legs"]
+            total_dist = round(sum(leg["distance"]["value"] for leg in legs) / 1000, 1)
+            total_time = sum(leg["duration"]["value"] for leg in legs) // 60
+            return {
+                "optimized_order":    order,
+                "total_distance_km":  total_dist,
+                "total_duration_min": total_time,
+                "legs": [{"from": leg["start_address"], "to": leg["end_address"],
+                          "dist": leg["distance"]["text"], "time": leg["duration"]["text"]} for leg in legs],
+            }
+        return {"optimized_order": list(range(len(addresses))), "error": result.get("status"), "total_distance_km": 0, "total_duration_min": 0}
+    except Exception as exc:
+        logger.error("Route optimize error: %s", exc)
+        return {"optimized_order": list(range(len(addresses))), "error": str(exc), "total_distance_km": 0, "total_duration_min": 0}
+
+
+# ── Multi-vehicle route optimization (two-segment logic) ─────────────────────
+# Route: Pagramantis → [delivery stops] → wait in Tauragė → [pickup stops] → Pagramantis
+
+async def _optimize_segment(
+    client: httpx.AsyncClient,
+    seg_origin: str,
+    seg_destination: str,
+    stops: list,
+) -> dict:
+    """Optimize a single route segment: seg_origin → stops → seg_destination.
+
+    Uses Google Directions API with waypoint optimization.
+    Returns optimized_order, km, min, legs, ordered_addresses.
+    """
+    if not stops:
+        return {"optimized_order": [], "km": 0, "min": 0, "legs": [], "ordered_addresses": []}
+
+    addresses = [s.get("formattedAddress") or s.get("address", "") for s in stops]
+
+    if not GOOGLE_MAPS_API_KEY:
+        return {
+            "optimized_order": list(range(len(stops))),
+            "km": 0, "min": 0, "legs": [],
+            "ordered_addresses": addresses,
+            "error": "No GOOGLE_MAPS_API_KEY",
+        }
+
+    waypoints_param = ("optimize:true|" + "|".join(addresses)) if len(stops) > 1 else addresses[0]
+
+    try:
+        resp = await client.get(
+            "https://maps.googleapis.com/maps/api/directions/json",
+            params={
+                "origin":      seg_origin,
+                "destination": seg_destination,
+                "waypoints":   waypoints_param,
+                "mode":        "driving",
+                "key":         GOOGLE_MAPS_API_KEY,
+                "language":    "lt",
+            },
+        )
+        result = resp.json()
+        if result.get("status") == "OK" and result.get("routes"):
+            route = result["routes"][0]
+            order = route.get("waypoint_order", list(range(len(addresses))))
+            legs  = route["legs"]
+            km    = round(sum(leg["distance"]["value"] for leg in legs) / 1000, 1)
+            min_  = sum(leg["duration"]["value"] for leg in legs) // 60
+            ordered = [addresses[i] for i in order] if len(order) == len(addresses) else addresses
+
+            # ── Final-check: estimate savings vs. sequential (unoptimized) order ──
+            savings_est = 0.0
+            if len(stops) > 1:
+                try:
+                    orig_hav = _seq_haversine_km(stops)
+                    opt_stops = [stops[i] for i in order] if len(order) == len(stops) else stops
+                    opt_hav  = _seq_haversine_km(opt_stops)
+                    savings_est = max(0.0, round(orig_hav - opt_hav, 1))
+                except Exception:
+                    pass
+
+            return {
+                "optimized_order":      order,
+                "km": km, "min": min_,
+                "ordered_addresses":    ordered,
+                "savings_km_estimate":  savings_est,
+                "legs": [
+                    {"from": leg["start_address"], "to": leg["end_address"],
+                     "dist": leg["distance"]["text"], "time": leg["duration"]["text"]}
+                    for leg in legs
+                ],
+            }
+        return {
+            "optimized_order": list(range(len(addresses))),
+            "km": 0, "min": 0, "legs": [], "ordered_addresses": addresses,
+            "savings_km_estimate": 0.0,
+            "error": result.get("status"),
+        }
+    except Exception as exc:
+        logger.error("Segment optimize error: %s", exc)
+        return {
+            "optimized_order": list(range(len(addresses))),
+            "km": 0, "min": 0, "legs": [], "ordered_addresses": addresses,
+            "savings_km_estimate": 0.0,
+            "error": str(exc)[:120],
+        }
+
+
+def _ensure_lietuva(loc: str) -> str:
+    """Append ', Lietuva' if not already present."""
+    loc_lower = loc.strip().lower()
+    return loc.strip() if ("lietuva" in loc_lower or "lithuania" in loc_lower) else loc.strip() + ", Lietuva"
+
+
+# ── Route efficiency helpers ───────────────────────────────────────────────────
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Straight-line distance between two lat/lng points in km (Haversine formula)."""
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def _seq_haversine_km(stops: list) -> float:
+    """Total straight-line distance visiting stops in given order (Haversine)."""
+    total = 0.0
+    for i in range(len(stops) - 1):
+        a, b = stops[i], stops[i + 1]
+        la, lo = a.get("lat"), a.get("lng")
+        lb, lo2 = b.get("lat"), b.get("lng")
+        if la is not None and lo is not None and lb is not None and lo2 is not None:
+            total += _haversine_km(float(la), float(lo), float(lb), float(lo2))
+    return round(total, 1)
+
+
+async def _optimize_vehicle_route(
+    client: httpx.AsyncClient,
+    origin: str,
+    vstops: list,
+    vehicle: dict,
+    wait_location: str = "Tauragė",
+) -> dict:
+    """Two-segment route for one vehicle.
+
+    Segment A (morning): origin → delivery stops → wait_location
+    Segment B (evening): wait_location → pickup stops  → origin
+
+    Returns combined stats + per-segment details.
+    """
+    cap = int(vehicle.get("capacity", 4))
+
+    # Capacity used
+    total_units = 0
+    for s in vstops:
+        u = s.get("units", 1)
+        if u == "full":
+            total_units = cap
+        else:
+            try:
+                total_units += int(u)
+            except (TypeError, ValueError):
+                total_units += 1
+
+    base = {"capacity_used": total_units, "capacity_max": cap}
+
+    if not vstops:
+        return {**base, "km": 0, "min": 0, "delivery_km": 0, "delivery_min": 0,
+                "pickup_km": 0, "pickup_min": 0, "delivery_order": [], "pickup_order": [],
+                "delivery_addresses": [], "pickup_addresses": [], "legs": []}
+
+    wait_loc = _ensure_lietuva(wait_location)
+
+    delivery_stops = [s for s in vstops if s.get("type", "delivery") == "delivery"]
+    pickup_stops   = [s for s in vstops if s.get("type", "delivery") != "delivery"]
+
+    # Segment A: Pagramantis → deliveries → Tauragė
+    del_result = await _optimize_segment(client, origin, wait_loc, delivery_stops) \
+        if delivery_stops else {"optimized_order": [], "km": 0, "min": 0, "legs": [], "ordered_addresses": []}
+
+    # Segment B: Tauragė → pickups → Pagramantis
+    pick_result = await _optimize_segment(client, wait_loc, origin, pickup_stops) \
+        if pickup_stops else {"optimized_order": [], "km": 0, "min": 0, "legs": [], "ordered_addresses": []}
+
+    total_km  = round(del_result["km"] + pick_result["km"], 1)
+    total_min = del_result["min"] + pick_result["min"]
+    total_savings = round(
+        del_result.get("savings_km_estimate", 0.0) + pick_result.get("savings_km_estimate", 0.0), 1
+    )
+
+    return {
+        **base,
+        "km":   total_km,
+        "min":  total_min,
+        "savings_km_estimate": total_savings,
+        # Delivery segment
+        "delivery_km":        del_result["km"],
+        "delivery_min":       del_result["min"],
+        "delivery_order":     del_result["optimized_order"],
+        "delivery_addresses": del_result["ordered_addresses"],
+        # Pickup segment
+        "pickup_km":          pick_result["km"],
+        "pickup_min":         pick_result["min"],
+        "pickup_order":       pick_result["optimized_order"],
+        "pickup_addresses":   pick_result["ordered_addresses"],
+        # Combined legs (A + B)
+        "legs":               del_result["legs"] + pick_result["legs"],
+    }
+
+
+@api_router.post("/admin/route/optimize-multi")
+async def optimize_route_multi(data: Dict[str, Any], x_admin_token: Optional[str] = Header(None)):
+    """Multi-vehicle bin-packing + two-segment route optimization.
+
+    Route per vehicle:
+      Morning:  origin → delivery stops → wait_location (wait in Tauragė)
+      Evening:  wait_location → pickup stops → origin (return to Pagramantis)
+
+    Input:
+    {
+      "origin":        "Pagramantis, Lietuva",
+      "wait_location": "Tauragė",            // where employee waits (default Tauragė)
+      "vehicles":      [{"id": "v1", "name": "Auto 1", "capacity": 3}],
+      "stops":         [{"id": "s1", "equipment": "...", "units": "full"|1,
+                         "formattedAddress": "...", "type": "delivery"|"pickup"}],
+      "auto_assign":   true,
+      "assignments":   {"v1": ["s1"]}         // used when auto_assign=false
+    }
+    """
+    if not _verify_admin_token(x_admin_token or ''):
+        raise HTTPException(401, "Neprisijungęs")
+
+    origin        = _ensure_lietuva(data.get("origin", "Pagramantis"))
+    wait_location = data.get("wait_location", "Tauragė")
+    vehicles      = data.get("vehicles", [])
+    stops         = data.get("stops", [])
+    auto_assign   = data.get("auto_assign", True)
+    manual_assign = data.get("assignments", {})
+
+    if not vehicles:
+        return {"assignments": {}, "unassigned_stop_ids": [s["id"] for s in stops],
+                "vehicle_routes": {}, "total_km": 0, "total_min": 0}
+
+    # ── Bin packing ───────────────────────────────────────────────────────────
+    if auto_assign:
+        assignments, unassigned_ids = _bin_pack(stops, vehicles)
+    else:
+        assignments    = {v["id"]: list(manual_assign.get(v["id"], [])) for v in vehicles}
+        assigned_set   = {sid for ids in assignments.values() for sid in ids}
+        unassigned_ids = [s["id"] for s in stops if s["id"] not in assigned_set]
+
+    # ── Per-vehicle route optimization (parallel) ────────────────────────────
+    stop_index = {s["id"]: s for s in stops}
+
+    async with httpx.AsyncClient(timeout=25) as client:
+        tasks = [
+            _optimize_vehicle_route(
+                client, origin,
+                [stop_index[sid] for sid in assignments.get(v["id"], []) if sid in stop_index],
+                v,
+                wait_location,
+            )
+            for v in vehicles
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    vehicle_routes: Dict[str, Any] = {}
+    total_km  = 0.0
+    total_min = 0
+    total_savings = 0.0
+    for i, v in enumerate(vehicles):
+        vid = v["id"]
+        r   = results[i]
+        if isinstance(r, Exception):
+            logger.error("Vehicle route error %s: %s", vid, r)
+            vehicle_routes[vid] = {
+                "km": 0, "min": 0,
+                "delivery_km": 0, "delivery_min": 0, "delivery_order": [], "delivery_addresses": [],
+                "pickup_km": 0, "pickup_min": 0, "pickup_order": [], "pickup_addresses": [],
+                "capacity_used": 0, "capacity_max": v.get("capacity", 4), "legs": [],
+                "savings_km_estimate": 0.0,
+                "error": str(r),
+            }
+        else:
+            vehicle_routes[vid] = r
+            total_km    += r.get("km", 0)
+            total_min   += r.get("min", 0)
+            total_savings += r.get("savings_km_estimate", 0.0)
+
+    return {
+        "assignments":              assignments,
+        "unassigned_stop_ids":      unassigned_ids,
+        "vehicle_routes":           vehicle_routes,
+        "total_km":                 round(total_km, 1),
+        "total_min":                total_min,
+        "total_savings_km_estimate": round(total_savings, 1),
+    }
 
 
 # ── App setup ─────────────────────────────────────────────────────────────────

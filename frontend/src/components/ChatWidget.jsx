@@ -39,9 +39,9 @@ const BIRTHDAY_TRAMPOLINES = [T.pilis, T.monstrai, T.chameleonas, T.candy_pop, T
 const COMPANY_TRAMPOLINES  = [T.fantaziju_parkas, T.dziumandzi_parkas, T.giga_ruozas, T.mega_ruozas, T.mega_raketa, T.mega_ufonautai, T.mega_waikiki, T.monstrai, T.chameleonas, T.candy_pop, T.astuonkojis, T.vienaragiai];
 // ── Šventės nuomai – paslaugų sąrašas ────────────────────────────────────────
 const PARTY_SERVICES = [
-  { id: 'disco_pavilijonas', name: 'Disco Pavilijonas',       Icon: Disc3,     desc: 'Apšvietimas, garso sistema ir veidrodinė disko lempa' },
-  { id: 'putu_sou',          name: 'Pūtų šou',                Icon: Droplets,  desc: 'Putos ir spalvingos šviesos – nepamirštama pramoga' },
-  { id: 'banketo_stalai',    name: 'Banketo stalai ir kėdės', Icon: Utensils,  desc: 'Patogios sėdėjimo vietos jūsų svečiams' },
+  { id: 'disco_pavilijonas', name: 'Disco Pavilijonas',       Icon: Disc3,     desc: 'Apšvietimas, garso sistema ir veidrodinė disko lempa', image: 'https://images.unsplash.com/photo-1761171812523-91e6199af005?w=640&q=80&fit=crop' },
+  { id: 'putu_sou',          name: 'Pūtų šou',                Icon: Droplets,  desc: 'Putos ir spalvingos šviesos – nepamirštama pramoga',   image: 'https://images.unsplash.com/photo-1765739100027-74e17e21a29f?w=640&q=80&fit=crop' },
+  { id: 'banketo_stalai',    name: 'Banketo stalai ir kėdės', Icon: Utensils,  desc: 'Patogios sėdėjimo vietos jūsų svečiams',              image: 'https://images.unsplash.com/photo-1677981316539-d2464643b1c8?w=640&q=80&fit=crop' },
 ];
 
 const PURCHASE_CATEGORIES = [
@@ -372,22 +372,28 @@ const PartyServicesSelector = ({ services, onConfirm, confirmed, selectedNames }
   return (
     <div className="space-y-3">
       <p className="text-sm font-bold text-purple-700">Pasirinkite paslaugas (galima kelias):</p>
-      <div className="space-y-2">
+      {/* Image grid – same layout as AddonsSelector */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {services.map(s => {
           const isOn = selected.includes(s.id);
-          const SvcIcon = s.Icon;
           return (
             <div key={s.id} onClick={() => toggle(s.id)} data-testid={`service-toggle-${s.id}`}
-              className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${isOn ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-200 shadow-sm' : 'border-purple-100 hover:border-violet-300 hover:bg-purple-50/40'}`}>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isOn ? 'bg-violet-600' : 'bg-purple-100'}`}>
-                <SvcIcon size={20} className={isOn ? 'text-white' : 'text-violet-500'} />
+              className={`rounded-2xl border-2 cursor-pointer overflow-hidden transition-all active:scale-95 ${isOn ? 'border-violet-500 ring-2 ring-violet-200 shadow-md' : 'border-purple-100 hover:border-violet-200'}`}>
+              {/* Image */}
+              <div className="relative">
+                <ImgSkeleton src={s.image} alt={s.name} className="w-full h-28 object-cover" />
+                {isOn && (
+                  <div className="absolute inset-0 bg-violet-600/30 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center shadow-lg">
+                      <Check size={18} className="text-white" />
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-purple-900">{s.name}</p>
+              {/* Text */}
+              <div className={`p-2.5 transition-colors ${isOn ? 'bg-violet-50' : 'bg-white'}`}>
+                <p className={`text-sm font-bold leading-tight ${isOn ? 'text-violet-800' : 'text-purple-900'}`}>{s.name}</p>
                 <p className="text-xs text-gray-500 leading-tight mt-0.5">{s.desc}</p>
-              </div>
-              <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${isOn ? 'border-violet-600 bg-violet-600' : 'border-gray-300'}`}>
-                {isOn && <Check size={12} className="text-white" />}
               </div>
             </div>
           );
