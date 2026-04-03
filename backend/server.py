@@ -272,19 +272,27 @@ async def trigger_n8n(order: Order):
         fd = order.form_data
         is_purchase = order.flow_type == 'purchase'
         payload = {
-            "requestType": "catalog" if is_purchase else "booking",
-            "orderId":   order.id,
-            "flowType":  order.flow_type,
-            "name":      fd.get('vardas') or fd.get('kontaktinis', 'Nenurodyta'),
-            "phone":     fd.get('telefonas', ''),
-            "email":     fd.get('epastas', ''),
-            "address":   fd.get('vieta') or fd.get('adresas', ''),
-            "equipment": fd.get('batutas', ''),
-            "addons":    fd.get('priedai', ''),
-            "date":      fd.get('data', ''),
-            "guests":    fd.get('vaikuSkaicius') or fd.get('sveciumSkaicius') or fd.get('dalyviai', ''),
-            "company":   fd.get('imonesP', ''),
-            "createdAt": order.created_at,
+            "requestType":          "catalog" if is_purchase else "booking",
+            "orderId":              order.id,
+            "flowType":             order.flow_type,
+            # Fields matching n8n Parse Booking Data expected names:
+            "contact_name":         fd.get('vardas') or fd.get('kontaktinis', 'Nenurodyta'),
+            "contact_phone":        fd.get('telefonas', ''),
+            "email":                fd.get('epastas', ''),
+            "location":             fd.get('vieta') or fd.get('adresas', ''),
+            "trampoline_preference": fd.get('batutas', ''),
+            "addons":               fd.get('priedai', ''),
+            "date":                 fd.get('data', ''),
+            "guest_count":          fd.get('vaikuSkaicius') or fd.get('sveciumSkaicius') or fd.get('dalyviai', ''),
+            "group_type":           order.flow_type,
+            "company":              fd.get('imonesP', ''),
+            "createdAt":            order.created_at,
+            # Also send with old names for backward compatibility
+            "name":                 fd.get('vardas') or fd.get('kontaktinis', 'Nenurodyta'),
+            "phone":                fd.get('telefonas', ''),
+            "address":              fd.get('vieta') or fd.get('adresas', ''),
+            "equipment":            fd.get('batutas', ''),
+            "guests":               fd.get('vaikuSkaicius') or fd.get('sveciumSkaicius') or fd.get('dalyviai', ''),
         }
         async with httpx.AsyncClient(timeout=10) as c:
             await c.post(N8N_WEBHOOK_URL, json=payload)
