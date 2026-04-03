@@ -779,6 +779,7 @@ const RoutePlanner = () => {
   const [fetchInfo,      setFetchInfo]      = useState(null);
   const [pickupDate,     setPickupDate]     = useState('');
   const [mapMode,        setMapMode]        = useState('full'); // 'full' | 'delivery' | 'pickup'
+  const [showMoreControls, setShowMoreControls] = useState(false);
   const [copiedUrl,      setCopiedUrl]      = useState('');
   const [copied,         setCopied]         = useState(false);
   const embedKeyRef = useRef(0);
@@ -1448,65 +1449,24 @@ const RoutePlanner = () => {
       )}
 
       {/* ── Simulation panel ── */}
-      <SimulationPanel onLoad={loadSimulation} isLoading={isSimLoading} />
+      {/* Simulations hidden in production — add ?dev=true to URL to show */}
+      {new URLSearchParams(window.location.search).has('dev') && (
+        <SimulationPanel onLoad={loadSimulation} isLoading={isSimLoading} />
+      )}
 
       {/* ── Controls ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:flex xl:flex-wrap items-end gap-3">
-          {/* Delivery Date */}
-          <div className="w-full sm:flex-1 sm:min-w-36">
+        {/* Primary row: date + fetch */}
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="flex-1 min-w-36">
             <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1.5">Pristatymo data</label>
             <input type="date" value={date}
               onChange={e => { setDate(e.target.value); resetAll(); }}
               className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-violet-400 transition-colors min-h-[44px]"
             />
           </div>
-
-          {/* Pickup Date (optional – different day) */}
-          <div className="w-full sm:flex-1 sm:min-w-36">
-            <label className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest block mb-1.5">
-              Paėmimo data
-            </label>
-            <div className="relative">
-              <input type="date" value={pickupDate}
-                onChange={e => setPickupDate(e.target.value)}
-                className="w-full border-2 border-amber-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-amber-400 transition-colors bg-amber-50/30 pr-8 min-h-[44px]"
-                title="Jei paėmimas kitą dieną – nurodykite paėmimo datą (nebūtina)"
-              />
-              {pickupDate && (
-                <button
-                  onClick={() => setPickupDate('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-amber-400 hover:text-amber-600 transition-colors p-1"
-                  title="Išvalyti paėmimo datą"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Origin */}
-          <div className="w-full sm:flex-1 sm:min-w-40">
-            <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1.5">Pradinis taškas</label>
-            <input value={origin} onChange={e => setOrigin(e.target.value)} placeholder="Pagramantis"
-              className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-violet-400 transition-colors min-h-[44px]"
-            />
-          </div>
-
-          {/* Pickup start location (where driver begins pickup route) */}
-          <div className="w-full sm:flex-1 sm:min-w-36">
-            <label className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest block mb-1.5 flex items-center gap-1">
-              <MapPin size={9} /> Paėmimo pr. taškas
-            </label>
-            <input value={waitLocation} onChange={e => setWaitLocation(e.target.value)} placeholder="Tauragė"
-              className="w-full border-2 border-amber-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-amber-400 transition-colors bg-amber-50/30 min-h-[44px]"
-              title="Kur pradedamas paėmimo maršrutas (paprastai – Tauragė)"
-            />
-          </div>
-
-          {/* Fetch button */}
           <button onClick={fetchOrders} disabled={isFetching || isValidating} data-testid="fetch-orders-btn"
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-violet-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-violet-700 active:scale-95 transition-all shadow-sm disabled:opacity-60 min-h-[44px]">
+            className="flex items-center justify-center gap-2 bg-violet-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-violet-700 active:scale-95 transition-all shadow-sm disabled:opacity-60 min-h-[44px]">
             {isFetching || isValidating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             {isFetching ? 'Gaunama...' : isValidating ? 'Validuojama...' : 'Gauti užsakymus'}
           </button>
@@ -1517,6 +1477,45 @@ const RoutePlanner = () => {
               className="w-full sm:w-auto flex items-center justify-center gap-1.5 p-2.5 rounded-xl border-2 border-gray-100 text-gray-400 hover:text-red-400 hover:border-red-200 transition-colors min-h-[44px] text-xs font-semibold">
               <RotateCcw size={14} /> Išvalyti
             </button>
+          )}
+        </div>
+
+        {/* Daugiau nustatymų (collapsible) */}
+        <div className="mt-2">
+          <button
+            onClick={() => setShowMoreControls(v => !v)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-violet-500 transition-colors py-1"
+          >
+            {showMoreControls ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            Daugiau nustatymų
+          </button>
+          {showMoreControls && (
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1.5">Paėmimo data</label>
+                <input type="date" value={pickupDate}
+                  onChange={e => setPickupDate(e.target.value)}
+                  className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-violet-400 transition-colors min-h-[44px]"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Palik tuščią — paėmimai iš tos pačios dienos</p>
+              </div>
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1.5">Išvykimo taškas</label>
+                <input type="text" value={origin}
+                  onChange={e => setOrigin(e.target.value)}
+                  placeholder={DEFAULT_ORIGIN}
+                  className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-violet-400 transition-colors min-h-[44px]"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1.5">Laukimo vieta</label>
+                <input type="text" value={waitLocation}
+                  onChange={e => setWaitLocation(e.target.value)}
+                  placeholder="Tauragė"
+                  className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-violet-400 transition-colors min-h-[44px]"
+                />
+              </div>
+            </div>
           )}
         </div>
 
@@ -1587,21 +1586,6 @@ const RoutePlanner = () => {
             >
               {isAssigning ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
               {isAssigning ? 'Skaičiuojama...' : 'Rekomenduoti išdėstymą'}
-            </button>
-          )}
-
-          {/* Validate all */}
-          {allStopIds.length > 0 && (
-            <button
-              onClick={validateAll}
-              disabled={isValidating}
-              data-testid="validate-all-btn"
-              className={`flex items-center gap-1.5 text-xs font-extrabold px-3 py-2 rounded-xl border-2 transition-colors disabled:opacity-40 min-h-[40px] ${
-                vehicles.length === 0 ? 'ml-auto' : ''
-              } bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100`}
-            >
-              {isValidating ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-              Validuoti adresus
             </button>
           )}
 
@@ -1817,118 +1801,60 @@ const RoutePlanner = () => {
               </div>
             )}
 
-            {/* Share panel – separate delivery + pickup navigation links */}
-            {selectedVehicle && validStopsForMap.length > 0 && (
-              <div className="bg-white rounded-2xl border-2 border-gray-100 p-4 space-y-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
-                    Google Maps navigacija – {selectedVehicle.name}
+            {/* Share panel – follows map mode selection (2 buttons instead of 6) */}
+            {selectedVehicle && validStopsForMap.length > 0 && (() => {
+              const activeUrl = mapMode === 'delivery' ? deliveryShareUrl
+                : mapMode === 'pickup' ? pickupShareUrl
+                : shareUrl;
+              const modeLabel = mapMode === 'delivery' ? 'Pristatymo'
+                : mapMode === 'pickup' ? 'Paėmimo'
+                : 'Pilnas';
+              const modeColor = mapMode === 'delivery' ? 'blue'
+                : mapMode === 'pickup' ? 'amber'
+                : 'violet';
+              if (!activeUrl) return null;
+              return (
+                <div className="bg-white rounded-2xl border-2 border-gray-100 p-4 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                      {modeLabel} maršrutas – {selectedVehicle.name}
+                    </p>
+                  </div>
+                  <div className={`bg-${modeColor}-50 rounded-xl px-3 py-1.5 flex items-center gap-2`}>
+                    <MapPin size={10} className={`text-${modeColor}-400 flex-shrink-0`} />
+                    <code className="text-[10px] text-gray-500 flex-1 min-w-0 truncate">{activeUrl.slice(0, 90)}…</code>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyUrl(activeUrl)}
+                      data-testid="copy-route-btn"
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-extrabold border-2 transition-all ${
+                        copiedUrl === activeUrl
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : `bg-${modeColor}-50 border-${modeColor}-200 text-${modeColor}-700 hover:bg-${modeColor}-100`
+                      }`}
+                    >
+                      {copiedUrl === activeUrl ? <Check size={13} /> : <Copy size={13} />}
+                      {copiedUrl === activeUrl ? 'Nukopijuota!' : 'Kopijuoti nuorodą'}
+                    </button>
+                    <a
+                      href={activeUrl} target="_blank" rel="noreferrer"
+                      data-testid="open-gmaps-btn"
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-extrabold text-white transition-colors border-2 ${
+                        mapMode === 'delivery' ? 'bg-blue-600 border-blue-600 hover:bg-blue-700'
+                          : mapMode === 'pickup' ? 'bg-amber-500 border-amber-500 hover:bg-amber-600'
+                          : 'bg-violet-600 border-violet-600 hover:bg-violet-700'
+                      }`}
+                    >
+                      <ExternalLink size={13} /> Atidaryti Maps
+                    </a>
+                  </div>
+                  <p className="text-[10px] text-gray-400 text-center">
+                    Perjunkite viršuje: Pilnas · Pristatymas · Paėmimas
                   </p>
-                  <span className="text-[10px] text-gray-400">
-                    {validStopsForMap.length} tašk{validStopsForMap.length === 1 ? 'as' : 'ai'}
-                  </span>
                 </div>
-
-                {/* Delivery route */}
-                {deliveryShareUrl && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-extrabold text-blue-600 flex items-center gap-1">
-                      <Navigation size={9} /> Pristatymo maršrutas
-                      <span className="font-normal text-blue-400 ml-1">Pagramantis → pristatymai → {waitLocation}</span>
-                    </p>
-                    <div className="bg-blue-50 rounded-xl px-3 py-1.5 flex items-center gap-2">
-                      <MapPin size={10} className="text-blue-400 flex-shrink-0" />
-                      <code className="text-[10px] text-gray-500 flex-1 min-w-0 truncate">{deliveryShareUrl.slice(0, 80)}…</code>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => copyUrl(deliveryShareUrl)}
-                        data-testid="copy-delivery-route-btn"
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold border-2 transition-all ${
-                          copiedUrl === deliveryShareUrl
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
-                        }`}
-                      >
-                        {copiedUrl === deliveryShareUrl ? <Check size={12} /> : <Copy size={12} />}
-                        {copiedUrl === deliveryShareUrl ? 'Nukopijuota!' : 'Kopijuoti'}
-                      </button>
-                      <a
-                        href={deliveryShareUrl} target="_blank" rel="noreferrer"
-                        data-testid="open-delivery-route-btn"
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold bg-blue-600 text-white hover:bg-blue-700 transition-colors border-2 border-blue-600"
-                      >
-                        <ExternalLink size={12} /> Atidaryti
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pickup route */}
-                {pickupShareUrl && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-extrabold text-amber-600 flex items-center gap-1">
-                      <Navigation size={9} /> Paėmimo maršrutas
-                      <span className="font-normal text-amber-400 ml-1">{waitLocation} → paėmimai → Pagramantis</span>
-                    </p>
-                    <div className="bg-amber-50 rounded-xl px-3 py-1.5 flex items-center gap-2">
-                      <MapPin size={10} className="text-amber-400 flex-shrink-0" />
-                      <code className="text-[10px] text-gray-500 flex-1 min-w-0 truncate">{pickupShareUrl.slice(0, 80)}…</code>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => copyUrl(pickupShareUrl)}
-                        data-testid="copy-pickup-route-btn"
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold border-2 transition-all ${
-                          copiedUrl === pickupShareUrl
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                        }`}
-                      >
-                        {copiedUrl === pickupShareUrl ? <Check size={12} /> : <Copy size={12} />}
-                        {copiedUrl === pickupShareUrl ? 'Nukopijuota!' : 'Kopijuoti'}
-                      </button>
-                      <a
-                        href={pickupShareUrl} target="_blank" rel="noreferrer"
-                        data-testid="open-pickup-route-btn"
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold bg-amber-500 text-white hover:bg-amber-600 transition-colors border-2 border-amber-500"
-                      >
-                        <ExternalLink size={12} /> Atidaryti
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* Full combined route (both segments) */}
-                {deliveryShareUrl && pickupShareUrl && (
-                  <div className="pt-2 border-t border-gray-100">
-                    <p className="text-[9px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Pilnas dienos maršrutas</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => copyUrl(shareUrl)}
-                        data-testid="copy-route-btn"
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold border-2 transition-all ${
-                          copiedUrl === shareUrl
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        {copiedUrl === shareUrl ? <Check size={12} /> : <Copy size={12} />}
-                        {copiedUrl === shareUrl ? 'Nukopijuota!' : 'Kopijuoti pilną'}
-                      </button>
-                      <a href={shareUrl} target="_blank" rel="noreferrer" data-testid="open-gmaps-btn"
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-extrabold bg-gray-900 text-white hover:bg-gray-800 transition-colors border-2 border-gray-900">
-                        <ExternalLink size={12} /> Pilnas maršrutas
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                  Nuoroda veikia navigacijoje telefone ir kompiuteryje · nereikia prisijungti
-                </p>
-              </div>
-            )}
+              );
+            })()}
 
             {/* No vehicles placeholder */}
             {vehicles.length === 0 && (
