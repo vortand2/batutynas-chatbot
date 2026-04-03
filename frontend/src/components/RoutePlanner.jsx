@@ -1118,6 +1118,7 @@ const RoutePlanner = () => {
         newIds.push(s.id);
       });
       setStopsById(newStops);
+      stopsByIdRef.current = newStops; // sync ref immediately so runValidation reads correct addresses
       setUnassignedIds(newIds);
       setVehicles(prev => prev.map(v => ({ ...v, stopIds: [], stats: null })));
       setFetchInfo({
@@ -1467,6 +1468,16 @@ const RoutePlanner = () => {
             {isFetching || isValidating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             {isFetching ? 'Gaunama...' : isValidating ? 'Validuojama...' : 'Gauti užsakymus'}
           </button>
+
+          {/* Validate manually (fallback if auto-validation fails) */}
+          {allStopIds.length > 0 && (
+            <button onClick={validateAll} disabled={isValidating}
+              title="Pakartotinai validuoti adresus"
+              className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl border-2 border-violet-200 text-violet-500 hover:bg-violet-50 hover:border-violet-400 transition-colors min-h-[44px] text-xs font-semibold disabled:opacity-40">
+              {isValidating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              {isValidating ? 'Validuojama...' : 'Validuoti'}
+            </button>
+          )}
 
           {/* Reset */}
           {allStopIds.length > 0 && (
