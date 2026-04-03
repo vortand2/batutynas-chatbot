@@ -1,0 +1,43 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Python files to VPS (no rebuild)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            # Pull latest code
+            cd /root/batutynas-chatbot
+            git pull origin master
+
+            # Find the running backend container
+            CONTAINER=$(docker ps --filter "name=backend" --format "{{.Names}}" | head -n1)
+
+            if [ -z "$CONTAINER" ]; then
+              echo "No backend container found — doing full compose up"
+              docker compose up -d --build backend
+            else
+              echo "Copying updated Python files into $CONTAINER"
+              docker cp backend/server.py        $CONTAINER:/app/server.py
+              docker cp backend/bin_pack.py      $CONTAINER:/app/bin_pack.py
+              docker cp backend/clarke_wright.py $CONTAINER:/app/clarke_wright.py
+
+              echo "Restarting $CONTAINER"
+              docker restart $CONTAINER
+              echo "Done — backend updated in ~15 seconds, no rebuild"
+            fi
