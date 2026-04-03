@@ -335,7 +335,7 @@ const DroppableZone = ({ id, children, className = '' }) => {
 const StopCard = React.forwardRef(({
   stop, index, isDragging, dragHandleProps, onAddressChange,
   onTypeChange, onRemove, onUnitsChange, showIndex,
-  vehicles, currentVehicleId, onVehicleAssign, showPickupControls,
+  vehicles, currentVehicleId, onVehicleAssign,
 }, ref) => (
   <div
     ref={ref}
@@ -367,52 +367,27 @@ const StopCard = React.forwardRef(({
       <div className="flex-1 min-w-0 space-y-1">
         {/* Row 1: vehicle assign + type badge + name + phone */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Vehicle dropdown (primary assignment method) */}
-          {onVehicleAssign && vehicles && vehicles.length > 0 && (
+          {/* Vehicle dropdown (always visible when onVehicleAssign is provided) */}
+          {onVehicleAssign && (
             <select
               value={currentVehicleId || ''}
               onChange={e => { e.stopPropagation(); onVehicleAssign(stop.id, e.target.value || null); }}
               onClick={e => e.stopPropagation()}
-              className={`text-[9px] font-bold border rounded-lg px-1.5 py-0.5 focus:outline-none focus:border-violet-400 flex-shrink-0 max-w-[110px] ${
+              className={`text-[10px] font-bold border rounded-lg px-2 py-1 focus:outline-none focus:border-violet-400 flex-shrink-0 ${
                 currentVehicleId ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-amber-300 bg-amber-50 text-amber-700'
               }`}
               title="Priskirti automobiliui"
             >
-              <option value="">Nepriskirtas</option>
-              {vehicles.map(v => (
+              <option value="">— Nepriskirtas —</option>
+              {(vehicles || []).map(v => (
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
           )}
-          {/* Type toggle (only when showPickupControls is on) */}
-          {onTypeChange && showPickupControls ? (
-            <div
-              className="flex rounded-full border border-gray-200 overflow-hidden text-[9px] font-extrabold flex-shrink-0"
-              title="Spustelėkite norėdami pakeisti tipą"
-              data-testid={`stop-type-toggle-${stop.id}`}
-            >
-              <button
-                onClick={() => onTypeChange(stop.id, 'delivery')}
-                className={`px-2 py-0.5 transition-colors min-w-[42px] ${
-                  stop.type === 'delivery'
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-400 hover:bg-gray-50'
-                }`}
-              >↑</button>
-              <button
-                onClick={() => onTypeChange(stop.id, 'pickup')}
-                className={`px-2 py-0.5 transition-colors min-w-[42px] border-l border-gray-200 ${
-                  stop.type !== 'delivery'
-                    ? 'bg-amber-500 text-white'
-                    : 'text-gray-400 hover:bg-gray-50'
-                }`}
-              >↓</button>
-            </div>
-          ) : (
-            <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${TYPE_STYLE[stop.type]}`}>
-              {TYPE_LABEL[stop.type]}
-            </span>
-          )}
+          {/* Type badge (read-only) */}
+          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${TYPE_STYLE[stop.type]}`}>
+            {TYPE_LABEL[stop.type]}
+          </span>
           {stop.name  && <span className="text-xs font-bold text-gray-800 truncate">{stop.name}</span>}
           {stop.phone && <span className="text-[11px] text-gray-400 truncate">{stop.phone}</span>}
         </div>
@@ -506,7 +481,7 @@ StopCard.displayName = 'StopCard';
 
 // ── SortableStopCard (drag within same container) ─────────────────────────────
 const SortableStopCard = ({ stop, index, onAddressChange, onTypeChange, onRemove, onUnitsChange, showIndex,
-  vehicles, currentVehicleId, onVehicleAssign, showPickupControls }) => {
+  vehicles, currentVehicleId, onVehicleAssign }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: stop.id });
 
@@ -528,7 +503,6 @@ const SortableStopCard = ({ stop, index, onAddressChange, onTypeChange, onRemove
         vehicles={vehicles}
         currentVehicleId={currentVehicleId}
         onVehicleAssign={onVehicleAssign}
-        showPickupControls={showPickupControls}
       />
     </div>
   );
@@ -540,7 +514,7 @@ const VehicleColumn = ({
   onRename, onCapacityChange, onRemoveVehicle,
   onAddressChange, onTypeChange, onRemoveStop, onUnitsChange,
   onOptimize, isOptimizing, isSelected, onSelect, onToggleCollapse,
-  vehicles, onVehicleAssign, showPickupControls,
+  vehicles, onVehicleAssign,
 }) => {
   const [editingName, setEditingName] = useState(false);
   const [nameVal, setNameVal] = useState(vehicle.name);
@@ -646,7 +620,7 @@ const VehicleColumn = ({
                             onAddressChange={onAddressChange} onTypeChange={onTypeChange}
                             onRemove={onRemoveStop} onUnitsChange={onUnitsChange}
                             vehicles={vehicles} currentVehicleId={vehicle.id}
-                            onVehicleAssign={onVehicleAssign} showPickupControls={showPickupControls}
+                            onVehicleAssign={onVehicleAssign}
                           />
                         );
                       })}
@@ -675,7 +649,7 @@ const VehicleColumn = ({
                             onAddressChange={onAddressChange} onTypeChange={onTypeChange}
                             onRemove={onRemoveStop} onUnitsChange={onUnitsChange}
                             vehicles={vehicles} currentVehicleId={vehicle.id}
-                            onVehicleAssign={onVehicleAssign} showPickupControls={showPickupControls}
+                            onVehicleAssign={onVehicleAssign}
                           />
                         );
                       })}
@@ -807,7 +781,6 @@ const RoutePlanner = () => {
   const [mapMode,        setMapMode]        = useState('full'); // 'full' | 'delivery' | 'pickup'
   const [copiedUrl,      setCopiedUrl]      = useState('');
   const [copied,         setCopied]         = useState(false);
-  const [showPickupControls, setShowPickupControls] = useState(false);
   const embedKeyRef = useRef(0);
   const addressDebounceRef = useRef({});
 
@@ -1632,17 +1605,6 @@ const RoutePlanner = () => {
             </button>
           )}
 
-          {/* Toggle pickup controls visibility */}
-          <button
-            onClick={() => setShowPickupControls(p => !p)}
-            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border transition-colors min-h-[40px] ${
-              showPickupControls
-                ? 'bg-amber-50 border-amber-300 text-amber-700'
-                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            {showPickupControls ? '↓ Slėpti paėmimus' : '↓ Rodyti paėmimus'}
-          </button>
         </div>
 
         {vehicles.length === 0 && (
@@ -1708,7 +1670,6 @@ const RoutePlanner = () => {
                           vehicles={vehicles}
                           currentVehicleId={null}
                           onVehicleAssign={handleVehicleAssign}
-                          showPickupControls={showPickupControls}
                         />
                       );
                     })}
@@ -1738,7 +1699,6 @@ const RoutePlanner = () => {
                 onToggleCollapse={toggleCollapse}
                 vehicles={vehicles}
                 onVehicleAssign={handleVehicleAssign}
-                showPickupControls={showPickupControls}
               />
             ))}
 
