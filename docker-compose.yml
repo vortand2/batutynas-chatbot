@@ -14,8 +14,6 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    volumes:
-      - ./backend:/app          # live mount — git pull = instant code update
     depends_on:
       - mongo
     environment:
