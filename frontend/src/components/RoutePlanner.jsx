@@ -29,6 +29,10 @@ import {
   TrendingDown,
 } from 'lucide-react';
 
+import {
+  hasCoordinates, clarkeWrightAssign, binPackAssign, assignPickups,
+} from '../utils/clarkeWright';
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const API_URL        = process.env.REACT_APP_BACKEND_URL + '/api';
 const MAPS_KEY       = process.env.REACT_APP_GOOGLE_MAPS_KEY || '';
@@ -1217,16 +1221,32 @@ const RoutePlanner = () => {
     }
     setIsAssigning(true);
     try {
+      // ── Vehicle assignment runs in the browser (no VPS needed for algorithm changes)
+      const stopPayloads   = allStops.map(s => ({
+        id: s.id, equipment: s.equipment, units: s.units,
+        formattedAddress: s.formattedAddress, lat: s.lat, lng: s.lng,
+        type: s.type,
+      }));
+      const deliveryStops  = stopPayloads.filter(s => s.type === 'delivery');
+      const pickupStops    = stopPayloads.filter(s => s.type !== 'delivery');
+      const vehiclePayload = curVehicles.map(v => ({ id: v.id, name: v.name, capacity: v.capacity }));
+
+      const { assignments: deliveryAssignments } = hasCoordinates(deliveryStops)
+        ? clarkeWrightAssign(deliveryStops, vehiclePayload)
+        : binPackAssign(deliveryStops, vehiclePayload);
+
+      const { assignments: fullAssignments } = assignPickups(
+        pickupStops, deliveryAssignments, deliveryStops, vehiclePayload,
+      );
+
+      // ── Send pre-computed assignments to backend; backend only does Google Maps routing
       const { data } = await routeApi.post('/admin/route/optimize-multi', {
         origin:        origin + ', Lietuva',
         wait_location: waitLocation,
-        vehicles:      curVehicles.map(v => ({ id: v.id, name: v.name, capacity: v.capacity })),
-        stops:         allStops.map(s => ({
-          id: s.id, equipment: s.equipment, units: s.units,
-          formattedAddress: s.formattedAddress, lat: s.lat, lng: s.lng,
-          type: s.type,
-        })),
-        auto_assign: true,
+        vehicles:      vehiclePayload,
+        stops:         stopPayloads,
+        auto_assign:   false,
+        assignments:   fullAssignments,
       });
 
       const assignments   = data.assignments    || {};
