@@ -18,6 +18,7 @@ from datetime import datetime, timezone, timedelta
 from google import genai as _genai
 from google.genai import types as _gtypes
 from bin_pack import bin_pack as _bin_pack, get_default_units
+from clarke_wright import clarke_wright_assign as _cw_assign, has_coordinates as _has_coords
 
 # ── Add-on size reference (units per add-on item) ─────────────────────────────
 # 'full' = takes entire vehicle; float = fractional trampoline-equivalent slots
@@ -1148,7 +1149,12 @@ async def optimize_route_multi(data: Dict[str, Any], x_admin_token: Optional[str
     pickup_stops   = [s for s in stops if s.get("type", "delivery") != "delivery"]
 
     if auto_assign:
-        assignments, unassigned_ids = _bin_pack(delivery_stops, vehicles)
+        # Clarke-Wright (geo-aware, minimises total km) when coordinates are available.
+        # Falls back to greedy bin-packing (FFD) when stops lack lat/lng.
+        if _has_coords(delivery_stops):
+            assignments, unassigned_ids = _cw_assign(delivery_stops, vehicles)
+        else:
+            assignments, unassigned_ids = _bin_pack(delivery_stops, vehicles)
 
         # Auto-assign pickup stops to the same vehicle as their delivery counterpart
         # Match by address (pickup has same formattedAddress as its delivery)

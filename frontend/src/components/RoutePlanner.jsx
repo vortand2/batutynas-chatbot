@@ -97,8 +97,8 @@ const SIMULATIONS = [
   },
   {
     id: 2,
-    name: 'Scenarijus 2: Pilnas pakrovimas',
-    desc: '7 batutai → 3 automobiliai, 10 vietų (miestas + kaimai)',
+    name: 'Scenarijus 2: Geografinis grupavimas',
+    desc: '6 pristatymai + 1 paėmimas → 3 automobiliai. Didelis auto turi gauti daugiau krovinių nei mažas.',
     vehicles: [
       { type: 'small', name: 'Automobilis 1 (mažas)',   capacity: 3 },
       { type: 'small', name: 'Automobilis 2 (mažas)',   capacity: 3 },
@@ -106,6 +106,7 @@ const SIMULATIONS = [
     ],
     stops: [
       {
+        // Tauragė miesto centras
         name: 'A. Antanavičius',
         phone: '+37060000001',
         equipment: 'Pilis',
@@ -114,6 +115,7 @@ const SIMULATIONS = [
         type: 'delivery',
       },
       {
+        // Šilalė – šiaurė
         name: 'B. Baltrūnas',
         phone: '+37060000002',
         equipment: 'Monstrai',
@@ -122,6 +124,7 @@ const SIMULATIONS = [
         type: 'delivery',
       },
       {
+        // Jurbarkas – pietryčiai
         name: 'C. Čeponis',
         phone: '+37060000003',
         equipment: 'Chameleonas',
@@ -130,6 +133,7 @@ const SIMULATIONS = [
         type: 'delivery',
       },
       {
+        // Paėmimas netoli Tauragės
         name: 'D. Daujotis',
         phone: '+37060000004',
         equipment: 'Aštuonkojis',
@@ -138,6 +142,7 @@ const SIMULATIONS = [
         type: 'pickup',
       },
       {
+        // Batakiai – aplink Tauragę
         name: 'E. Eimutis',
         phone: '+37060000005',
         equipment: 'Vienaragiai',
@@ -146,6 +151,7 @@ const SIMULATIONS = [
         type: 'delivery',
       },
       {
+        // Eržvilkas – pietus link Jurbarko
         name: 'F. Feliksas',
         phone: '+37060000006',
         equipment: 'Candy Pop',
@@ -154,11 +160,80 @@ const SIMULATIONS = [
         type: 'delivery',
       },
       {
+        // Nemakščiai – rytai (Raseiniai)
+        // Clarke-Wright: šis 2 vnt. batutas turi patekti į didelį automobilį
+        // kartu su geografiškai artimais sustojimais
         name: 'G. Giedrius',
         phone: '+37060000007',
         equipment: 'Mega waikiki',
         address: 'Nemakščiai, Raseinių r.',
         units: 2,
+        type: 'delivery',
+      },
+    ],
+  },
+  {
+    id: 4,
+    name: 'Scenarijus 4: Automobilių minimizavimas',
+    desc: '6 batutai, 10 vietų (3 auto) → Clarke-Wright turi naudoti tik 2 automobilius',
+    vehicles: [
+      { type: 'small', name: 'Automobilis 1 (mažas)', capacity: 3 },
+      { type: 'small', name: 'Automobilis 2 (mažas)', capacity: 3 },
+      { type: 'large', name: 'Automobilis 3 (didelis)', capacity: 4 },
+    ],
+    stops: [
+      {
+        // Tauragė centras
+        name: 'A. Aleksa',
+        phone: '+37060000011',
+        equipment: 'Pilis',
+        address: 'Vytauto g. 10, Tauragė',
+        units: 1,
+        type: 'delivery',
+      },
+      {
+        // Tauragė – kita pusė
+        name: 'B. Balsys',
+        phone: '+37060000012',
+        equipment: 'Monstrai',
+        address: 'Dariaus ir Girėno g. 5, Tauragė',
+        units: 1,
+        type: 'delivery',
+      },
+      {
+        // Tauragė rajone
+        name: 'C. Cirtautas',
+        phone: '+37060000013',
+        equipment: 'Chameleonas',
+        address: 'Žemaičių pl. 3, Tauragė',
+        units: 1,
+        type: 'delivery',
+      },
+      {
+        // Tauragė rajone
+        name: 'D. Daugėla',
+        phone: '+37060000014',
+        equipment: 'Candy Pop',
+        address: 'Stoties g. 7, Tauragė',
+        units: 1,
+        type: 'delivery',
+      },
+      {
+        // Kelmė – šiaurė
+        name: 'E. Eigminas',
+        phone: '+37060000015',
+        equipment: 'Vienaragiai',
+        address: 'S. Daukanto g. 4, Kelmė',
+        units: 1,
+        type: 'delivery',
+      },
+      {
+        // Kelmė rajone
+        name: 'F. Filipas',
+        phone: '+37060000016',
+        equipment: 'Astuonkojis',
+        address: 'Gedimino g. 2, Kelmė',
+        units: 1,
         type: 'delivery',
       },
     ],
