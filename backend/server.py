@@ -14,7 +14,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional, Union
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from google import genai as _genai
 from google.genai import types as _gtypes
 from bin_pack import bin_pack as _bin_pack, get_default_units
@@ -766,9 +766,13 @@ async def get_route_orders(date: str, x_admin_token: Optional[str] = Header(None
                 r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": month})
                 r.raise_for_status()
                 cal_data = r.json()
+            # Calendar Bridge stores event dates in UTC; Lithuanian events starting at
+            # midnight EEST (UTC+3) appear as the *previous* UTC day.
+            # Accept both the requested date and the day before to handle this offset.
+            prev_date = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
             for b in cal_data.get("bookings", []):
-                # Only include bookings matching the target date
-                if b.get("event_date") != date:
+                # Only include bookings matching the target date (or prev UTC-day)
+                if b.get("event_date") not in (date, prev_date):
                     continue
                 bid = b.get("id") or b.get("calendarEventId", "")
                 if bid in seen_ids:
