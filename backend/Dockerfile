@@ -12,7 +12,7 @@ COPY requirements.prod.txt .
 RUN pip install --no-cache-dir -r requirements.prod.txt
 
 # Copy application code
-COPY server.py .
+COPY server.py bin_pack.py ./
 
 EXPOSE 8001
 
