@@ -747,7 +747,12 @@ async def get_route_orders(date: str, x_admin_token: Optional[str] = Header(None
                 if bid in seen_ids:
                     continue
                 seen_ids.add(bid)
-                equipment = b.get("equipment") or b.get("raw_summary", "") or ""
+                # equipment may be a list of dicts [{name, icon, category}] or a string
+                raw_equip = b.get("equipment") or b.get("raw_summary", "") or ""
+                if isinstance(raw_equip, list):
+                    equipment = ", ".join(e.get("name", "") for e in raw_equip if isinstance(e, dict) and e.get("name"))
+                else:
+                    equipment = str(raw_equip)
                 raw_addons = b.get("addons", []) or []
                 if isinstance(raw_addons, str):
                     addons = [a.strip() for a in raw_addons.split(",") if a.strip()]
