@@ -1085,8 +1085,17 @@ const RoutePlanner = () => {
 
       let pickupOrders = [];
       if (pickupDate && pickupDate !== date) {
+        // Separate pickup date: fetch orders from that date as pickup stops
         const { data: pd } = await routeApi.get(`/admin/route/orders?date=${pickupDate}`);
         pickupOrders = (pd.orders || []).map(o => ({ ...o, type: 'pickup' }));
+      } else {
+        // Same day or no pickup date: auto-generate pickup stops from delivery orders
+        // (equipment must be picked up from the same addresses)
+        pickupOrders = deliveryOrders.map(o => ({
+          ...o,
+          orderId: (o.orderId || '') + '-pickup',
+          type: 'pickup',
+        }));
       }
 
       const allOrders = [...deliveryOrders, ...pickupOrders];
