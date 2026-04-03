@@ -576,11 +576,19 @@ const ChatWidget = ({ embedded = false }) => {
     if (hasSuccess)    step = 4;
     return { flowStep: step, activeFlowId: flowId };
   }, [messages, submittedForms]);
-  // Listen for external open event (from landing page CTA)
+  // Listen for external open event (from landing page CTA or embed.js parent)
   useEffect(() => {
-    const handler = () => { setIsOpen(true); setHasUnread(false); };
-    window.addEventListener('open-batutynas-chat', handler);
-    return () => window.removeEventListener('open-batutynas-chat', handler);
+    const domHandler = () => { setIsOpen(true); setHasUnread(false); };
+    window.addEventListener('open-batutynas-chat', domHandler);
+    // Also listen for postMessage from parent iframe (embed.js sends 'batutynas-open')
+    const msgHandler = (e) => {
+      if (e.data?.type === 'batutynas-open') { setIsOpen(true); setHasUnread(false); }
+    };
+    window.addEventListener('message', msgHandler);
+    return () => {
+      window.removeEventListener('open-batutynas-chat', domHandler);
+      window.removeEventListener('message', msgHandler);
+    };
   }, []);
 
   // Init messages
@@ -827,10 +835,9 @@ const ChatWidget = ({ embedded = false }) => {
   }, [handleButtonClick, handleTrampolineSelect, handleServicesConfirm, handleAddonsConfirm, handleFormSubmit, handleEscalate, isSubmitting, submittedForms, setDetailTrampoline]);
 
   const handleClose = useCallback(() => {
+    setIsOpen(false); // always hide chat window inside this component
     if (embedded) {
-      window.parent.postMessage({ type: 'batutynas-close' }, '*');
-    } else {
-      setIsOpen(false);
+      window.parent.postMessage({ type: 'batutynas-close' }, '*'); // also tell parent to hide iframe wrapper
     }
   }, [embedded]);
 

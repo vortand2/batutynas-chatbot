@@ -112,6 +112,10 @@
     fab.textContent = '';
     fab.appendChild(ICON_CLOSE_SVG.cloneNode(true));
     fab.setAttribute('aria-label', 'Uždaryti pokalbį');
+    // Tell the iframe to re-open the chat window (in case it was closed via X button)
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'batutynas-open' }, '*');
+    }
   }
 
   function closeChat() {
