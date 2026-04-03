@@ -577,7 +577,10 @@ async def admin_booking_create(body: Dict[str, Any], _=Depends(require_admin)):
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(_n8n_url("batutynas-calendar-create"), json=body)
             r.raise_for_status()
-            return r.json()
+            try:
+                return r.json()
+            except Exception:
+                return {"success": True, "status": r.status_code}
     except Exception as e:
         logger.error("admin_booking_create proxy error: %s", e)
         raise HTTPException(502, str(e))
@@ -591,7 +594,10 @@ async def admin_booking_update(body: Dict[str, Any], _=Depends(require_admin)):
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(_n8n_url("batutynas-calendar-update"), json=body)
             r.raise_for_status()
-            return r.json()
+            try:
+                return r.json()
+            except Exception:
+                return {"success": True, "status": r.status_code}
     except Exception as e:
         logger.error("admin_booking_update proxy error: %s", e)
         raise HTTPException(502, str(e))
@@ -605,7 +611,10 @@ async def admin_booking_delete(body: Dict[str, Any], _=Depends(require_admin)):
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.post(_n8n_url("batutynas-calendar-delete"), json=body)
             r.raise_for_status()
-            return r.json()
+            try:
+                return r.json()
+            except Exception:
+                return {"success": True, "status": r.status_code}
     except Exception as e:
         logger.error("admin_booking_delete proxy error: %s", e)
         raise HTTPException(502, str(e))
