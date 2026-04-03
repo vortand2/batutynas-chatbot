@@ -42,13 +42,13 @@ const VEHICLE_PRESETS = {
 };
 
 const UNITS_OPTIONS = [
-  { value: 0.5,    label: '0.5 – Nedidelis priedas' },
-  { value: 1,      label: '1 – Standartinis batutas' },
-  { value: 1.5,    label: '1.5 – Batutas + priedas' },
-  { value: 2,      label: '2 – Didelis (pvz. Mega dart)' },
-  { value: 3,      label: '3 vienetai' },
-  { value: 4,      label: '4 vienetai' },
-  { value: 'full', label: 'Pilnas automobilis' },
+  { value: 0.5,    label: '0.5 – priedas' },
+  { value: 1,      label: '1 – batutas' },
+  { value: 1.5,    label: '1.5 – batutas+priedas' },
+  { value: 2,      label: '2 – didelis' },
+  { value: 3,      label: '3 vnt.' },
+  { value: 4,      label: '4 vnt.' },
+  { value: 'full', label: 'Pilnas auto' },
 ];
 
 const routeApi = axios.create({ baseURL: API_URL });
@@ -749,10 +749,6 @@ const SimulationPanel = ({ onLoad, isLoading }) => {
               </button>
             </div>
           ))}
-          <p className="text-[10px] text-gray-400 text-center leading-snug">
-            Simuliacijos užkrauna testavimo duomenis → spustelėkite „Rekomenduoti" →
-            vilkite batutus rankiniu būdu norėdami koreguoti
-          </p>
         </div>
       )}
     </div>
@@ -1505,7 +1501,7 @@ const RoutePlanner = () => {
                   onChange={e => setPickupDate(e.target.value)}
                   className="w-full border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-800 focus:outline-none focus:border-violet-400 transition-colors min-h-[44px]"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Palik tuščią — paėmimai iš tos pačios dienos</p>
+                <p className="text-[10px] text-gray-400 mt-1">Tuščia = ta pati diena</p>
               </div>
               <div>
                 <label className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1.5">Išvykimo taškas</label>
@@ -1593,7 +1589,7 @@ const RoutePlanner = () => {
               className="flex items-center gap-2 bg-emerald-600 text-white text-xs font-extrabold px-4 py-2 rounded-xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-60 ml-auto min-h-[40px]"
             >
               {isAssigning ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
-              {isAssigning ? 'Skaičiuojama...' : 'Rekomenduoti išdėstymą'}
+              {isAssigning ? 'Skaičiuojama...' : 'Rekomenduoti'}
             </button>
           )}
 
@@ -1601,7 +1597,7 @@ const RoutePlanner = () => {
 
         {vehicles.length === 0 && (
           <p className="mt-2 text-[11px] text-gray-400 text-center py-1">
-            Pridėkite automobilius ir naudokite „Rekomenduoti išdėstymą" arba vilkite batutus rankiniu būdu
+            Pridėkite automobilius, tada „Rekomenduoti" arba vilkite rankiniu būdu
           </p>
         )}
       </div>
@@ -1632,19 +1628,12 @@ const RoutePlanner = () => {
                   </span>
                 )}
               </div>
-              {/* Pickup hint */}
-              {unassignedIds.length > 0 && (
-                <div className="mx-2 mt-2 mb-0.5 flex items-start gap-1.5 bg-amber-50 border border-amber-100 rounded-xl px-2.5 py-1.5 text-[10px] text-amber-700 font-semibold">
-                  <Navigation size={10} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                  <span>Paėmimo stotelėms – spustelėkite <strong>↑ Prista. / ↓ Paėm.</strong> ant kiekvienos stotelės kortelės</span>
-                </div>
-              )}
               <DroppableZone id="unassigned" className="p-2 min-h-[60px]">
                 <SortableContext id="unassigned" items={unassignedIds} strategy={verticalListSortingStrategy}>
                   <div className="space-y-1.5">
                     {unassignedIds.length === 0 && (
                       <p className="py-3 text-center text-[11px] text-gray-400">
-                        {allStopIds.length === 0 ? 'Gauti užsakymus arba paleisti simuliaciją' : 'Visi batutai priskirti'}
+                        {allStopIds.length === 0 ? 'Gauti užsakymus arba simuliacija' : 'Visi priskirti'}
                       </p>
                     )}
                     {unassignedIds.map((id, i) => {
@@ -1697,7 +1686,7 @@ const RoutePlanner = () => {
             {/* Add manual stop */}
             <button onClick={addManualStop} data-testid="add-stop-btn"
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-xs font-bold hover:border-violet-300 hover:text-violet-500 transition-colors">
-              <Plus size={13} /> Pridėti stotelę rankiniu būdu
+              <Plus size={13} /> Pridėti stotelę
             </button>
           </div>
 
@@ -1770,28 +1759,21 @@ const RoutePlanner = () => {
                 {!MAPS_KEY ? (
                   <div className="h-72 flex flex-col items-center justify-center gap-2 p-6 text-center">
                     <MapPin size={28} className="text-gray-300" />
-                    <p className="text-sm font-bold text-gray-500">Google Maps žemėlapis neaktyvuotas</p>
-                    <p className="text-xs text-gray-400">
-                      Pridėkite <code className="bg-gray-100 px-1 rounded">REACT_APP_GOOGLE_MAPS_KEY</code> į frontend/.env
-                    </p>
+                    <p className="text-sm font-bold text-gray-500">Google Maps neaktyvuotas</p>
                   </div>
                 ) : !selectedVehicle || validStopsForMap.length === 0 ? (
                   <div className="h-72 flex flex-col items-center justify-center gap-2 text-center p-6">
                     <Navigation size={28} className="text-gray-300" />
                     <p className="text-sm font-bold text-gray-400">
-                      {selectedVehicle
-                        ? `„${selectedVehicle.name}" – nėra validuotų adresų`
-                        : 'Pasirinkite automobilį viršuje'}
+                      {selectedVehicle ? 'Nėra validuotų adresų' : 'Pasirinkite automobilį'}
                     </p>
-                    <p className="text-xs text-gray-300">Validuokite adresus ir priskirskite batutus automobiliams</p>
-                  </div>
+                    </div>
                 ) : !activeEmbedUrl ? (
                   <div className="h-72 flex flex-col items-center justify-center gap-2 text-center p-6">
                     <Navigation size={28} className="text-gray-300" />
                     <p className="text-sm font-bold text-gray-400">
                       Nėra {mapMode === 'delivery' ? 'pristatymo' : mapMode === 'pickup' ? 'paėmimo' : ''} stotelių šiam automobiliui
                     </p>
-                    <p className="text-xs text-gray-300">Perjunkite į kitą rodinį arba priskirskite stotelių</p>
                   </div>
                 ) : (
                   <iframe
@@ -1843,7 +1825,7 @@ const RoutePlanner = () => {
                       }`}
                     >
                       {copiedUrl === activeUrl ? <Check size={13} /> : <Copy size={13} />}
-                      {copiedUrl === activeUrl ? 'Nukopijuota!' : 'Kopijuoti nuorodą'}
+                      {copiedUrl === activeUrl ? 'Nukopijuota!' : 'Kopijuoti'}
                     </button>
                     <a
                       href={activeUrl} target="_blank" rel="noreferrer"
@@ -1857,9 +1839,6 @@ const RoutePlanner = () => {
                       <ExternalLink size={13} /> Atidaryti Maps
                     </a>
                   </div>
-                  <p className="text-[10px] text-gray-400 text-center">
-                    Perjunkite viršuje: Pilnas · Pristatymas · Paėmimas
-                  </p>
                 </div>
               );
             })()}
@@ -1869,7 +1848,6 @@ const RoutePlanner = () => {
               <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 py-12 text-center">
                 <Truck size={28} className="text-gray-300 mx-auto mb-2" />
                 <p className="text-sm font-bold text-gray-400">Pridėkite automobilius kairėje</p>
-                <p className="text-xs text-gray-300 mt-1">Mažas (3 vnt.) arba Didelis (4 vnt.)</p>
               </div>
             )}
           </div>
