@@ -1101,10 +1101,12 @@ const RoutePlanner = () => {
       } else {
         // Same day or no pickup date: auto-generate pickup stops from delivery orders
         // (equipment must be picked up from the same addresses)
+        // Pickup units = 0: vehicle capacity is shared with delivery (same load, return trip)
         pickupOrders = deliveryOrders.map(o => ({
           ...o,
           orderId: (o.orderId || '') + '-pickup',
           type: 'pickup',
+          units: 0,
         }));
       }
 
@@ -1288,7 +1290,7 @@ const RoutePlanner = () => {
 
     // Auto-generate pickup stops from delivery stops (same addresses, equipment picked up later)
     const deliveryStops = scenario.stops.filter(s => s.type === 'delivery');
-    const autoPickups = deliveryStops.map(s => ({ ...s, type: 'pickup' }));
+    const autoPickups = deliveryStops.map(s => ({ ...s, type: 'pickup', units: 0 }));
     const allStops = [...scenario.stops, ...autoPickups];
 
     const newStopsById = {};

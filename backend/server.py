@@ -1131,8 +1131,36 @@ async def optimize_route_multi(data: Dict[str, Any], x_admin_token: Optional[str
                 "vehicle_routes": {}, "total_km": 0, "total_min": 0}
 
     # ── Bin packing ───────────────────────────────────────────────────────────
+    # Pack only delivery stops first, then auto-assign pickups to same vehicle
+    delivery_stops = [s for s in stops if s.get("type", "delivery") == "delivery"]
+    pickup_stops   = [s for s in stops if s.get("type", "delivery") != "delivery"]
+
     if auto_assign:
-        assignments, unassigned_ids = _bin_pack(stops, vehicles)
+        assignments, unassigned_ids = _bin_pack(delivery_stops, vehicles)
+
+        # Auto-assign pickup stops to the same vehicle as their delivery counterpart
+        # Match by address (pickup has same formattedAddress as its delivery)
+        addr_to_vehicle: Dict[str, str] = {}
+        for vid, sids in assignments.items():
+            for sid in sids:
+                s = next((x for x in delivery_stops if x["id"] == sid), None)
+                if s:
+                    addr = (s.get("formattedAddress") or s.get("address", "")).strip().lower()
+                    if addr:
+                        addr_to_vehicle[addr] = vid
+
+        pickup_unassigned = []
+        for ps in pickup_stops:
+            addr = (ps.get("formattedAddress") or ps.get("address", "")).strip().lower()
+            target_vid = addr_to_vehicle.get(addr)
+            if target_vid and target_vid in assignments:
+                assignments[target_vid].append(ps["id"])
+            elif vehicles:
+                # Fallback: assign to first vehicle
+                assignments[vehicles[0]["id"]].append(ps["id"])
+            else:
+                pickup_unassigned.append(ps["id"])
+        unassigned_ids.extend(pickup_unassigned)
     else:
         assignments    = {v["id"]: list(manual_assign.get(v["id"], [])) for v in vehicles}
         assigned_set   = {sid for ids in assignments.values() for sid in ids}
