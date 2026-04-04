@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
+  },
+  "resolutions": {
+    "ajv": "^8.0.0"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
