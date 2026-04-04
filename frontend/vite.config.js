@@ -11,7 +11,7 @@ export default defineConfig({
       enforce: 'pre',
       async transform(code, id) {
         if (!id.includes('node_modules') && id.endsWith('.js')) {
-          return transformWithEsbuild(code, id, { loader: 'jsx' });
+          return transformWithEsbuild(code, id, { loader: 'jsx', jsx: 'automatic' });
         }
       },
     },
@@ -36,6 +36,10 @@ export default defineConfig({
     'process.env.REACT_APP_GOOGLE_MAPS_KEY': JSON.stringify(
       process.env.REACT_APP_GOOGLE_MAPS_KEY ?? ''
     ),
+  },
+  server: {
+    port: process.env.PORT ? Number(process.env.PORT) : 5173,
+    strictPort: false,
   },
   build: {
     outDir: 'build',   // keep same output dir as CRA so Vercel detects it
