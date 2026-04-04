@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://batutynas-chatbot.0uvai5.easypanel.host/api/:path*"
+    }
+  ]
+}
