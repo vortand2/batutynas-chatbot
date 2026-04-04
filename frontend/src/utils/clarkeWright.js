@@ -213,15 +213,17 @@ export function clarkeWrightAssign(
     if (!placed) unassigned.push(fs.id);
   }
 
-  // 2. CW routes → best-fit decreasing
+  // 2. CW routes → assign to vehicle with most remaining capacity first.
+  // This ensures large vehicles fill up before small ones, which is the
+  // user-visible expectation ("big car gets more trampolines").
   for (const { units: rUnits, stopIds } of finalRoutes) {
-    let bestVid   = null;
-    let bestSlack = Infinity;
+    let bestVid = null;
+    let bestRem = -Infinity;
     for (const v of sortedVeh) {
-      const slack = remaining[v.id] - rUnits;
-      if (slack >= -0.01 && slack < bestSlack) {
-        bestSlack = slack;
-        bestVid   = v.id;
+      const rem = remaining[v.id];
+      if (rem >= rUnits - 0.01 && rem > bestRem) {
+        bestRem = rem;
+        bestVid = v.id;
       }
     }
 
@@ -303,11 +305,20 @@ export function binPackAssign(stops, vehicles) {
     return unitsAsFloat(bu ?? 1) - unitsAsFloat(au ?? 1);
   });
 
+  // Sort vehicles largest-first so first-fit-decreasing fills large vehicles first
+  const sortedVehicles = [...vehicles].sort(
+    (a, b) => Number(b.capacity || 4) - Number(a.capacity || 4),
+  );
+
   const remaining   = {};
   const assignments = {};
-  vehicles.forEach(v => {
+  sortedVehicles.forEach(v => {
     remaining[v.id]   = Number(v.capacity || 4);
     assignments[v.id] = [];
+  });
+  // Ensure all original vehicles have an entry even if capacity is 0
+  vehicles.forEach(v => {
+    if (!(v.id in assignments)) assignments[v.id] = [];
   });
   const unassigned = [];
 
@@ -315,7 +326,7 @@ export function binPackAssign(stops, vehicles) {
     const rawUnits = stop.units;
     let placed = false;
 
-    for (const v of vehicles) {
+    for (const v of sortedVehicles) {
       const cap = Number(v.capacity || 4);
       const rem = remaining[v.id];
       const eff = unitsAsFloat(rawUnits, cap);

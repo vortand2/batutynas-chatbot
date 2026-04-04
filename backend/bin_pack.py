@@ -69,15 +69,18 @@ def bin_pack(stops: list[dict], vehicles: list[dict]) -> tuple[dict[str, list[st
 
     sorted_stops = sorted(stops, key=_sort_key)
 
-    remaining: dict[str, float] = {v["id"]: float(v.get("capacity", 4)) for v in vehicles}
-    assignments: dict[str, list[str]] = {v["id"]: [] for v in vehicles}
+    # Sort vehicles largest-first so first-fit fills large vehicles before small ones
+    sorted_veh = sorted(vehicles, key=lambda v: -float(v.get("capacity", 4)))
+
+    remaining: dict[str, float] = {v["id"]: float(v.get("capacity", 4)) for v in sorted_veh}
+    assignments: dict[str, list[str]] = {v["id"]: [] for v in sorted_veh}
     unassigned: list[str] = []
 
     for stop in sorted_stops:
         raw_units = stop.get("units", 1)
         placed = False
 
-        for v in vehicles:
+        for v in sorted_veh:
             vid = v["id"]
             cap = float(v.get("capacity", 4))
             rem = remaining[vid]

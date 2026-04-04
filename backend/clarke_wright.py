@@ -229,17 +229,17 @@ def clarke_wright_assign(
         if not placed:
             unassigned.append(fs["id"])
 
-    # 2. Clarke-Wright routes — best-fit decreasing into remaining vehicles
+    # 2. Clarke-Wright routes — assign to vehicle with most remaining capacity.
+    # This ensures large vehicles fill before small ones (user expectation).
     for r_units, stop_ids in final_routes:
-        # Best fit: vehicle where (remaining − route_units) is smallest non-negative
-        best_vid   = None
-        best_slack = float("inf")
+        best_vid  = None
+        best_rem  = -1.0
         for v in sorted_veh:
             vid = v["id"]
-            slack = remaining[vid] - r_units
-            if slack >= -0.01 and slack < best_slack:
-                best_slack = slack
-                best_vid   = vid
+            rem = remaining[vid]
+            if rem >= r_units - 0.01 and rem > best_rem:
+                best_rem = rem
+                best_vid = vid
 
         if best_vid is not None:
             assignments[best_vid].extend(stop_ids)
