@@ -229,17 +229,15 @@ def clarke_wright_assign(
         if not placed:
             unassigned.append(fs["id"])
 
-    # 2. Clarke-Wright routes — assign to vehicle with most remaining capacity.
-    # This ensures large vehicles fill before small ones (user expectation).
+    # 2. Clarke-Wright routes — first-fit decreasing (sorted_veh is largest-first).
+    # This fills big vehicles before small ones (user expectation).
     for r_units, stop_ids in final_routes:
         best_vid  = None
-        best_rem  = -1.0
         for v in sorted_veh:
             vid = v["id"]
-            rem = remaining[vid]
-            if rem >= r_units - 0.01 and rem > best_rem:
-                best_rem = rem
+            if remaining[vid] >= r_units - 0.01:
                 best_vid = vid
+                break   # first fit: stop at the first (largest) vehicle that fits
 
         if best_vid is not None:
             assignments[best_vid].extend(stop_ids)
@@ -260,29 +258,21 @@ def clarke_wright_assign(
                 if not placed:
                     unassigned.append(sid)
 
-    # 3. No-coordinate stops — assign to vehicle with most remaining capacity
+    # 3. No-coordinate stops — first-fit (sorted_veh is largest-first)
     for ns in no_coord:
         if not sorted_veh:
             unassigned.append(ns["id"])
             continue
-        best_vid = max(remaining, key=remaining.get)
-        best_v   = next(v for v in vehicles if v["id"] == best_vid)
-        su       = _units_as_float(ns.get("units", 1), float(best_v.get("capacity", 4)))
-        if remaining[best_vid] >= su - 0.01:
-            assignments[best_vid].append(ns["id"])
-            remaining[best_vid] = round(remaining[best_vid] - su, 4)
-        else:
-            # Try remaining vehicles
-            placed = False
-            for v in sorted_veh:
-                vid = v["id"]
-                su2 = _units_as_float(ns.get("units", 1), float(v.get("capacity", 4)))
-                if remaining[vid] >= su2 - 0.01:
-                    assignments[vid].append(ns["id"])
-                    remaining[vid] = round(remaining[vid] - su2, 4)
-                    placed = True
-                    break
-            if not placed:
-                unassigned.append(ns["id"])
+        placed = False
+        for v in sorted_veh:
+            vid = v["id"]
+            su  = _units_as_float(ns.get("units", 1), float(v.get("capacity", 4)))
+            if remaining[vid] >= su - 0.01:
+                assignments[vid].append(ns["id"])
+                remaining[vid] = round(remaining[vid] - su, 4)
+                placed = True
+                break
+        if not placed:
+            unassigned.append(ns["id"])
 
     return assignments, unassigned

@@ -213,17 +213,15 @@ export function clarkeWrightAssign(
     if (!placed) unassigned.push(fs.id);
   }
 
-  // 2. CW routes → assign to vehicle with most remaining capacity first.
-  // This ensures large vehicles fill up before small ones, which is the
-  // user-visible expectation ("big car gets more trampolines").
+  // 2. CW routes → first-fit decreasing: assign to the first (largest) vehicle
+  // that can hold this route. sortedVeh is already sorted largest-capacity-first,
+  // so this guarantees big vehicles fill up before small ones.
   for (const { units: rUnits, stopIds } of finalRoutes) {
     let bestVid = null;
-    let bestRem = -Infinity;
     for (const v of sortedVeh) {
-      const rem = remaining[v.id];
-      if (rem >= rUnits - 0.01 && rem > bestRem) {
-        bestRem = rem;
+      if (remaining[v.id] >= rUnits - 0.01) {
         bestVid = v.id;
+        break;  // first fit: stop at the first (largest) vehicle that fits
       }
     }
 
@@ -249,33 +247,22 @@ export function clarkeWrightAssign(
     }
   }
 
-  // 3. No-coordinate stops → vehicle with most remaining capacity
+  // 3. No-coordinate stops → first-fit (largest vehicle first).
+  // sortedVeh is already sorted largest-capacity-first.
   for (const ns of noCoord) {
     if (sortedVeh.length === 0) { unassigned.push(ns.id); continue; }
 
-    const bestVid = Object.entries(remaining).reduce(
-      (best, [vid, rem]) => (rem > best[1] ? [vid, rem] : best),
-      ['', -Infinity],
-    )[0];
-    const bestV  = vehicles.find(v => v.id === bestVid);
-    const su     = unitsAsFloat(ns.units ?? 1, Number(bestV?.capacity || 4));
-
-    if (remaining[bestVid] >= su - 0.01) {
-      assignments[bestVid].push(ns.id);
-      remaining[bestVid] = Math.round((remaining[bestVid] - su) * 10000) / 10000;
-    } else {
-      let placed = false;
-      for (const v of sortedVeh) {
-        const su2 = unitsAsFloat(ns.units ?? 1, Number(v.capacity || 4));
-        if (remaining[v.id] >= su2 - 0.01) {
-          assignments[v.id].push(ns.id);
-          remaining[v.id] = Math.round((remaining[v.id] - su2) * 10000) / 10000;
-          placed = true;
-          break;
-        }
+    let placed = false;
+    for (const v of sortedVeh) {
+      const su = unitsAsFloat(ns.units ?? 1, Number(v.capacity || 4));
+      if (remaining[v.id] >= su - 0.01) {
+        assignments[v.id].push(ns.id);
+        remaining[v.id] = Math.round((remaining[v.id] - su) * 10000) / 10000;
+        placed = true;
+        break;
       }
-      if (!placed) unassigned.push(ns.id);
     }
+    if (!placed) unassigned.push(ns.id);
   }
 
   return { assignments, unassigned };
@@ -396,7 +383,11 @@ export function assignPickups(pickupStops, assignments, deliveryStops, vehicles)
     if (targetVid && result[targetVid] !== undefined) {
       result[targetVid].push(ps.id);
     } else if (vehicles && vehicles.length > 0) {
-      result[vehicles[0].id].push(ps.id);  // fallback: first vehicle
+      // Fallback: assign to the largest vehicle (big cars get priority)
+      const largestVid = [...vehicles].sort(
+        (a, b) => Number(b.capacity || 4) - Number(a.capacity || 4),
+      )[0].id;
+      result[largestVid].push(ps.id);
     } else {
       unassigned.push(ps.id);
     }
