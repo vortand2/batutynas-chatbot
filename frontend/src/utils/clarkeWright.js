@@ -375,6 +375,12 @@ export function assignPickups(pickupStops, assignments, deliveryStops, vehicles)
     });
   });
 
+  // Pre-compute the fallback vehicle once (largest by capacity) — used when
+  // no delivery stop at the same address exists to guide placement.
+  const fallbackVid = vehicles && vehicles.length > 0
+    ? [...vehicles].sort((a, b) => Number(b.capacity || 4) - Number(a.capacity || 4))[0].id
+    : null;
+
   const unassigned = [];
   for (const ps of pickupStops) {
     const addr      = (ps.formattedAddress || ps.address || '').trim().toLowerCase();
@@ -382,12 +388,9 @@ export function assignPickups(pickupStops, assignments, deliveryStops, vehicles)
 
     if (targetVid && result[targetVid] !== undefined) {
       result[targetVid].push(ps.id);
-    } else if (vehicles && vehicles.length > 0) {
+    } else if (fallbackVid !== null) {
       // Fallback: assign to the largest vehicle (big cars get priority)
-      const largestVid = [...vehicles].sort(
-        (a, b) => Number(b.capacity || 4) - Number(a.capacity || 4),
-      )[0].id;
-      result[largestVid].push(ps.id);
+      result[fallbackVid].push(ps.id);
     } else {
       unassigned.push(ps.id);
     }

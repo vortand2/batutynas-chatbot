@@ -15,8 +15,8 @@ Algorithm steps:
   2. Compute savings: saving(i,j) = d(depot→i) + d(depot→j) − d(i→j)
   3. Initialize each stop as its own route
   4. Greedily merge pairs with highest saving (respecting capacity)
-  5. Assign merged routes to vehicles via best-fit decreasing
-  6. Append no-coordinate and overflow stops to emptiest vehicles
+  5. Assign merged routes to vehicles via first-fit decreasing (largest vehicle first)
+  6. Assign no-coordinate and overflow stops via first-fit (largest vehicle first)
 
 Usage:
     from clarke_wright import clarke_wright_assign, has_coordinates
@@ -175,7 +175,7 @@ def clarke_wright_assign(
             continue
 
         # Merged capacity must not exceed the LARGEST available vehicle
-        # (we'll do best-fit assignment to actual vehicles afterwards)
+        # (first-fit decreasing assignment to actual vehicles happens afterwards)
         merged_u = route_units[ri] + route_units[rj]
         if merged_u > max_cap + 0.01:
             continue
