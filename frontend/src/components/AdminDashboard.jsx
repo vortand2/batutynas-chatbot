@@ -349,11 +349,19 @@ const StatsCard = ({ icon: Icon, label, value, sub, subUp, color, loading }) => 
 );
 
 // ── BookingCard (in DayPanel) ─────────────────────────────────────────────────
-const BookingCard = ({ booking, onEdit, onDelete, deleting }) => {
-  const color = equipColor(booking.equipment);
+const PENDING_AMBER = '#f59e0b';
+const BookingCard = ({ booking, onEdit, onDelete, onConfirm, deleting }) => {
+  const isPending = !!booking.isPending;
+  const color = isPending ? PENDING_AMBER : equipColor(booking.equipment);
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow ${isPending ? 'border-amber-200 ring-1 ring-amber-200' : 'border-gray-100'}`}
+         data-testid={isPending ? `pending-card-${booking.id}` : undefined}>
       <div className="h-1" style={{ background: color }} />
+      {isPending && (
+        <div className="px-4 pt-3 -mb-1 flex items-center gap-1.5 text-[11px] font-bold text-amber-700">
+          <Clock size={11} /> LAUKIA PATVIRTINIMO
+        </div>
+      )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -396,15 +404,24 @@ const BookingCard = ({ booking, onEdit, onDelete, deleting }) => {
         </div>
 
         <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-          <button onClick={() => onEdit(booking)} data-testid={`booking-edit-${booking.id}`}
-            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-xl py-2 transition-colors">
-            <Edit2 size={12} /> Redaguoti
-          </button>
-          <button onClick={() => onDelete(booking)} disabled={deleting === booking.id} data-testid={`booking-delete-${booking.id}`}
-            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl py-2 transition-colors disabled:opacity-50">
-            {deleting === booking.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-            Ištrinti
-          </button>
+          {isPending ? (
+            <button onClick={() => onConfirm?.(booking)} data-testid={`pending-confirm-${booking.id}`}
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl py-2 transition-colors shadow-sm">
+              <CheckCheck size={12} /> Patvirtinti → Kalendorių
+            </button>
+          ) : (
+            <>
+              <button onClick={() => onEdit(booking)} data-testid={`booking-edit-${booking.id}`}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-xl py-2 transition-colors">
+                <Edit2 size={12} /> Redaguoti
+              </button>
+              <button onClick={() => onDelete(booking)} disabled={deleting === booking.id} data-testid={`booking-delete-${booking.id}`}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl py-2 transition-colors disabled:opacity-50">
+                {deleting === booking.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                Ištrinti
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -696,7 +713,9 @@ export default function AdminDashboard() {
   }, [token]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { if (activeTab === 'pending') fetchPending(); }, [activeTab, fetchPending]);
+  // Fetch pending on mount (not only on Pending tab) so the Calendar view
+  // can overlay pending orders as amber dots alongside confirmed events.
+  useEffect(() => { fetchPending(); }, [fetchPending]);
   useEffect(() => { fetchHealth(); }, [fetchHealth]);
 
   const prevMonth = () => { if (month === 0) { setYear(y=>y-1); setMonth(11); } else setMonth(m=>m-1); };
@@ -748,10 +767,44 @@ export default function AdminDashboard() {
     };
   };
 
-  // Map bookings to dates for calendar
+  // Convert a pending MongoDB order to a pre-normalized booking shape so it
+  // can be rendered on the calendar alongside confirmed Google Calendar events.
+  // Carries the raw pending payload in _raw so click handlers can open the
+  // existing ConfirmOrderModal with the original form_data.
+  const pendingToBooking = useCallback(p => {
+    const fd = p?.form_data || {};
+    const start = fd.data || '';
+    const addons = typeof fd.priedai === 'string'
+      ? fd.priedai.split(',').map(s => s.trim()).filter(Boolean)
+      : (Array.isArray(fd.priedai) ? fd.priedai : []);
+    const equip = fd.batutas || '';
+    return {
+      id:            p.id,
+      isPending:     true,
+      _raw:          p,
+      startDate:     start,
+      endDate:       start,
+      days:          1,
+      customer_name: fd.vardas || fd.kontaktinis || 'Nenurodyta',
+      phone:         fd.telefonas || '',
+      address:       fd.vieta || fd.adresas || '',
+      equipment:     equip,
+      equipmentList: equip ? [equip] : [],
+      price:         0,
+      addons,
+    };
+  }, []);
+
+  // Map bookings to dates for calendar. Unions confirmed GCal events from
+  // /admin/dashboard with pending MongoDB orders so owners see both on the
+  // calendar view (pending rendered in amber).
   const bookingsByDate = useMemo(() => {
     const map = {};
-    data.bookings.map(normalise).forEach(b => {
+    const all = [
+      ...data.bookings.map(normalise),
+      ...pending.map(pendingToBooking).filter(b => b.startDate),
+    ];
+    all.forEach(b => {
       const start = b.startDate;
       const end   = b.endDate || start;
       if (!start) return;
@@ -765,7 +818,7 @@ export default function AdminDashboard() {
       }
     });
     return map;
-  }, [data.bookings]); // eslint-disable-line
+  }, [data.bookings, pending, pendingToBooking]); // eslint-disable-line
 
   // Filter bookings for selected day
   const dayBookings = useMemo(() => {
@@ -1084,6 +1137,18 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ── Calendar legend ── */}
+        <div className="flex items-center gap-4 text-xs text-gray-500" data-testid="calendar-legend">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-violet-600" />
+            Patvirtintos ({data.bookings.length})
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-200" style={{ background: PENDING_AMBER }} />
+            Laukia patvirtinimo ({pending.length})
+          </span>
+        </div>
+
         {/* ── Calendar + Day panel ── */}
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
 
@@ -1118,13 +1183,13 @@ export default function AdminDashboard() {
                         ${isToday ? 'bg-violet-600 text-white shadow-sm shadow-violet-300' : isSelected ? 'text-violet-700' : 'text-gray-700'}`}>
                         {new Date(date + 'T00:00:00').getDate()}
                       </span>
-                      {/* Booking dots */}
+                      {/* Booking dots (pending orders rendered in amber) */}
                       {filtered.length > 0 && (
                         <div className="flex flex-wrap gap-0.5 mt-0.5">
                           {filtered.slice(0, 4).map((b, i) => (
-                            <span key={i} title={b.equipment}
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ background: equipColor(b.equipment) }} />
+                            <span key={i} title={`${b.equipment}${b.isPending ? ' · laukia patvirtinimo' : ''}`}
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isPending ? 'ring-2 ring-amber-200' : ''}`}
+                              style={{ background: b.isPending ? PENDING_AMBER : equipColor(b.equipment) }} />
                           ))}
                           {filtered.length > 4 && <span className="text-[9px] text-gray-400 font-bold">+{filtered.length-4}</span>}
                         </div>
@@ -1180,6 +1245,7 @@ export default function AdminDashboard() {
                     <BookingCard key={b.id} booking={b}
                       onEdit={() => setModal(b)}
                       onDelete={() => handleDelete(b)}
+                      onConfirm={() => b._raw && setConfirmOrder(b._raw)}
                       deleting={deleting} />
                   ))
                 )}
