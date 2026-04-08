@@ -102,17 +102,17 @@ var TRAMPOLINES = [
   { name: 'Vienaragiai', icon: '\u{1F984}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/vienaragiai_live1-WinCFPxPLvD4Bvpp.jpg', type: 'Su tuneliais \u00b7 9x4 m', capacity: 'Iki 12 vaikų', bg: '#f3e5f5', min: 4, max: 12, cat: 'standard-trampoline', shortDesc: 'Iki 12 vaikų \u00b7 nuo 3 m.' },
   { name: 'Pilis mažiesiems', icon: '\u{1F3EF}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/dji_fly_20250525_115950_542_1748163603293_photo_optimized-Vr2HXTPMFyM6szXt.jpg', type: 'Iki 5 metų \u00b7 5x4 m', capacity: 'Iki 6 vaikų', bg: '#fff8e1', min: 2, max: 6, cat: 'standard-trampoline', shortDesc: 'Iki 6 vaikų \u00b7 2\u20135 m.' },
 
-  // --- addon (free extras — 1 included with any trampoline rental) ---
-  { name: 'Cukraus vata', icon: '\u{1F36C}', img: '', type: 'Saldumynas', capacity: 'Neribota', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 40\u20ac \u00b7 NEMOKAMAI su batutu' },
-  { name: 'Ledo trintuvas/\u0161erbetas', messengerName: '\u0160erbetas', icon: '\u{1F9CA}', img: '', type: 'G\u0117rimas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 40\u20ac \u00b7 NEMOKAMAI su batutu' },
-  { name: 'Popcorn', icon: '\u{1F37F}', img: '', type: 'U\u017ekandis', capacity: 'Neribota', bg: '#fff8e1', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 40\u20ac \u00b7 NEMOKAMAI su batutu' },
-  { name: 'Muilo burbul\u0173 ma\u0161ina', messengerName: 'Burbul\u0173 ma\u0161ina', icon: '\u{1FAE7}', img: '', type: 'Pramoga', capacity: 'Neribota', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 20\u20ac \u00b7 NEMOKAMAI su batutu' },
-  { name: 'Sumo kostiumai', icon: '\u{1F94B}', img: '', type: 'Interaktyvi pramoga', capacity: '2 dalyviai', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 40\u20ac \u00b7 NEMOKAMAI su batutu' },
-  { name: 'Momentinis fotoaparatas', messengerName: 'Fotoaparatas', icon: '\u{1F4F8}', img: '', type: 'Nuotraukos', capacity: 'Neribota', bg: '#f5f0ff', min: 1, max: 999, cat: 'addon', shortDesc: '\u012Aprasta kaina 20\u20ac \u00b7 NEMOKAMAI su batutu' },
+  // --- addon (paid extras) ---
+  { name: 'Cukraus vata', icon: '\u{1F36C}', img: '', type: 'Saldumynas', capacity: 'Neribota', bg: '#fff5f0', min: 1, max: 999, cat: 'addon', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
+  { name: 'Ledo trintuvas/\u0161erbetas', messengerName: '\u0160erbetas', icon: '\u{1F9CA}', img: '', type: 'G\u0117rimas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'addon', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
+  { name: 'Popcorn', icon: '\u{1F37F}', img: '', type: 'U\u017ekandis', capacity: 'Neribota', bg: '#fff8e1', min: 1, max: 999, cat: 'addon', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
+  { name: 'Muilo burbul\u0173 ma\u0161ina', messengerName: 'Burbul\u0173 ma\u0161ina', icon: '\u{1FAE7}', img: '', type: 'Pramoga', capacity: 'Neribota', bg: '#f0f9ff', min: 1, max: 999, cat: 'addon', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
+  { name: 'Sumo kostiumai', icon: '\u{1F94B}', img: '', type: 'Interaktyvi pramoga', capacity: '2 dalyviai', bg: '#fff3e0', min: 1, max: 999, cat: 'addon', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
+  { name: 'Momentinis fotoaparatas', messengerName: 'Fotoaparatas', icon: '\u{1F4F8}', img: '', type: 'Nuotraukos', capacity: 'Neribota', bg: '#f5f0ff', min: 1, max: 999, cat: 'addon', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
 
   // --- party-equipment (party group only) ---
-  { name: 'Disco paviljonas', icon: '\u{1F3AA}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f0f0ff', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'NEMOKAMAI su batutu' },
-  { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'NEMOKAMAI su batutu' },
+  { name: 'Disco paviljonas', icon: '\u{1F3AA}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', bg: '#f0f0ff', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
+  { name: 'Putų šou', icon: '\u{1FAE7}', img: '', type: 'Putų mašina + baseinas', capacity: 'Neribota', bg: '#e0f7fa', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Kaina pagal u\u017eklaus\u0105' },
   { name: 'Banketo stalai ir kėdės', icon: '\u{1FA91}', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_lmbogflmbogflmbo-yW8t5tAPn0eG8rIQ.png', type: 'Stalai + kėdės komplektas', capacity: 'Iki 50 vietų', bg: '#fff8e1', min: 1, max: 999, cat: 'party-equipment', shortDesc: 'Mokamas priedas' }
 ];
 
@@ -302,7 +302,6 @@ function buildMainMenu() {
       { title: '\u{1F3AA} Viešas renginys', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
       { title: '\u{1F389} Vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
       { title: '\u{1F6D2} Pirkti batutą', value: 'Noriu pirkti batutą' },
-      { title: '\u2139\uFE0F DUK / Kontaktai', value: 'Saugumas, DUK ir kontaktai' },
       { title: '\u{1F4DE} Susisiekti', value: 'Noriu susisiekti su \u017emogumi' }
     ];
   } else {
@@ -310,8 +309,7 @@ function buildMainMenu() {
       { title: '\u{1F382} Vaikų gimtadienis ar krikštynos', value: 'Planuoju vaikų gimtadienį arba krikštynas' },
       { title: '\u{1F3AA} Viešas renginys ar įmonės sąskrydis', value: 'Planuoju viešą renginį arba įmonės sąskrydį' },
       { title: '\u{1F389} Triukšmingas vakarėlis', value: 'Planuoju triukšmingą vakarėlį' },
-      { title: '\u{1F6D2} Noriu pirkti batutą', value: 'Noriu pirkti batutą' },
-      { title: '\u2139\uFE0F Saugumas, DUK ir kontaktai', value: 'Saugumas, DUK ir kontaktai' }
+      { title: '\u{1F6D2} Noriu pirkti batutą', value: 'Noriu pirkti batutą' }
     ];
   }
   return [{

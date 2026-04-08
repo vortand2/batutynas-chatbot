@@ -1190,6 +1190,7 @@
 /* Shared input styles (email / address / custom) */
 .chat-email-input,
 .chat-address-input,
+.chat-contact-input,
 .chat-custom-input,
 .chat-custom-textarea {
   box-sizing: border-box;
@@ -1207,6 +1208,7 @@
 
 .chat-email-input:focus,
 .chat-address-input:focus,
+.chat-contact-input:focus,
 .chat-custom-input:focus,
 .chat-custom-textarea:focus {
   border-color: var(--chat-primary);
@@ -1218,10 +1220,11 @@
   min-height: 60px;
 }
 
-/* Shared confirm button styles (date / email / address) */
+/* Shared confirm button styles (date / email / address / contact) */
 .chat-date-confirm,
 .chat-email-confirm,
-.chat-address-confirm {
+.chat-address-confirm,
+.chat-contact-confirm {
   margin-top: 6px;
   padding: 8px 18px;
   background: var(--chat-primary);
@@ -1237,22 +1240,51 @@
 
 .chat-date-confirm:hover,
 .chat-email-confirm:hover,
-.chat-address-confirm:hover {
+.chat-address-confirm:hover,
+.chat-contact-confirm:hover {
   background: var(--chat-primary-hover);
 }
 
 .chat-date-confirm:disabled,
 .chat-email-confirm:disabled,
-.chat-address-confirm:disabled {
+.chat-address-confirm:disabled,
+.chat-contact-confirm:disabled {
   background: #b8bcc4;
   color: #f5f5f5;
   cursor: default;
 }
 
-/* email-confirm / address-confirm individual margin override */
+/* email-confirm / address-confirm / contact-confirm individual margin override */
 .chat-email-confirm,
-.chat-address-confirm {
+.chat-address-confirm,
+.chat-contact-confirm {
   margin-top: 8px;
+}
+
+/* Contact form (name + phone step) */
+.chat-contact-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fafbfc;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-contact-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-contact-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5a5370;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .chat-address-hint {
@@ -1533,6 +1565,7 @@
   .chat-date-input,
   .chat-email-input,
   .chat-address-input,
+  .chat-contact-input,
   .chat-custom-input {
     font-size: 16px;
   }
@@ -1668,14 +1701,20 @@ html.woo-chat-mobile-open {
     font-size: 11px;
   }
 
-  .chat-address-input {
+  .chat-address-input,
+  .chat-contact-input {
     min-height: 44px;
     font-size: 16px;
   }
 
-  .chat-address-confirm {
+  .chat-address-confirm,
+  .chat-contact-confirm {
     min-height: 44px;
     font-size: 13px;
+  }
+
+  .chat-contact-confirm {
+    width: 100%;
   }
 
   .chat-email-input,
@@ -1705,10 +1744,10 @@ html.woo-chat-mobile-open {
   }
 
   .t-detail-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     font-size: 14px;
   }
 
@@ -1772,7 +1811,8 @@ html.woo-chat-mobile-open {
     min-height: 44px;
     font-size: 16px;
   }
-  .chat-address-input {
+  .chat-address-input,
+  .chat-contact-input {
     min-height: 44px;
     font-size: 16px;
   }

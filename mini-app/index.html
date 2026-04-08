@@ -225,8 +225,9 @@
     </div>
 
     <div class="form-group">
-      <label for="customerPhone">Telefono numeris</label>
-      <input type="tel" id="customerPhone" name="customer_phone" placeholder="+370..." autocomplete="tel" />
+      <label for="customerPhone">Telefono numeris *</label>
+      <input type="tel" id="customerPhone" name="customer_phone" placeholder="+370..." autocomplete="tel" required />
+      <div class="error-msg" id="errPhone">Įveskite telefono numerį</div>
     </div>
 
     <hr class="section-divider" />
@@ -252,7 +253,7 @@
     <hr class="section-divider" />
 
     <div class="form-group">
-      <label for="deliveryAddress">Pristatymo adresas</label>
+      <label for="deliveryAddress">Pristatymo adresas *</label>
       <input type="text" id="deliveryAddress" name="delivery_address" placeholder="Gatvė, namo nr." autocomplete="street-address" />
       <div class="error-msg" id="errAddress">Įveskite pristatymo adresą</div>
     </div>
@@ -413,11 +414,8 @@
 
     // ---------- Validation ----------
     const REQUIRED = [
-      { id: 'customerName',    errId: 'errName',      label: 'Kliento vardas' },
-      { id: 'eventDate',       errId: 'errDate',      label: 'Renginio data' },
-      { id: 'eventTime',       errId: 'errTime',      label: 'Pristatymo laikas' },
+      { id: 'customerPhone',   errId: 'errPhone',     label: 'Telefono numeris' },
       { id: 'deliveryAddress', errId: 'errAddress',   label: 'Pristatymo adresas' },
-      { id: 'equipment',       errId: 'errEquipment', label: 'Įranga' },
     ];
 
     function validate() {

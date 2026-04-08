@@ -34,7 +34,7 @@ const TRAMPOLINES = [
   { name: 'Milžiniškas Dart', type: 'Interaktyvi pramoga \u00b7 5x4,5 m', capacity: '60 dalyvių/val.', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250825-wa0000-1-KNKOwGZxrP8Qotu0.jpg', min: 1, max: 999, cat: 'addon' },
   { name: 'Kamuolių medžioklė', type: 'Komandinis žaidimas \u00b7 8 m arena', capacity: '4 žaidėjai/raundas', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/img-20250908-wa0000-OjvumGsbJUPEqY7H.jpg', min: 1, max: 999, cat: 'addon' },
   { name: 'Rodeo bulius', type: 'Mechaninis bulius \u00b7 5x5 m', capacity: 'Neribota', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_y02vw0y02vw0y02v-1UPI9AO2yIhGQbUk.png', min: 1, max: 999, cat: 'addon' },
-  { name: 'Saldėsių aparatai', type: '1 NEMOKAMAI su batutu', capacity: 'Vata, popcorn, šerbetas', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', min: 1, max: 999, cat: 'addon' },
+  { name: 'Saldėsių aparatai', type: 'Vata, popcorn, šerbetas', capacity: 'Vata, popcorn, šerbetas', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_n0wezbn0wezbn0we-eBEHQuTVAV3qYVji.png', min: 1, max: 999, cat: 'addon' },
 
   // --- party-equipment (party group only) ---
   { name: 'Disco paviljonas', type: 'LED apšvietimas \u00b7 4x4 m', capacity: 'Iki 20 žmonių', img: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=600,h=400,fit=crop/0e8dAXAD75sxRpD2/unnamed-2-DZswbmOPQZ24Gc8b.jpg', min: 1, max: 999, cat: 'party-equipment' },
@@ -74,8 +74,7 @@ function buildMainMenuQuickReplies() {
     { content_type: 'text', title: '\u{1F382} Gimtadienis', payload: 'Planuoju vaikų gimtadienį arba krikštynas' },
     { content_type: 'text', title: '\u{1F3AA} Viešas renginys', payload: 'Planuoju viešą renginį arba įmonės sąskrydį' },
     { content_type: 'text', title: '\u{1F389} Vakarėlis', payload: 'Planuoju triukšmingą vakarėlį' },
-    { content_type: 'text', title: '\u{1F6D2} Pirkti batutą', payload: 'Noriu pirkti batutą' },
-    { content_type: 'text', title: '\u2139\uFE0F Info / DUK', payload: 'Saugumas, DUK ir kontaktai' }
+    { content_type: 'text', title: '\u{1F6D2} Pirkti batutą', payload: 'Noriu pirkti batutą' }
   ];
 }
 

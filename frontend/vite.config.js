@@ -40,6 +40,16 @@ export default defineConfig({
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
     strictPort: false,
+    // Local dev: proxy /api to the production backend so the chatbot, admin dashboard,
+    // and route planner all work without booting the FastAPI backend locally. This
+    // mirrors the Vercel rewrite in vercel.json and keeps calls same-origin (no CORS).
+    proxy: {
+      '/api': {
+        target: 'https://batutynas-chatbot.0uvai5.easypanel.host',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   build: {
     outDir: 'build',   // keep same output dir as CRA so Vercel detects it

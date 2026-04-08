@@ -49,15 +49,15 @@
 
   function loadSession() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = sessionStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || !data.sessionId || typeof data.timestamp !== 'number') {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
         return null;
       }
       if (Date.now() - data.timestamp > SESSION_TTL_MS) {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
         return null;
       }
       return data;
@@ -68,14 +68,14 @@
 
   function saveSession() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
         sessionId: state.sessionId,
         messages: state.messages.slice(-50),
         language: state.language,
         timestamp: Date.now()
       }));
     } catch {
-      // localStorage full or unavailable
+      // sessionStorage full or unavailable
     }
   }
 
@@ -200,7 +200,6 @@
         '<button class="welcome-action-btn wa-event" data-welcome-action="Planuoju vie\u0161\u0105 rengin\u012F arba \u012Fmon\u0117s s\u0105skrydi\u012F"><span class="welcome-action-emoji" aria-hidden="true">\uD83C\uDFAA</span>Vie\u0161as renginys</button>' +
         '<button class="welcome-action-btn wa-buy" data-welcome-action="Noriu pirkti batut\u0105"><span class="welcome-action-emoji" aria-hidden="true">\uD83D\uDED2</span>Pirkti batut\u0105</button>' +
         '<button class="welcome-action-btn wa-party" data-welcome-action="Planuoju triuk\u0161ming\u0105 vakar\u0117l\u012F"><span class="welcome-action-emoji" aria-hidden="true">\uD83C\uDF89</span>Vakar\u0117lis</button>' +
-        '<button class="welcome-action-btn wa-info" data-welcome-action="Saugumas, DUK ir kontaktai"><span class="welcome-action-emoji" aria-hidden="true">\u2139\uFE0F</span>Info ir kontaktai</button>' +
         '</div>';
 
       messagesContainer.appendChild(welcomeDiv);
@@ -289,6 +288,7 @@
       if (input) input.focus();
     }
 
+    _syncInputBarVisibility();
   }
 
   // visualViewport: set up once, keep CSS vars in sync for fullscreen chat + keyboard
@@ -327,15 +327,17 @@
     var ALLOWED_ATTRS = ['class', 'data-chat-option', 'data-chat-date', 'data-chat-date-confirm',
       'data-chat-retry', 'data-chat-email', 'data-chat-email-confirm', 'data-custom-field',
       'data-chat-custom-submit', 'data-chat-address', 'data-chat-address-confirm',
-      'data-chat-address-fill', 'data-chat-detail-toggle', 'data-chat-addon',
+      'data-chat-address-fill', 'data-chat-contact', 'data-chat-contact-confirm',
+      'data-chat-detail-toggle', 'data-chat-addon',
       'data-chat-addon-continue', 'data-chat-no-addon-send', 'data-chat-no-addon-back',
       'data-chat-zoom', 'data-step', 'type', 'min', 'value', 'disabled', 'href',
       'target', 'rel', 'src', 'alt', 'placeholder', 'id', 'role', 'tabindex', 'rows',
-      'aria-label', 'aria-pressed', 'aria-hidden', 'aria-describedby', 'loading', 'autocomplete'];
+      'aria-label', 'aria-pressed', 'aria-hidden', 'aria-describedby', 'loading', 'autocomplete', 'autocapitalize', 'for'];
     var ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
 
-    var tmp = document.createElement('div');
-    tmp.innerHTML = html;
+    var tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    var tmp = tpl.content;
 
     // Walk all elements with allowlist approach
     var allEls = Array.from(tmp.querySelectorAll('*'));
@@ -369,8 +371,14 @@
           }
         }
       }
+      // Force noopener on _blank links
+      if (tag === 'a' && node.getAttribute('target') === '_blank') {
+        node.setAttribute('rel', 'noopener noreferrer');
+      }
     }
-    return tmp.innerHTML;
+    var out = document.createElement('div');
+    out.appendChild(tmp);
+    return out.innerHTML;
   }
 
   function createLanguageSelect() {
@@ -440,18 +448,23 @@
 
   function _isMobileViewport() { return window.matchMedia('(max-width: 600px)').matches; }
 
-  var _savedScrollY = 0;
-
   var _savedScrollY;
 
+  var _lastTouchY = 0;
+  function _handleTouchStart(e) { if (e.touches && e.touches[0]) _lastTouchY = e.touches[0].clientY; }
   function _preventBackgroundScroll(e) {
     var msgs = document.querySelector('.woo-chat-messages');
     var target = e.target;
     var insideMessages = msgs && msgs.contains(target);
     if (!insideMessages) { e.preventDefault(); return; }
-    if (msgs.scrollTop <= 0 && e.touches && e.touches[0] && e.touches[0].clientY > 0) {
+    var touchY = (e.touches && e.touches[0]) ? e.touches[0].clientY : 0;
+    var deltaY = touchY - _lastTouchY;
+    _lastTouchY = touchY;
+    // Pulling down (deltaY > 0) at scroll top — block to prevent page scroll
+    if (msgs.scrollTop <= 0 && deltaY > 0) {
       e.preventDefault();
-    } else if (msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight) {
+    // Pulling up (deltaY < 0) at scroll bottom — block to prevent page scroll
+    } else if (msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight - 1 && deltaY < 0) {
       e.preventDefault();
     }
   }
@@ -463,6 +476,7 @@
       document.body.classList.add('woo-chat-mobile-open');
       document.documentElement.classList.add('woo-chat-mobile-open');
       _savedScrollY = scrollY;
+      document.addEventListener('touchstart', _handleTouchStart, { passive: true });
       document.addEventListener('touchmove', _preventBackgroundScroll, { passive: false });
       if (window.visualViewport) {
         var vv = window.visualViewport;
@@ -479,6 +493,7 @@
         window.scrollTo(0, _savedScrollY);
         _savedScrollY = undefined;
       }
+      document.removeEventListener('touchstart', _handleTouchStart);
       document.removeEventListener('touchmove', _preventBackgroundScroll);
     }
   }
@@ -530,12 +545,29 @@
     if (visible) scrollToBottom();
   }
 
+  // Hide the text input bar when an inline card input is active (address or contact form)
+  function _syncInputBarVisibility() {
+    var inputArea = document.querySelector('.woo-chat-input-area');
+    if (!inputArea) return;
+    var agentMsgs = document.querySelectorAll('.woo-chat-msg.agent.html-content');
+    var lastAgent = agentMsgs[agentMsgs.length - 1];
+    var hasActiveInlineInput = lastAgent && (
+      lastAgent.querySelector('.chat-address-input:not([disabled])') ||
+      lastAgent.querySelector('.chat-contact-input:not([disabled])') ||
+      lastAgent.querySelector('.chat-email-input:not([disabled])') ||
+      lastAgent.querySelector('.chat-custom-input:not([disabled])') ||
+      lastAgent.querySelector('.chat-custom-textarea:not([disabled])')
+    );
+    inputArea.style.display = hasActiveInlineInput ? 'none' : '';
+  }
+
   var _scrollTimer = null;
   function addMessage(role, text) {
     state.messages.push({ role: role, text: text, time: Date.now() });
     saveSession();
     state._scrollToStart = true;
     render();
+    _syncInputBarVisibility();
     // Cancel any previous pending scroll so only the latest message's scroll fires
     if (_scrollTimer) clearTimeout(_scrollTimer);
     _scrollTimer = setTimeout(function () {
@@ -1036,8 +1068,29 @@
           }
           var chatBubble = addressConfirmBtn.closest('.woo-chat-msg');
           if (chatBubble) persistInteractionState(chatBubble);
+          _syncInputBarVisibility();
           quickSend(addressValue);
         }
+        return;
+      }
+
+      // Contact form confirm
+      var contactConfirmBtn = e.target.closest('[data-chat-contact-confirm]');
+      if (contactConfirmBtn) {
+        if (contactConfirmBtn.hasAttribute('disabled') || contactConfirmBtn.disabled) return;
+        var contactBubble = contactConfirmBtn.closest('.woo-chat-msg');
+        var nameInput = contactBubble ? contactBubble.querySelector('[data-chat-contact="name"]') : null;
+        var phoneInput = contactBubble ? contactBubble.querySelector('[data-chat-contact="phone"]') : null;
+        var nameVal = nameInput ? nameInput.value.trim() : '';
+        var phoneVal = phoneInput ? phoneInput.value.trim() : '';
+        if (!nameVal || !phoneVal) return;
+        contactConfirmBtn.disabled = true;
+        contactConfirmBtn.setAttribute('disabled', 'true');
+        if (nameInput) { nameInput.disabled = true; nameInput.setAttribute('disabled', 'true'); }
+        if (phoneInput) { phoneInput.disabled = true; phoneInput.setAttribute('disabled', 'true'); }
+        if (contactBubble) persistInteractionState(contactBubble);
+        _syncInputBarVisibility();
+        quickSend(nameVal + ' ' + phoneVal);
         return;
       }
 
@@ -1215,7 +1268,9 @@
       if (emailInput) {
         var confirmBtn = emailInput.parentElement.querySelector('[data-chat-email-confirm]');
         if (confirmBtn) {
-          confirmBtn.disabled = !isValidEmail(emailInput.value.trim());
+          var emailValid = isValidEmail(emailInput.value.trim());
+          confirmBtn.disabled = !emailValid;
+          if (emailValid && emailInput.style.borderColor) { emailInput.style.borderColor = ''; var ee = emailInput.parentElement.querySelector('.form-error'); if (ee) ee.remove(); }
         }
       }
 
@@ -1225,6 +1280,22 @@
         var addrConfirm = addrInput.parentElement.querySelector('[data-chat-address-confirm]');
         if (addrConfirm) {
           addrConfirm.disabled = !addrInput.value.trim();
+        }
+      }
+
+      // Contact form live validation — enable confirm when both name and phone are filled
+      var contactInput = e.target.closest('[data-chat-contact]');
+      if (contactInput) {
+        var contactForm = contactInput.closest('.chat-contact-form');
+        if (contactForm) {
+          var nameInp = contactForm.querySelector('[data-chat-contact="name"]');
+          var phoneInp = contactForm.querySelector('[data-chat-contact="phone"]');
+          var confirmBtn = contactForm.querySelector('[data-chat-contact-confirm]');
+          if (confirmBtn && nameInp && phoneInp) {
+            var hasName = nameInp.value.trim().length >= 2;
+            var hasPhone = phoneInp.value.trim().replace(/\D/g, '').length >= 8;
+            confirmBtn.disabled = !(hasName && hasPhone);
+          }
         }
       }
 
@@ -1240,6 +1311,8 @@
             var hasEmail = emailField.value.trim().length > 0;
             var hasPhone = phoneField.value.trim().replace(/\D/g, '').length >= 8;
             submitBtn.disabled = !(hasEmail && hasPhone);
+            if (hasEmail && emailField.style.borderColor) { emailField.style.borderColor = ''; var ee = emailField.parentElement.querySelector('.form-error'); if (ee) ee.remove(); }
+            if (hasPhone && phoneField.style.borderColor) { phoneField.style.borderColor = ''; var pe = phoneField.parentElement.querySelector('.form-error'); if (pe) pe.remove(); }
           }
         }
       }
@@ -1269,16 +1342,20 @@
 
     open: function () {
       state.open = true;
+      state.animatedOpen = false;
+      _setMobileBodyLock(true);
       render();
     },
 
     close: function () {
       state.open = false;
+      state.animatedOpen = false;
+      _setMobileBodyLock(false);
       render();
     },
 
     reset: function () {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       state.sessionId = generateSessionId();
       state.messages = [];
       state.animatedOpen = false;

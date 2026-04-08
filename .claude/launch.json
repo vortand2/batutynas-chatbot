@@ -2,10 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "chatbot-preview",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "3456"],
-      "port": 3456
+      "name": "frontend-dev",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-lc", "npm run start"],
+      "port": 5173,
+      "autoPort": false,
+      "cwd": "frontend"
     }
   ]
 }

@@ -3,9 +3,9 @@ import axios from 'axios';
 import { Calendar } from './ui/calendar';
 import { Calendar as CalendarIcon, Info } from 'lucide-react';
 import {
-  MessageCircle, X, Phone, Mail, Globe, ChevronDown, ChevronUp, ChevronRight,
+  MessageCircle, X, Phone, Mail, Globe, ChevronDown, ChevronRight,
   Loader2, CheckCircle2, UserCog, Gift, Building2, PartyPopper,
-  ShoppingBag, HelpCircle, Check, Send, Sparkles, RotateCcw,
+  ShoppingBag, Check, Send, Sparkles, RotateCcw,
   Disc3, Droplets, Utensils,
 } from 'lucide-react';
 
@@ -54,14 +54,14 @@ const PURCHASE_CATEGORIES = [
 ];
 
 const ADDONS = [
-  { id: 'cukraus_vata', name: 'Cukraus vata',        desc: 'Saldūs debesėliai',        price: '40€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_hd3faxhd3faxhd3f-2RL89Y89SihhXISI.png' },
-  { id: 'popcorn',      name: 'Popcorn aparatas',    desc: 'Kino teatro spragėsiai',    price: '40€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_66y74g66y74g66y7-VlbuG5ChABMqrjI3.png' },
-  { id: 'serbetas',     name: 'Šerbeto aparatas',    desc: 'Vasariška atgaiva',         price: '40€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_nj59vrnj59vrnj59-WwnAaY9XnFT0QqSs.png' },
-  { id: 'jbl',          name: 'JBL PartyBox',        desc: 'Galinga garso sistema',     price: '45€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/unnamed-21-f7MublgIL52DABHh.jpg' },
-  { id: 'vr',           name: 'Virtuali realybė',    desc: '360° žaidimai',             price: '40€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/occulus-quest-2-vr-gaming-QtC33jQbS4CMEhLe.jpg' },
-  { id: 'burbuilai',    name: 'Burbulų mašina',      desc: 'Magiška burbulų jūra',      price: '20€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/unnamed-18-RCisgJ5gSyqKnYs3.jpg' },
-  { id: 'instax',       name: 'Instax Mini',         desc: 'Momentinis fotoaparatas',   price: '20€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/fujifilm_instax_mini_11_review_8c9cd6ffa9b02044a7a3327bc82c5649-85UNqcxSSc90bLMk.jpg' },
-  { id: 'sumo',         name: 'Sumo kostiumai',      desc: 'Juokingos imtynės vaikams', price: '40€ / NEMOKAMAS', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/fb_img_1767910149829-sogtSQXqI3GWH7om.jpg' },
+  { id: 'cukraus_vata', name: 'Cukraus vata',        desc: 'Saldūs debesėliai',        price: '40€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_hd3faxhd3faxhd3f-2RL89Y89SihhXISI.png' },
+  { id: 'popcorn',      name: 'Popcorn aparatas',    desc: 'Kino teatro spragėsiai',    price: '40€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_66y74g66y74g66y7-VlbuG5ChABMqrjI3.png' },
+  { id: 'serbetas',     name: 'Šerbeto aparatas',    desc: 'Vasariška atgaiva',         price: '40€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/gemini_generated_image_nj59vrnj59vrnj59-WwnAaY9XnFT0QqSs.png' },
+  { id: 'jbl',          name: 'JBL PartyBox',        desc: 'Galinga garso sistema',     price: '45€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/unnamed-21-f7MublgIL52DABHh.jpg' },
+  { id: 'vr',           name: 'Virtuali realybė',    desc: '360° žaidimai',             price: '40€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/occulus-quest-2-vr-gaming-QtC33jQbS4CMEhLe.jpg' },
+  { id: 'burbuilai',    name: 'Burbulų mašina',      desc: 'Magiška burbulų jūra',      price: '20€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/unnamed-18-RCisgJ5gSyqKnYs3.jpg' },
+  { id: 'instax',       name: 'Instax Mini',         desc: 'Momentinis fotoaparatas',   price: '20€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/fujifilm_instax_mini_11_review_8c9cd6ffa9b02044a7a3327bc82c5649-85UNqcxSSc90bLMk.jpg' },
+  { id: 'sumo',         name: 'Sumo kostiumai',      desc: 'Juokingos imtynės vaikams', price: '40€', image: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=375,fit=crop/0e8dAXAD75sxRpD2/fb_img_1767910149829-sogtSQXqI3GWH7om.jpg' },
 ];
 
 const FLOWS = {
@@ -69,10 +69,10 @@ const FLOWS = {
     intro: 'Padėkime surengti nepamirštamą vaiko gimtadienį! Pasirinkite batutą:',
     trampolines: BIRTHDAY_TRAMPOLINES, showAddons: true,
     fields: [
-      { name: 'vardas',         label: 'Jūsų vardas',    type: 'text', placeholder: 'Jonas Jonaitis',  required: true },
+      { name: 'vardas',         label: 'Jūsų vardas',    type: 'text', placeholder: 'Jonas Jonaitis',  required: false },
       { name: 'telefonas',      label: 'Tel. numeris',   type: 'tel',  placeholder: '+37060000000',    required: true },
-      { name: 'vaikuSkaicius',  label: 'Vaikų skaičius', type: 'text', placeholder: 'pvz. 10 vaikų',   required: true },
-      { name: 'data',           label: 'Renginio data',  type: 'date', placeholder: '',                required: true },
+      { name: 'vaikuSkaicius',  label: 'Vaikų skaičius', type: 'text', placeholder: 'pvz. 10 vaikų',   required: false },
+      { name: 'data',           label: 'Renginio data',  type: 'date', placeholder: '',                required: false },
       { name: 'vieta',          label: 'Pilnas adresas',  type: 'text', placeholder: 'pvz. Kaunas, Savanorių pr. 5', required: true },
     ],
     successMsg: 'Jūsų užklausa gauta! Savininkas susisieks su jumis telefonu artimiausiu metu.',
@@ -81,11 +81,11 @@ const FLOWS = {
     intro: 'Organizuojate įmonės renginį? Turime didžiausius parkus ir kliūčių ruožus! Pasirinkite:',
     trampolines: COMPANY_TRAMPOLINES, showAddons: true,
     fields: [
-      { name: 'imonesP',    label: 'Įmonės pavadinimas', type: 'text', placeholder: 'UAB Pavyzdys',     required: true },
-      { name: 'kontaktinis',label: 'Kontaktinis asmuo',  type: 'text', placeholder: 'Vardas Pavardė',   required: true },
+      { name: 'imonesP',    label: 'Įmonės pavadinimas', type: 'text', placeholder: 'UAB Pavyzdys',     required: false },
+      { name: 'kontaktinis',label: 'Kontaktinis asmuo',  type: 'text', placeholder: 'Vardas Pavardė',   required: false },
       { name: 'telefonas',  label: 'Tel. numeris',        type: 'tel',  placeholder: '+37060000000',     required: true },
-      { name: 'dalyviai',   label: 'Dalyvių skaičius',   type: 'text', placeholder: 'pvz. 50 žmonių',   required: true },
-      { name: 'data',       label: 'Renginio data',       type: 'date', placeholder: '',                 required: true },
+      { name: 'dalyviai',   label: 'Dalyvių skaičius',   type: 'text', placeholder: 'pvz. 50 žmonių',   required: false },
+      { name: 'data',       label: 'Renginio data',       type: 'date', placeholder: '',                 required: false },
       { name: 'vieta',      label: 'Pilnas adresas',       type: 'text', placeholder: 'pvz. Vilnius, Gedimino pr. 1', required: true },
     ],
     successMsg: 'Ačiū! Įmonės renginio užklausa gauta. Savininkas susisieks artimiausiu metu.',
@@ -94,10 +94,10 @@ const FLOWS = {
     intro: 'Planuojate šventę? Pasirinkite paslaugas (galima kelias) ir priedus!',
     services: PARTY_SERVICES, multiSelect: true, showAddons: true,
     fields: [
-      { name: 'vardas',          label: 'Jūsų vardas',     type: 'text', placeholder: 'Vardas Pavardė',   required: true },
+      { name: 'vardas',          label: 'Jūsų vardas',     type: 'text', placeholder: 'Vardas Pavardė',   required: false },
       { name: 'telefonas',       label: 'Tel. numeris',     type: 'tel',  placeholder: '+37060000000',     required: true },
-      { name: 'sveciumSkaicius', label: 'Svečių skaičius', type: 'text', placeholder: 'pvz. 30 svečių',   required: true },
-      { name: 'data',            label: 'Renginio data',    type: 'date', placeholder: '',                 required: true },
+      { name: 'sveciumSkaicius', label: 'Svečių skaičius', type: 'text', placeholder: 'pvz. 30 svečių',   required: false },
+      { name: 'data',            label: 'Renginio data',    type: 'date', placeholder: '',                 required: false },
       { name: 'vieta',           label: 'Pilnas adresas',    type: 'text', placeholder: 'pvz. Šiauliai, Tilžės g. 10', required: true },
     ],
     successMsg: 'Ačiū! Šventės nuomos užklausa gauta. Savininkas susisieks artimiausiu metu.',
@@ -106,9 +106,9 @@ const FLOWS = {
     intro: 'Pagelbėkime jums įsigyti batutą! Pasirinkite kategoriją:',
     trampolines: PURCHASE_CATEGORIES, showAddons: false,
     fields: [
-      { name: 'vardas',    label: 'Jūsų vardas',        type: 'text',  placeholder: 'Vardas Pavardė',  required: true },
+      { name: 'vardas',    label: 'Jūsų vardas',        type: 'text',  placeholder: 'Vardas Pavardė',  required: false },
       { name: 'telefonas', label: 'Tel. numeris',         type: 'tel',   placeholder: '+37060000000',    required: true },
-      { name: 'epastas',   label: 'El. paštas',          type: 'email', placeholder: 'vardas@gmail.com',required: true },
+      { name: 'epastas',   label: 'El. paštas',          type: 'email', placeholder: 'vardas@gmail.com',required: false },
       { name: 'adresas',   label: 'Pristatymo adresas',  type: 'text',  placeholder: 'Gatvė, miestas',  required: true },
     ],
     successMsg: 'Ačiū! Atsiųsime jums batutų katalogą el. paštu. Savininkas susisieks artimiausiu metu.',
@@ -121,15 +121,6 @@ const ESCALATION_FIELDS = [
   { name: 'zinute',    label: 'Jūsų žinutė',                  type: 'textarea', placeholder: 'Aprašykite klausimą...', required: true },
 ];
 
-const FAQ_ITEMS = [
-  { q: 'Koks batuto dydis man tinka?',     a: 'Vaikams iki 5 m. rekomenduojame "Pilis". Šeimoms ir šventėms – kompaktinius žaidimų centrus ar dviejų dalių batutus.' },
-  { q: 'Ar galima naudoti lietuje?',        a: 'Esant lengvam lietui galima, tačiau drėgnas paviršius gali tapti slidus. Audros metu sustabdykite naudojimą.' },
-  { q: 'Kokios saugumo taisyklės?',         a: 'Maks. 1 vaikas vienu metu. Vaikai iki 6 m. prižiūrimi suaugusiojo. Šokinėti tik be batų, vengti kraštų.' },
-  { q: 'Kiek laiko trunka pristatymas?',    a: 'Paprastai per 1–3 darbo dienas. Konkrečią datą suderinsite su savininku po užklausos.' },
-  { q: 'Ar reikia mokėti užstatą?',         a: 'Taip, imamas nedidelis užstatas. Tikslią sumą savininkas patvirtins susisiekdamas telefonu.' },
-  { q: 'Kokiems renginiams tinka batutai?', a: 'Gimtadieniams, įmonių piknikams, vestuvių šventėms, mokyklų renginiams ir kitiems lauko ar salės renginiams.' },
-];
-
 // ── Shared input class ────────────────────────────────────────────────────────
 const INPUT_CLS = 'w-full rounded-2xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 disabled:opacity-50 transition-all';
 
@@ -139,7 +130,7 @@ const STEP_LABELS = {
   purchase: ['Kategorija', 'Forma', 'Patvirtinta'],
 };
 const StepBar = ({ flowId, step }) => {
-  if (!flowId || flowId === 'faq' || flowId === 'escalation' || step === 0) return null;
+  if (!flowId || flowId === 'escalation' || step === 0) return null;
   const isPurchase = flowId === 'purchase';
   const labels = isPurchase ? STEP_LABELS.purchase : STEP_LABELS.default;
   // Map raw step (1-4) to display index
@@ -427,7 +418,6 @@ const AddonsSelector = ({ onConfirm, confirmed, selectedAddons: confirmedAddons 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-purple-700">Pasirinkite priedus:</p>
-        <span className="text-xs bg-amber-100 text-amber-700 font-bold px-2.5 py-1 rounded-full border border-amber-200">1 nemokamas!</span>
       </div>
       <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-0.5">
         {ADDONS.map(addon => {
@@ -515,36 +505,6 @@ const FlowForm = ({ flowId, trampolineName, onSubmit, isSubmitting, submitted })
   );
 };
 
-// ── FAQSection ────────────────────────────────────────────────────────────────
-const FAQSection = ({ onEscalate }) => {
-  const [expanded, setExpanded] = useState(null);
-  return (
-    <div className="space-y-2.5">
-      <p className="text-sm font-bold text-purple-700 mb-3">Dažniausiai užduodami klausimai</p>
-      {FAQ_ITEMS.map((item, i) => (
-        <div key={i} className="border border-purple-100 rounded-2xl overflow-hidden">
-          <button onClick={() => setExpanded(expanded === i ? null : i)} data-testid={`faq-item-${i}`}
-            className="w-full text-left px-4 py-3.5 flex items-center justify-between bg-purple-50/60 hover:bg-purple-100/60 transition-colors">
-            <span className="text-sm font-semibold text-purple-900 pr-3">{item.q}</span>
-            {expanded === i ? <ChevronUp size={16} className="text-purple-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-purple-400 flex-shrink-0" />}
-          </button>
-          {expanded === i && <div className="px-4 py-3 bg-white text-sm text-gray-700 leading-relaxed border-t border-purple-50">{item.a}</div>}
-        </div>
-      ))}
-      <div className="mt-4 p-4 bg-purple-50 rounded-2xl border border-purple-100 space-y-3">
-        <p className="text-sm font-bold text-purple-700">Kontaktai</p>
-        <a href="tel:+37064880388" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Phone size={15} className="text-violet-500" /> +370 648 80388</a>
-        <a href="mailto:info@batutynas.lt" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Mail size={15} className="text-violet-500" /> info@batutynas.lt</a>
-        <a href="https://batutynas.lt" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-purple-800 hover:text-violet-600 transition-colors py-0.5"><Globe size={15} className="text-violet-500" /> batutynas.lt</a>
-      </div>
-      <button onClick={onEscalate} data-testid="escalate-to-human"
-        className="w-full mt-2 rounded-2xl border-2 border-violet-300 text-violet-700 font-bold py-3.5 text-sm hover:bg-violet-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm">
-        <UserCog size={16} /> Kalbėti su žmogumi
-      </button>
-    </div>
-  );
-};
-
 // ── Main ChatWidget ───────────────────────────────────────────────────────────
 const ChatWidget = ({ embedded = false }) => {
   const [isOpen, setIsOpen]               = useState(embedded);
@@ -603,7 +563,6 @@ const ChatWidget = ({ embedded = false }) => {
             { id: 'company',         label: 'Įmonės renginiui',     Icon: Building2,  color: 'bg-blue-100 text-blue-600' },
             { id: 'party',           label: 'Šventės nuomai',       Icon: PartyPopper,color: 'bg-amber-100 text-amber-600' },
             { id: 'purchase',        label: 'Pirkti batutą',        Icon: ShoppingBag,color: 'bg-green-100 text-green-600' },
-            { id: 'faq',             label: 'DUK ir kontaktai',     Icon: HelpCircle, color: 'bg-violet-100 text-violet-600' },
             { id: 'escalate_direct', label: 'Kalbėti su žmogumi',   Icon: UserCog,    color: 'bg-rose-100 text-rose-600' },
           ]},
         },
@@ -648,10 +607,8 @@ const ChatWidget = ({ embedded = false }) => {
   const handleFlowSelect = useCallback(flowId => {
     const ts = Date.now();
     orderRef.current = {};
-    const newMsgs = [{ id: `u-${ts}`, role: 'user', type: 'text', content: FLOWS[flowId]?.label || 'DUK', data: {} }];
-    if (flowId === 'faq') {
-      newMsgs.push({ id: `faq-${ts}`, role: 'bot', type: 'faq', content: '', data: {} });
-    } else {
+    const newMsgs = [{ id: `u-${ts}`, role: 'user', type: 'text', content: FLOWS[flowId]?.label || '', data: {} }];
+    {
       newMsgs.push({ id: `intr-${ts}`, role: 'bot', type: 'text', content: FLOWS[flowId].intro, data: {} });
       const isMulti = FLOWS[flowId]?.multiSelect === true;
       newMsgs.push({ id: `tsel-${ts}`, role: 'bot', type: 'trampoline_select', content: '', data: {
@@ -819,14 +776,6 @@ const ChatWidget = ({ embedded = false }) => {
           <FlowForm flowId={msg.data.flowId} trampolineName={msg.data.trampoline}
             onSubmit={(flowId, data) => handleFormSubmit(msg.id, flowId, data)}
             isSubmitting={isSubmitting} submitted={submittedForms.has(msg.id)} />
-        </div>
-      </div>
-    );
-
-    if (msg.type === 'faq') return (
-      <div key={msg.id} className="flex justify-start chat-flow-enter w-full">
-        <div className="w-full bg-white border border-purple-100 rounded-2xl p-4 shadow-sm">
-          <FAQSection onEscalate={handleEscalate} />
         </div>
       </div>
     );
