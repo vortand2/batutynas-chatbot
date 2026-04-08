@@ -650,8 +650,12 @@ export default function AdminDashboard() {
   // ── Pending orders state ──
   const [pending, setPending]         = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingError, setPendingError]     = useState('');
   const [confirmOrder, setConfirmOrder]     = useState(null);
   const [acting, setActing]                 = useState('');
+
+  // ── System health (diagnostic banner) ──
+  const [health, setHealth] = useState(null);
 
   const monthStr = `${year}-${String(month+1).padStart(2,'0')}`;
 
@@ -661,24 +665,39 @@ export default function AdminDashboard() {
     try {
       const { data: d } = await api.get('/admin/dashboard', { params: { month: monthStr } });
       setData({ bookings: d.bookings || [], stats: d.stats || {}, equipment: d.equipment || [] });
+      // Surface backend-reported errors instead of swallowing them.
+      if (d.error) setError(d.error);
+      else if (d.source === 'no_n8n') setError('N8N_BASE_URL aplinkos kintamasis nenustatytas backend\'e');
     } catch (e) {
       if (e?.response?.status === 401) { handleLogout(); return; }
-      setError('Nepavyko gauti duomenų. Patikrinkite n8n ryšį.');
+      setError(e?.response?.data?.detail || e?.message || 'Nepavyko gauti duomenų. Patikrinkite n8n ryšį.');
     } finally { setLoading(false); }
   }, [monthStr, token]); // eslint-disable-line
 
   const fetchPending = useCallback(async () => {
     if (!token) return;
     setPendingLoading(true);
+    setPendingError('');
     try {
       const { data } = await api.get('/admin/pending-orders');
       setPending(data || []);
-    } catch { setPending([]); }
-    finally { setPendingLoading(false); }
+    } catch (e) {
+      setPending([]);
+      setPendingError(e?.response?.data?.detail || e?.message || 'Nepavyko gauti laukiančių užsakymų');
+    } finally { setPendingLoading(false); }
+  }, [token]);
+
+  const fetchHealth = useCallback(async () => {
+    if (!token) return;
+    try {
+      const { data } = await api.get('/admin/health');
+      setHealth(data);
+    } catch { /* banner just stays hidden */ }
   }, [token]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (activeTab === 'pending') fetchPending(); }, [activeTab, fetchPending]);
+  useEffect(() => { fetchHealth(); }, [fetchHealth]);
 
   const prevMonth = () => { if (month === 0) { setYear(y=>y-1); setMonth(11); } else setMonth(m=>m-1); };
   const nextMonth = () => { if (month === 11) { setYear(y=>y+1); setMonth(0); } else setMonth(m=>m+1); };
@@ -886,11 +905,41 @@ export default function AdminDashboard() {
 
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
+        {/* ── System health banner ── */}
+        {health && (() => {
+          const broken = !health.n8n_configured || !health.n8n_reachable || !health.mongo_ok;
+          if (!broken) return null;
+          const issues = [];
+          if (!health.n8n_configured) issues.push('N8N_BASE_URL nenustatytas backend\'e');
+          else if (!health.n8n_reachable) issues.push(`n8n nepasiekiamas${health.n8n_error ? ` (${health.n8n_error})` : ''}`);
+          if (!health.mongo_ok) issues.push('MongoDB nepasiekiamas');
+          return (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 rounded-2xl px-5 py-3.5 text-sm" data-testid="health-banner">
+              <AlertCircle size={16} className="flex-shrink-0 text-red-500 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-bold">Sistemos ryšio problema</p>
+                <ul className="list-disc list-inside mt-1 space-y-0.5 text-red-700">
+                  {issues.map((iss, i) => <li key={i}>{iss}</li>)}
+                </ul>
+                <p className="mt-2 text-xs text-red-600">Laukiančių užsakymų: {health.pending_orders_count}. Paskutinis užsakymas: {health.last_order_at || '—'}</p>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Error banner ── */}
         {error && (
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-3.5 text-sm font-medium">
             <AlertCircle size={16} className="flex-shrink-0 text-amber-500" />
             {error}
+          </div>
+        )}
+
+        {/* ── Pending-orders error banner ── */}
+        {pendingError && activeTab === 'pending' && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-5 py-3.5 text-sm font-medium">
+            <AlertCircle size={16} className="flex-shrink-0 text-amber-500" />
+            {pendingError}
           </div>
         )}
 

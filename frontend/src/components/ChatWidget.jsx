@@ -121,6 +121,44 @@ const ESCALATION_FIELDS = [
   { name: 'zinute',    label: 'Jūsų žinutė',                  type: 'textarea', placeholder: 'Aprašykite klausimą...', required: true },
 ];
 
+// ── Main menu buttons (shared by init message and back-to-menu feature) ──
+const MAIN_MENU_BUTTONS = [
+  { id: 'birthday',        label: 'Vaiko gimtadieniui',   Icon: Gift,        color: 'bg-pink-100 text-pink-600'  },
+  { id: 'company',         label: 'Įmonės renginiui',     Icon: Building2,   color: 'bg-blue-100 text-blue-600'  },
+  { id: 'party',           label: 'Šventės nuomai',       Icon: PartyPopper, color: 'bg-amber-100 text-amber-600'},
+  { id: 'purchase',        label: 'Pirkti batutą',        Icon: ShoppingBag, color: 'bg-green-100 text-green-600'},
+  { id: 'escalate_direct', label: 'Kalbėti su žmogumi',   Icon: UserCog,     color: 'bg-rose-100 text-rose-600'  },
+];
+
+// Walk messages from the end; find the last interactive widget and check
+// if it's "done". If none found, user is outside any flow.
+const isInActiveFlow = (msgs, submittedForms) => {
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i];
+    if (m.type === 'form') return !submittedForms.has(m.id);
+    if (m.type === 'trampoline_select') {
+      const done = m.data?.multiSelect
+        ? m.data?.confirmed === true
+        : m.data?.selectedId != null;
+      return !done;
+    }
+    if (m.type === 'addons_select') return m.data?.confirmed !== true;
+  }
+  return false;
+};
+
+const clearBackToMenuFlags = (msgs) => {
+  let changed = false;
+  const next = msgs.map(m => {
+    if (m.data?.showBackToMenu) {
+      changed = true;
+      return { ...m, data: { ...m.data, showBackToMenu: false } };
+    }
+    return m;
+  });
+  return changed ? next : msgs;
+};
+
 // ── Shared input class ────────────────────────────────────────────────────────
 const INPUT_CLS = 'w-full rounded-2xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 disabled:opacity-50 transition-all';
 
@@ -516,25 +554,41 @@ const ChatWidget = ({ embedded = false }) => {
   const [isAiTyping, setIsAiTyping]       = useState(false);
   const [detailTrampoline, setDetailTrampoline] = useState(null);
   const [showConfetti, setShowConfetti]   = useState(false);
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return sessionStorage.getItem('batutynas-nudge-dismissed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [delayElapsed, setDelayElapsed] = useState(false);
+  const [nudgeExiting, setNudgeExiting] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
   const orderRef       = useRef({});
   const sessionIdRef   = useRef(`s-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
 
-  // Computed: current flow step for progress bar
+  // Computed: current flow step for progress bar.
+  // Scan from the END to find the latest trampoline_select — so after a user
+  // completes a flow and starts a new one (via "Atgal į meniu"), StepBar
+  // reflects the NEW flow, not the old completed one.
   const { flowStep, activeFlowId } = useMemo(() => {
-    const hasTrampoline = messages.some(m => m.type === 'trampoline_select');
-    const hasAddons     = messages.some(m => m.type === 'addons_select');
-    const hasForm       = messages.some(m => m.type === 'form');
-    const hasSuccess    = submittedForms.size > 0;
-    const flowMsg       = messages.find(m => m.type === 'trampoline_select');
-    const flowId        = flowMsg?.data?.flowId || null;
-    let step = 0;
-    if (hasTrampoline) step = 1;
-    if (hasAddons)     step = 2;
-    if (hasForm)       step = 3;
-    if (hasSuccess)    step = 4;
-    return { flowStep: step, activeFlowId: flowId };
+    let lastFlowStart = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === 'trampoline_select') { lastFlowStart = i; break; }
+    }
+    if (lastFlowStart === -1) return { flowStep: 0, activeFlowId: null };
+    const tsel  = messages[lastFlowStart];
+    const slice = messages.slice(lastFlowStart);
+    const hasAddons  = slice.some(m => m.type === 'addons_select');
+    const hasForm    = slice.some(m => m.type === 'form');
+    const hasSuccess = slice.some(m => m.type === 'form' && submittedForms.has(m.id));
+    let step = 1;
+    if (hasAddons)  step = 2;
+    if (hasForm)    step = 3;
+    if (hasSuccess) step = 4;
+    return { flowStep: step, activeFlowId: tsel.data?.flowId || null };
   }, [messages, submittedForms]);
   // Listen for external open event (from landing page CTA or embed.js parent)
   useEffect(() => {
@@ -558,14 +612,7 @@ const ChatWidget = ({ embedded = false }) => {
         { id: 'init-1', role: 'bot', type: 'text',
           content: 'Sveiki, aš Batutyno asistentas, pasirinkitę šventės progą arba rašykite klausimą apačioje!', data: {} },
         { id: 'init-2', role: 'bot', type: 'buttons', content: '',
-          data: { buttons: [
-            { id: 'birthday',        label: 'Vaiko gimtadieniui',   Icon: Gift,       color: 'bg-pink-100 text-pink-600' },
-            { id: 'company',         label: 'Įmonės renginiui',     Icon: Building2,  color: 'bg-blue-100 text-blue-600' },
-            { id: 'party',           label: 'Šventės nuomai',       Icon: PartyPopper,color: 'bg-amber-100 text-amber-600' },
-            { id: 'purchase',        label: 'Pirkti batutą',        Icon: ShoppingBag,color: 'bg-green-100 text-green-600' },
-            { id: 'escalate_direct', label: 'Kalbėti su žmogumi',   Icon: UserCog,    color: 'bg-rose-100 text-rose-600' },
-          ]},
-        },
+          data: { buttons: MAIN_MENU_BUTTONS } },
       ]);
     }
   }, [isOpen, messages.length]);
@@ -579,6 +626,21 @@ const ChatWidget = ({ embedded = false }) => {
     if (isOpen && window.innerWidth >= 640) setTimeout(() => inputRef.current?.focus(), 400);
   }, [isOpen]);
 
+  // Show nudge 3s after mount (once, only while not already dismissed)
+  useEffect(() => {
+    if (nudgeDismissed) return;
+    const t = setTimeout(() => setDelayElapsed(true), 3000);
+    return () => clearTimeout(t);
+  }, [nudgeDismissed]);
+
+  // Auto-dismiss the pill for the rest of the session once chat opens
+  useEffect(() => {
+    if (isOpen && !nudgeDismissed) {
+      try { sessionStorage.setItem('batutynas-nudge-dismissed', '1'); } catch {}
+      setNudgeDismissed(true);
+    }
+  }, [isOpen, nudgeDismissed]);
+
   const addMsgs   = useCallback(newMsgs => setMessages(prev => [...prev, ...newMsgs]), []);
   const updateMsg = useCallback((id, patch) => setMessages(prev => prev.map(m => m.id === id ? { ...m, data: { ...m.data, ...patch } } : m)), []);
 
@@ -589,19 +651,25 @@ const ChatWidget = ({ embedded = false }) => {
     setInputValue('');
     setIsAiTyping(true);
     const ts = Date.now();
-    setMessages(prev => [...prev,
+    const wasInFlow = isInActiveFlow(messages, submittedForms);
+    setMessages(prev => [
+      ...clearBackToMenuFlags(prev),
       { id: `u-ai-${ts}`, role: 'user', type: 'text', content: text, data: {} },
       { id: `typ-${ts}`,  role: 'bot',  type: 'typing', content: '', data: {} },
     ]);
     try {
       const { data } = await axios.post(`${API_URL}/chat`, { session_id: sessionIdRef.current, message: text });
-      setMessages(prev => prev.map(m => m.id === `typ-${ts}` ? { ...m, type: 'text', content: data.reply } : m));
+      setMessages(prev => prev.map(m => m.id === `typ-${ts}`
+        ? { ...m, type: 'text', content: data.reply, data: { ...m.data, showBackToMenu: !wasInFlow } }
+        : m));
     } catch {
-      setMessages(prev => prev.map(m => m.id === `typ-${ts}` ? { ...m, type: 'text', content: 'Atsiprašome, įvyko klaida. Skambinkite: +37064880388' } : m));
+      setMessages(prev => prev.map(m => m.id === `typ-${ts}`
+        ? { ...m, type: 'text', content: 'Atsiprašome, įvyko klaida. Skambinkite: +37064880388' }
+        : m));
     } finally {
       setIsAiTyping(false);
     }
-  }, [inputValue, isAiTyping]);
+  }, [inputValue, isAiTyping, messages, submittedForms]);
 
   // Flow handlers
   const handleFlowSelect = useCallback(flowId => {
@@ -619,8 +687,8 @@ const ChatWidget = ({ embedded = false }) => {
         ),
       }});
     }
-    addMsgs(newMsgs);
-  }, [addMsgs]);
+    setMessages(prev => [...clearBackToMenuFlags(prev), ...newMsgs]);
+  }, []);
 
   const handleServicesConfirm = useCallback((msgId, flowId, serviceNames) => {
     updateMsg(msgId, { confirmed: true, selectedNames: serviceNames });
@@ -698,10 +766,35 @@ const ChatWidget = ({ embedded = false }) => {
   }, []);
 
   const handleButtonClick = useCallback(btnId => {
+    setMessages(prev => clearBackToMenuFlags(prev));
     if (btnId === 'reset') handleReset();
     else if (btnId === 'escalate_direct') handleEscalate();
     else handleFlowSelect(btnId);
   }, [handleFlowSelect, handleReset, handleEscalate]);
+
+  const handleBackToMenu = useCallback((msgId) => {
+    const ts = Date.now();
+    setMessages(prev => {
+      const target = prev.find(m => m.id === msgId);
+      if (!target?.data?.showBackToMenu) return prev;
+      return [
+        ...clearBackToMenuFlags(prev),
+        { id: `menu-${ts}`, role: 'bot', type: 'buttons',
+          content: 'Ar galiu kuo nors dar padėti?',
+          data: { buttons: MAIN_MENU_BUTTONS } },
+      ];
+    });
+    orderRef.current = {};
+  }, []);
+
+  const handleDismissNudge = useCallback(() => {
+    setNudgeExiting(true);
+    try { sessionStorage.setItem('batutynas-nudge-dismissed', '1'); } catch {}
+    setTimeout(() => {
+      setNudgeDismissed(true);
+      setNudgeExiting(false);
+    }, 200);
+  }, []);
 
   // Render
   const renderMessage = useCallback(msg => {
@@ -716,10 +809,21 @@ const ChatWidget = ({ embedded = false }) => {
     );
 
     if (msg.type === 'text') return (
-      <div key={msg.id} className={`flex ${isBot ? 'justify-start' : 'justify-end'} chat-msg-enter`}>
+      <div key={msg.id} className={`flex flex-col ${isBot ? 'items-start' : 'items-end'} chat-msg-enter`}>
         <div className={`max-w-[82%] rounded-2xl px-4 py-3.5 text-sm leading-relaxed ${isBot ? 'bg-purple-100 text-purple-900 rounded-bl-sm' : 'bg-gradient-to-br from-violet-600 to-purple-600 text-white rounded-br-sm shadow-sm'}`}>
           {msg.content}
         </div>
+        {isBot && msg.data?.showBackToMenu && (
+          <button
+            type="button"
+            data-testid="back-to-menu-btn"
+            onClick={() => handleBackToMenu(msg.id)}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-2xl border-2 border-purple-100 hover:border-violet-300 hover:bg-violet-50/50 bg-white px-3.5 py-2 text-xs font-semibold text-violet-700 transition-all active:scale-[0.98] shadow-sm"
+          >
+            <ChevronRight size={14} className="rotate-180" />
+            Atgal į meniu
+          </button>
+        )}
       </div>
     );
 
@@ -781,7 +885,7 @@ const ChatWidget = ({ embedded = false }) => {
     );
 
     return null;
-  }, [handleButtonClick, handleTrampolineSelect, handleServicesConfirm, handleAddonsConfirm, handleFormSubmit, handleEscalate, isSubmitting, submittedForms, setDetailTrampoline]);
+  }, [handleButtonClick, handleTrampolineSelect, handleServicesConfirm, handleAddonsConfirm, handleFormSubmit, handleEscalate, handleBackToMenu, isSubmitting, submittedForms, setDetailTrampoline]);
 
   const handleClose = useCallback(() => {
     if (embedded) {
@@ -883,10 +987,33 @@ const ChatWidget = ({ embedded = false }) => {
       {/* FAB (hidden in embedded mode — embed.js provides its own) */}
       {!embedded && (
         <div className="fixed z-[60] bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col items-end gap-3">
-          {!isOpen && hasUnread && (
-            <div className="hidden sm:flex items-center gap-2 bg-white border border-purple-200 rounded-2xl px-4 py-2.5 shadow-lg shadow-purple-100 chat-msg-enter">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-sm font-semibold text-violet-700">Susisiekite su mumis!</span>
+          {!isOpen && !nudgeDismissed && delayElapsed && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`relative max-w-[calc((100vw-2rem)*0.9)] sm:max-w-[288px] ${nudgeExiting ? 'nudge-pill-exit' : 'nudge-pill-enter'}`}
+            >
+              <div
+                aria-hidden="true"
+                className="absolute -bottom-1.5 right-6 w-3 h-3 rotate-45 bg-white border-r border-b border-purple-200"
+              />
+              <div className="relative flex items-start gap-2.5 bg-white border border-purple-200 rounded-2xl pl-3 pr-2 py-2.5 sm:pl-4 sm:pr-2.5 sm:py-3 shadow-xl shadow-violet-200/50 ring-1 ring-violet-100/60">
+                <span className="relative flex-shrink-0 mt-1">
+                  <span className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 animate-ping motion-reduce:animate-none opacity-40" />
+                  <span className="relative block w-2.5 h-2.5 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm shadow-violet-400/50" />
+                </span>
+                <p className="flex-1 text-[13px] sm:text-sm font-semibold leading-snug text-violet-900 pr-1">
+                  Norite užsisakyti batutą arba paklausti? <span className="text-violet-600">Susisiekite!</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={handleDismissNudge}
+                  aria-label="Uždaryti pranešimą"
+                  className="flex-shrink-0 w-7 h-7 -mr-0.5 -mt-0.5 flex items-center justify-center rounded-full text-violet-400 hover:text-violet-700 hover:bg-violet-50 active:bg-violet-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-1"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           )}
           <button onClick={handleOpen} data-testid="chat-trigger"

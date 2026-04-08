@@ -126,7 +126,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 OWNER_EMAIL          = os.environ.get('OWNER_EMAIL', 'dovydasdobrovolskis@gmail.com')
 RESEND_API_KEY       = os.environ.get('RESEND_API_KEY', '')
 GEMINI_API_KEY       = os.environ.get('GEMINI_API_KEY', '')
-N8N_BASE_URL         = os.environ.get('N8N_BASE_URL', '')
+N8N_BASE_URL         = os.environ.get('N8N_BASE_URL', '').rstrip('/')
 N8N_WEBHOOK_URL      = os.environ.get('N8N_WEBHOOK_URL', '')
 CALENDAR_BRIDGE_URL  = os.environ.get('CALENDAR_BRIDGE_URL', '')
 ADMIN_PASSWORD       = os.environ.get('ADMIN_PASSWORD', '')
@@ -634,7 +634,11 @@ def _n8n_url(path: str) -> str:
 @api_router.get("/admin/dashboard")
 async def admin_dashboard(month: str = "", _=Depends(require_admin)):
     if not N8N_BASE_URL:
-        return {"bookings": [], "stats": {}, "equipment": [], "source": "no_n8n"}
+        return {
+            "bookings": [], "stats": {}, "equipment": [],
+            "source": "no_n8n",
+            "error": "N8N_BASE_URL aplinkos kintamasis nenustatytas backend'e",
+        }
     try:
         params = {"month": month} if month else {}
         async with httpx.AsyncClient(timeout=20) as c:
@@ -644,6 +648,45 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
     except Exception as e:
         logger.error("admin_dashboard proxy error: %s", e)
         return {"bookings": [], "stats": {}, "equipment": [], "error": str(e)}
+
+
+@api_router.get("/admin/health")
+async def admin_health(_=Depends(require_admin)):
+    """Diagnostic endpoint — surfaces config + live reachability of the
+    subsystems the dashboard depends on (MongoDB, n8n Calendar Bridge, Gemini).
+    Used by the dashboard to show a status banner when something is broken.
+    """
+    mongo_ok = False
+    pending_count = 0
+    last_order_at = None
+    try:
+        pending_count = await db.orders.count_documents({"status": {"$in": ["pending", "submitted"]}})
+        latest = await db.orders.find({}, {"_id": 0, "created_at": 1}).sort("created_at", -1).limit(1).to_list(1)
+        last_order_at = latest[0].get("created_at") if latest else None
+        mongo_ok = True
+    except Exception as e:
+        logger.error("admin_health mongo error: %s", e)
+
+    n8n_reachable = False
+    n8n_error = None
+    if N8N_BASE_URL:
+        try:
+            async with httpx.AsyncClient(timeout=3) as c:
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]})
+                n8n_reachable = r.status_code < 500
+        except Exception as e:
+            n8n_error = str(e)[:200]
+
+    return {
+        "n8n_configured":     bool(N8N_BASE_URL),
+        "n8n_base_url":       N8N_BASE_URL or None,
+        "n8n_reachable":      n8n_reachable,
+        "n8n_error":          n8n_error,
+        "mongo_ok":           mongo_ok,
+        "gemini_configured":  bool(GEMINI_API_KEY),
+        "pending_orders_count": pending_count,
+        "last_order_at":      last_order_at,
+    }
 
 
 @api_router.get("/admin/next-free")
