@@ -49,7 +49,40 @@
     '@media(max-width:480px){',
       '#bat-frame-wrap{width:calc(100vw - 16px);right:8px;bottom:88px;height:calc(100vh - 110px);}',
       '#bat-fab{bottom:16px;right:16px;width:56px;height:56px;font-size:24px;}',
+      '#bat-nudge{right:16px;max-width:calc(100vw - 2rem);}',
     '}',
+    // Nudge pill
+    '#bat-nudge{',
+      'position:fixed;bottom:96px;right:24px;z-index:2147483639;',
+      'max-width:288px;',
+      'background:#fff;border:1px solid #e9d5ff;border-radius:16px;',
+      'padding:10px 10px 10px 14px;',
+      'box-shadow:0 10px 40px rgba(139,92,246,.2),0 0 0 1px rgba(139,92,246,.08);',
+      'display:flex;align-items:flex-start;gap:10px;',
+      'opacity:0;transform:translateY(8px) scale(.92);',
+      'animation:batNudgeIn .28s cubic-bezier(.34,1.56,.64,1) forwards;',
+      'transform-origin:bottom right;',
+    '}',
+    '#bat-nudge.bat-nudge-exit{animation:batNudgeOut .2s ease-in forwards;pointer-events:none;}',
+    '#bat-nudge-dot{',
+      'flex-shrink:0;width:10px;height:10px;margin-top:4px;border-radius:50%;',
+      'background:linear-gradient(135deg,#7c3aed,#9333ea);',
+    '}',
+    '#bat-nudge-text{flex:1;font:600 13px/1.4 system-ui,sans-serif;color:#1e1b4b;margin:0;}',
+    '#bat-nudge-text span{color:#7c3aed;}',
+    '#bat-nudge-x{',
+      'flex-shrink:0;width:24px;height:24px;border:none;background:none;cursor:pointer;',
+      'color:#a78bfa;font-size:16px;line-height:24px;text-align:center;border-radius:50%;',
+      'transition:background .15s,color .15s;',
+    '}',
+    '#bat-nudge-x:hover{background:#f3e8ff;color:#6d28d9;}',
+    '#bat-nudge-tail{',
+      'position:absolute;bottom:-5px;right:24px;width:10px;height:10px;',
+      'background:#fff;border-right:1px solid #e9d5ff;border-bottom:1px solid #e9d5ff;',
+      'transform:rotate(45deg);',
+    '}',
+    '@keyframes batNudgeIn{0%{opacity:0;transform:translateY(8px) scale(.92);}60%{opacity:1;transform:translateY(-2px) scale(1.02);}100%{opacity:1;transform:translateY(0) scale(1);}}',
+    '@keyframes batNudgeOut{to{opacity:0;transform:translateY(4px) scale(.94);}}',
   ].join('');
 
   var styleEl = document.createElement('style');
@@ -101,12 +134,68 @@
   document.body.appendChild(fab);
   document.body.appendChild(wrap);
 
+  // ── Nudge pill (3s delay, session-dismissible) ────────────────────────────
+  var nudgeDismissed = false;
+  try { nudgeDismissed = sessionStorage.getItem('bat-nudge-off') === '1'; } catch(e) {}
+
+  if (!nudgeDismissed) {
+    setTimeout(function () {
+      if (isOpen || nudgeDismissed) return;
+      var nudge = document.createElement('div');
+      nudge.id = 'bat-nudge';
+      nudge.setAttribute('role', 'status');
+
+      var tail = document.createElement('div');
+      tail.id = 'bat-nudge-tail';
+      nudge.appendChild(tail);
+
+      var dot = document.createElement('div');
+      dot.id = 'bat-nudge-dot';
+      nudge.appendChild(dot);
+
+      var txt = document.createElement('p');
+      txt.id = 'bat-nudge-text';
+      txt.textContent = 'Norite u\u017esisakyti batut\u0105 arba paklausti? ';
+      var accent = document.createElement('span');
+      accent.textContent = 'Susisiekite!';
+      txt.appendChild(accent);
+      nudge.appendChild(txt);
+
+      var xBtn = document.createElement('button');
+      xBtn.id = 'bat-nudge-x';
+      xBtn.setAttribute('aria-label', 'U\u017edaryti');
+      xBtn.setAttribute('type', 'button');
+      xBtn.textContent = '\u00d7';
+      nudge.appendChild(xBtn);
+
+      document.body.appendChild(nudge);
+
+      function dismissNudge() {
+        nudgeDismissed = true;
+        try { sessionStorage.setItem('bat-nudge-off', '1'); } catch(e) {}
+        nudge.classList.add('bat-nudge-exit');
+        setTimeout(function () { if (nudge.parentNode) nudge.parentNode.removeChild(nudge); }, 220);
+      }
+      xBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dismissNudge();
+      });
+      nudge.addEventListener('click', function () {
+        dismissNudge();
+        openChat();
+      });
+      window._batNudgeDismiss = dismissNudge;
+    }, 3000);
+  }
+
   // ── Toggle logic ──────────────────────────────────────────────────────────
   var isOpen = false;
 
   function openChat() {
     ensureIframe();
     isOpen = true;
+    // Dismiss nudge pill if still visible
+    if (window._batNudgeDismiss) { window._batNudgeDismiss(); window._batNudgeDismiss = null; }
     fab.classList.add('bat-open');
     wrap.classList.add('bat-visible');
     fab.textContent = '';
