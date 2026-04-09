@@ -186,9 +186,12 @@ BATUTAI NUOMAI: Pilis (iki 5 m.), Monstrai, Chameleonas, Candy Pop, Aštuonkojis
 (žaidimų centrai), Mega raketa, Mega ufonautai, Mega waikiki (dviejų dalių), \
 Mega ruožas, Giga ruožas (kliūčių ruožai).
 
-PRIEDAI – 1 NEMOKAMAS su bet kokiu batutu (atskirai 20–45 €): \
-Cukraus vata, Popcorn aparatas, Šerbeto aparatas, JBL PartyBox, Virtuali realybė, \
-Burbulų mašina, Instax Mini, Sumo kostiumai.
+PRIEDAI – VISI MOKAMI (kaina pagal užklausą). NĖRA nemokamų priedų. \
+Niekada nesakyk klientui, kad priedas yra nemokamas ar dovana. \
+Galimi priedai: Cukraus vata, Popcorn aparatas, Šerbeto aparatas, JBL PartyBox, \
+Virtuali realybė, Burbulų mašina, Instax Mini, Sumo kostiumai, \
+Disco paviljonas, Putų šou, Milžiniškas Dart, Kamuolių medžioklė, \
+Rodeo bulius, Saldėsių aparatai, Banketo stalai ir kėdės.
 
 PIRKIMUI: Čiuožyklos, Kliūčių ruožai, 2-jų dalių batutai, Pripučiami žaidimai, \
 Kompaktiškos aikštelės, Individuali gamyba su logotipu.
@@ -199,7 +202,9 @@ KONTAKTAI: +37064880388 | info@batutynas.lt | batutynas.lt
 
 SVARBU: Jei klientas nori rezervuoti, užsisakyti arba sužinoti kainą – \
 paprašyk jų naudoti pokalbio mygtukus (Vaiko gimtadieniui, Įmonės renginiui, Šventės nuomai, Pirkti batutą). \
-Kainos derinamos su savininku po užklausos pateikimo."""
+Kainos derinamos su savininku po užklausos pateikimo. \
+Užsakymui privalomi laukai: TELEFONO NUMERIS ir PRISTATYMO ADRESAS. \
+Kiti laukai (vardas, data, laikas, el. paštas) — neprivalomi."""
 
 # ── Models ───────────────────────────────────────────────────────────────────
 
