@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install all dependencies (npm ignores engine-strict by default)
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy source
 COPY . .
