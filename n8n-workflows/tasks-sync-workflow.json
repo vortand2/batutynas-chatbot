@@ -1,0 +1,338 @@
+{
+  "name": "Batutynas: Tasks → Calendar Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "00e8590c-a482-4bb2-9e2a-74976394330c",
+      "name": "Every 10 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://tasks.googleapis.com/tasks/v1/users/@me/lists",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "aeb37f08-edb7-4274-88a5-56d321339622",
+      "name": "List Task Lists",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        400
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SaHw7JsRiy6wdVUp",
+          "name": "Batutynas Google Calendar"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Find \"Batutynas\" task list from the lists response\nconst lists = $input.first().json.items || [];\nlet targetList = lists.find(l =>\n  (l.title || '').toLowerCase().includes('batutynas') ||\n  (l.title || '').toLowerCase().includes('taurag')\n);\n// Fallback: use the first non-default list, or the default\nif (!targetList && lists.length > 1) targetList = lists[1];\nif (!targetList && lists.length > 0) targetList = lists[0];\nif (!targetList) return [{ json: { error: 'No task lists found', hasTasks: false, bookings: [] } }];\n\nreturn [{ json: { taskListId: targetList.id, taskListTitle: targetList.title } }];\n"
+      },
+      "id": "a9eee911-709e-4948-b51e-1d977040746d",
+      "name": "Find Batutynas List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://tasks.googleapis.com/tasks/v1/lists/{{ $json.taskListId }}/tasks?showCompleted=false&maxResults=50",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "479f0558-0c87-4cbb-94e8-a34d3c2743c4",
+      "name": "Fetch Uncompleted Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        400
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SaHw7JsRiy6wdVUp",
+          "name": "Batutynas Google Calendar"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst EQUIPMENT = [\n  { name: 'Fantazijų parkas', kw: ['fantaziju', 'fantazij'] },\n  { name: 'Džiumandži parkas', kw: ['dziumandzi', 'jumanji', 'džiumandži'] },\n  { name: 'Giga ruožas', kw: ['giga'] },\n  { name: 'Mega ruožas', kw: ['mega ruoz', 'mega ruož'] },\n  { name: 'Mega Rocket', kw: ['mega rocket', 'rocket', 'mega raketa', 'raketa'] },\n  { name: 'Mega Ufonautai', kw: ['mega ufonautai', 'ufonautai', 'ufo'] },\n  { name: 'Mega Waikiki', kw: ['mega waikiki', 'waikiki'] },\n  { name: 'Monstrai', kw: ['monstrai', 'monstr'] },\n  { name: 'Chameleonas', kw: ['chameleonas', 'chameleon'] },\n  { name: 'Candy Pop', kw: ['candy', 'candy pop'] },\n  { name: 'Aštuonkojis', kw: ['astuonkojis', 'aštuonkojis', 'octopus'] },\n  { name: 'Vienaragiai', kw: ['vienaragiai', 'vienaragi', 'unicorn'] },\n  { name: 'Pilis mažiesiems', kw: ['pilis'] },\n  { name: 'Milžiniškas Dart', kw: ['dart', 'milziniskas dart'] },\n  { name: 'Kamuolių medžioklė', kw: ['kamuoliu', 'kamuoli'] },\n  { name: 'Rodeo bulius', kw: ['rodeo', 'bulius'] },\n  { name: 'Saldėsių aparatai', kw: ['saldesiu', 'saldesi', 'vata', 'popcorn'] },\n  { name: 'Banketo stalai ir kėdės', kw: ['stalai', 'kedes', 'kėdės', 'banketo', 'kedziu', 'kėdžių'] },\n  { name: 'Disco paviljonas', kw: ['disco', 'paviljonas'] },\n  { name: 'Putų šou', kw: ['putu', 'putų', 'šou'] },\n];\n\n// Input: $json.items = array of Google Tasks\nconst tasks = ($input.first().json.items || []).filter(t => t.status !== 'completed');\nif (tasks.length === 0) return [{ json: { hasTasks: false, bookings: [] } }];\n\nfunction matchEquipment(title) {\n  const lower = (title || '').toLowerCase()\n    .replace(/ą/g,'a').replace(/č/g,'c').replace(/ę/g,'e').replace(/ė/g,'e')\n    .replace(/į/g,'i').replace(/š/g,'s').replace(/ų/g,'u').replace(/ū/g,'u').replace(/ž/g,'z');\n  for (const eq of EQUIPMENT) {\n    for (const kw of eq.kw) {\n      const kwNorm = kw.toLowerCase()\n        .replace(/ą/g,'a').replace(/č/g,'c').replace(/ę/g,'e').replace(/ė/g,'e')\n        .replace(/į/g,'i').replace(/š/g,'s').replace(/ų/g,'u').replace(/ū/g,'u').replace(/ž/g,'z');\n      if (lower.includes(kwNorm)) return eq.name;\n    }\n  }\n  return title; // fallback: use raw title as equipment name\n}\n\nfunction extractPrice(title) {\n  // Match: \"uz 200\", \"už 70 Eur\", \"uz 150€\", \"| 200€\"\n  const m = (title || '').match(/(?:u[zž]\\s*|[\\|]\\s*)(\\d+)\\s*(?:€|Eur)?/i);\n  return m ? parseInt(m[1], 10) : 0;\n}\n\nfunction parseNotes(notes) {\n  if (!notes) return { address: '', phones: [], customerName: '' };\n  const lines = notes.split(/\\n/).map(l => l.trim()).filter(Boolean);\n  const phones = lines.filter(l => /^0\\d{7,}$/.test(l.replace(/[\\s\\-\\(\\)]/g, '')));\n  const address = lines[0] || '';\n  const nonPhoneNonAddr = lines.slice(1).filter(l => !phones.includes(l));\n  return { address, phones, customerName: nonPhoneNonAddr[0] || '' };\n}\n\nconst bookings = tasks.map(t => {\n  const equipment = matchEquipment(t.title || '');\n  const price = extractPrice(t.title || '');\n  const parsed = parseNotes(t.notes || '');\n  const due = t.due ? t.due.substring(0, 10) : new Date().toISOString().substring(0, 10);\n\n  return {\n    taskId: t.id,\n    taskTitle: t.title,\n    equipment: equipment,\n    customer_name: parsed.customerName || 'Iš Google Tasks',\n    phone: parsed.phones[0] || '',\n    address: parsed.address,\n    startDate: due,\n    durationDays: 1,\n    price: price,\n    notes: `Sinchronizuota iš Google Tasks: ${t.title}\\n${t.notes || ''}`.trim(),\n    addons: [],\n    source: 'google_tasks',\n  };\n});\n\nreturn [{ json: { hasTasks: true, bookings: bookings } }];\n"
+      },
+      "id": "63422801-e256-43a6-b954-5af58bacff20",
+      "name": "Parse Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "4eab9488-196d-4dd2-8b6b-059c57d008b8",
+              "leftValue": "={{ $json.hasTasks }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7f23fd0-6747-49f0-b60f-db2a427948df",
+      "name": "Has Tasks?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Split bookings array into individual items for sequential processing\nconst bookings = $input.first().json.bookings || [];\nreturn bookings.map(b => ({ json: b }));\n"
+      },
+      "id": "9fe40ec6-069e-48f8-ae33-c59132ab3d3c",
+      "name": "Split Bookings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"equipment\": \"{{ $json.equipment }}\",\n  \"customer_name\": \"{{ $json.customer_name }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"address\": \"{{ $json.address }}\",\n  \"startDate\": \"{{ $json.startDate }}\",\n  \"durationDays\": {{ $json.durationDays }},\n  \"price\": {{ $json.price }},\n  \"notes\": {{ JSON.stringify($json.notes) }},\n  \"source\": \"google_tasks\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "5466d767-9606-4b89-8aee-e86b9032db3b",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        300
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://tasks.googleapis.com/tasks/v1/lists/{{ $('Find Batutynas List').first().json.taskListId }}/tasks/{{ $('Split Bookings').item.json.taskId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"status\": \"completed\"}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "78e52501-0e2c-46fd-b187-93ccd80070ef",
+      "name": "Complete Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        300
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SaHw7JsRiy6wdVUp",
+          "name": "Batutynas Google Calendar"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "8258463322",
+        "text": "=✅ Tasks sinchronizuota → Kalendorius:\n📦 {{ $('Split Bookings').item.json.equipment }}\n📅 {{ $('Split Bookings').item.json.startDate }}\n📍 {{ $('Split Bookings').item.json.address || 'Nenurodyta' }}\n💰 {{ $('Split Bookings').item.json.price ? $('Split Bookings').item.json.price + '€' : '-' }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "b0fd434b-ecf8-4b4d-b307-84c004b71567",
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2220,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "9BHFQfSuhUuhfdqW",
+          "name": "Batutynas Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "List Task Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Task Lists": {
+      "main": [
+        [
+          {
+            "node": "Find Batutynas List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Batutynas List": {
+      "main": [
+        [
+          {
+            "node": "Fetch Uncompleted Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Uncompleted Tasks": {
+      "main": [
+        [
+          {
+            "node": "Parse Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Tasks": {
+      "main": [
+        [
+          {
+            "node": "Has Tasks?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Tasks?": {
+      "main": [
+        [
+          {
+            "node": "Split Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Bookings": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Complete Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complete Task": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    {
+      "name": "batutynas"
+    },
+    {
+      "name": "cron"
+    }
+  ]
+}
