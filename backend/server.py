@@ -364,6 +364,49 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
     return {"success": True, "order_id": order_id, "status": status, "matched": result.matched_count}
 
 
+@api_router.post("/webhook/n8n-tasks-import", response_model=Order)
+async def n8n_tasks_import(
+    data: OrderCreate,
+    x_sync_secret: Optional[str] = Header(None),
+):
+    """
+    Silent import endpoint for the n8n Google Tasks → Dashboard sync.
+
+    - Auth: x-sync-secret header must match N8N_SYNC_SECRET env var.
+    - Creates order with status=confirmed (auto-confirm).
+    - NO email sent. NO n8n Booking Notification trigger fired.
+    - Idempotent on form_data.taskIds — if any taskId already imported
+      as a google_tasks_sync order, returns the existing order unchanged.
+
+    Intended payload: {flow_type: "party", form_data: {..., source:
+    "google_tasks_sync", taskIds: ["...","..."], ...}}
+    """
+    if N8N_SYNC_SECRET and x_sync_secret != N8N_SYNC_SECRET:
+        raise HTTPException(401, "Invalid sync secret")
+
+    if data.flow_type not in VALID_FLOW_TYPES:
+        raise HTTPException(400, f"Neteisingas flow_type. Galimi: {', '.join(sorted(VALID_FLOW_TYPES))}")
+    if len(str(data.form_data)) > 10_000:
+        raise HTTPException(413, "form_data per didelis")
+
+    # Idempotency: skip if any taskId in this batch is already imported.
+    task_ids = data.form_data.get('taskIds') if isinstance(data.form_data, dict) else None
+    if task_ids and isinstance(task_ids, list):
+        existing = await db.orders.find_one({
+            "form_data.source": "google_tasks_sync",
+            "form_data.taskIds": {"$in": task_ids},
+        })
+        if existing:
+            existing.pop('_id', None)
+            logger.info("n8n-tasks-import: idempotent skip for taskIds=%s", task_ids)
+            return Order(**existing)
+
+    order = Order(flow_type=data.flow_type, form_data=data.form_data, status="confirmed")
+    await db.orders.insert_one(order.model_dump())
+    logger.info("n8n-tasks-import: created order %s with taskIds=%s", order.id, task_ids)
+    return order
+
+
 @api_router.post("/orders", response_model=Order)
 async def create_order(data: OrderCreate):
     if data.flow_type not in VALID_FLOW_TYPES:
