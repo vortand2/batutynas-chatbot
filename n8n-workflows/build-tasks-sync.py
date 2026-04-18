@@ -375,7 +375,7 @@ function mergeRelated(bookings) {
       allTaskIds.push(s.taskId);
       totalPrice += s.price;
       if (s.startDate && (!earliestDate || s.startDate < earliestDate)) earliestDate = s.startDate;
-      if (s.startDate && s.startDate > latestDate) latestDate = s.startDate;
+      if (s.startDate && (!latestDate || s.startDate > latestDate)) latestDate = s.startDate;
       if (s.isMultiDay) isMulti = true;
     }
     const duration = isMulti || (latestDate !== earliestDate) ? 2 : 1;
