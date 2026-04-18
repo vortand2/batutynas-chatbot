@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 """
-Build Google Tasks → Calendar Events sync workflow for n8n.
+Build Google Tasks -> Calendar Events sync workflow for n8n (v2 - refined parser).
 Generates tasks-sync-workflow.json for deployment.
 
-The client creates bookings as Google Tasks in the "Batutynas Tauragė" task list.
-This workflow polls every 10 minutes, parses uncompleted tasks, creates matching
-Google Calendar events via the Calendar Bridge, marks tasks as completed, and
-notifies the owner via Telegram.
+Owner (eddobr@gmail.com) logs orders as Google Tasks in the primary "Mano užduotys" list.
+This workflow polls every 10 minutes, classifies each task (ORDER / TODO / INTERNAL),
+parses ORDER tasks into bookings (with multi-day merging, per-item price verification,
+B2B tagging, add-on extraction), creates matching Google Calendar events via the
+Calendar Bridge, marks tasks as completed, and notifies the owner via Telegram.
+
+Owner clarifications baked into parser (Session 37+):
+  1. Multi-day event: same address + name + "2 diena/antra diena" -> merged (durationDays=2)
+  2. Multi-equipment, same address/same date -> merged event with combined equipment list
+  3. Per-item price: extract quantity, compute unit price, flag VERIFY when math is off
+  4. Mega ruožas/trasa is MODULAR - keep quantity metadata
+  5. "Bendruomenės namai" is a B2B venue -> tag explicitly
+  6. Kempiniukas = small trampoline (SpongeBob), Pilis/Candy Pop are examples of "fits inside"
+  7. Standalone TODO-like titles ("nurasyti", "palaistyti", "sutvarkyti") stay in Tasks
+  8. TODO near an ORDER (e.g. "Candy Pop, turi nurasyti 30 eur") -> merge as ORDER note
 
 Usage:
     source .env && python3 n8n-workflows/build-tasks-sync.py
@@ -14,145 +25,396 @@ Usage:
 
 import json, os, uuid
 
-# ── Configuration ────────────────────────────────────────────────────────────
-
+# Configuration
 BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '')
 OWNER_CHAT_ID = os.environ.get('BATUTYNAS_OWNER_CHAT_ID', '8258463322')
 CALENDAR_BRIDGE_CREATE = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create"
 
-# Google Calendar OAuth credential (same one used by Calendar Bridge)
-# The Tasks API requires the tasks scope — may need re-authorization in n8n UI.
-GCAL_CRED_ID = "SaHw7JsRiy6wdVUp"
-GCAL_CRED_NAME = "Batutynas Google Calendar"
+# Google Tasks OAuth credential (separate from Calendar - different project/scope)
+GTASKS_CRED_ID = "2IWv8jjxCnAqLgx3"
+GTASKS_CRED_NAME = "Batutynas Google Tasks"
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# Telegram credential
+TELEGRAM_CRED_ID = "9BHFQfSuhUuhfdqW"
+TELEGRAM_CRED_NAME = "Batutynas Telegram Bot"
 
 def uid():
     return str(uuid.uuid4())
 
-Y = 400  # vertical position
+Y = 400  # vertical lane
 
-# ── Equipment aliases (for parsing task titles) ──────────────────────────────
-
-EQUIPMENT_ALIASES_JS = r"""
+# Parser constants shared with Parse Tasks node via JS string
+PARSER_PREAMBLE_JS = r"""
+// Equipment taxonomy (18 core items + aliases + typos found in 222 tasks)
 const EQUIPMENT = [
-  { name: 'Fantazijų parkas', kw: ['fantaziju', 'fantazij'] },
-  { name: 'Džiumandži parkas', kw: ['dziumandzi', 'jumanji', 'džiumandži'] },
-  { name: 'Giga ruožas', kw: ['giga'] },
-  { name: 'Mega ruožas', kw: ['mega ruoz', 'mega ruož'] },
-  { name: 'Mega Rocket', kw: ['mega rocket', 'rocket', 'mega raketa', 'raketa'] },
-  { name: 'Mega Ufonautai', kw: ['mega ufonautai', 'ufonautai', 'ufo'] },
-  { name: 'Mega Waikiki', kw: ['mega waikiki', 'waikiki'] },
-  { name: 'Monstrai', kw: ['monstrai', 'monstr'] },
-  { name: 'Chameleonas', kw: ['chameleonas', 'chameleon'] },
-  { name: 'Candy Pop', kw: ['candy', 'candy pop'] },
-  { name: 'Aštuonkojis', kw: ['astuonkojis', 'aštuonkojis', 'octopus'] },
-  { name: 'Vienaragiai', kw: ['vienaragiai', 'vienaragi', 'unicorn'] },
-  { name: 'Pilis mažiesiems', kw: ['pilis'] },
-  { name: 'Milžiniškas Dart', kw: ['dart', 'milziniskas dart'] },
-  { name: 'Kamuolių medžioklė', kw: ['kamuoliu', 'kamuoli'] },
-  { name: 'Rodeo bulius', kw: ['rodeo', 'bulius'] },
-  { name: 'Saldėsių aparatai', kw: ['saldesiu', 'saldesi', 'vata', 'popcorn'] },
-  { name: 'Banketo stalai ir kėdės', kw: ['stalai', 'kedes', 'kėdės', 'banketo', 'kedziu', 'kėdžių'] },
-  { name: 'Disco paviljonas', kw: ['disco', 'paviljonas'] },
-  { name: 'Putų šou', kw: ['putu', 'putų', 'šou'] },
+  { name: 'Mega Rocket',          kw: ['mega rocket','mega raketa','raketa','rocket'], tier: 'mega' },
+  { name: 'Mega Ufonautai',       kw: ['mega ufonautai','ufonautai','ufo'], tier: 'mega' },
+  { name: 'Mega Waikiki',         kw: ['mega waikiki','mega vaikiki','waikiki','vaikiki'], tier: 'mega' },
+  { name: 'Mega ruožas',          kw: ['mega trasa','mega ruoz','mega ruož','mega ruoza'], tier: 'obstacle', modular: true },
+  { name: 'Giga ruožas',          kw: ['giga ruoz','giga ruož','giga ruoza','giga trasa','giga'], tier: 'obstacle' },
+  { name: 'Fantazijų parkas',     kw: ['fantaziju','fantazij','fantazijos'], tier: 'park' },
+  { name: 'Džiumandži parkas',    kw: ['dziumandzi','džiumandži','jumanji'], tier: 'park' },
+  { name: 'Candy Pop',            kw: ['candy pop','candypop','candy'], tier: 'compact' },
+  { name: 'Chameleonas',          kw: ['chameleonas','chemeleonas','chameleon'], tier: 'compact' },
+  { name: 'Monstrai',             kw: ['monstrai','monstr'], tier: 'compact' },
+  { name: 'Aštuonkojis',          kw: ['astuonkojis','aštuonkojis','octopus'], tier: 'compact' },
+  { name: 'Vienaragiai',          kw: ['vienaragiai','vienaragi','unicorn'], tier: 'compact' },
+  { name: 'Pilis mažiesiems',     kw: ['pilis','pilis maziesiems','castle'], tier: 'toddler' },
+  { name: 'Kempiniukas (SpongeBob)', kw: ['kempiniukas','spongebob','kempinis'], tier: 'toddler' },
+  { name: 'Milžiniškas Dart',     kw: ['milziniskas dart','milžiniškas dart','saudykla','šaudykla','dart','darts'], tier: 'interactive' },
+  { name: 'Kamuolių medžioklė',   kw: ['kamuoliu medzio','kamuolių medžio','kamuoliu','kamuolių'], tier: 'interactive' },
+  { name: 'Rodeo bulius',         kw: ['rodeo','bulius','rodeobulius'], tier: 'interactive' },
+  { name: 'Banketo stalai ir kėdės', kw: ['stalai ir kedes','stalai ir kėdės','kedziu ir stalu','kedes','kėdės','kedziu','kėdžių','banketo','stalai'], tier: 'party-equipment' },
+  { name: 'Disco paviljonas',     kw: ['disco','paviljonas','klubas','diskoteka'], tier: 'party-equipment' },
+  { name: 'Sumo kostiumai',       kw: ['sumo kostium','sumo'], tier: 'interactive' },
+  { name: 'Virtuali realybė (VR)', kw: [' vr ',' vr,','vr akiniai','virtuali realybe','virtuali realybė'], tier: 'interactive' },
 ];
-"""
 
-# ── Code node: Parse tasks into booking format ───────────────────────────────
+// Add-ons (tracked separately from equipment; flagged in notes/tags)
+const ADDONS = {
+  'vata': 'Cukraus vata',
+  'cukraus vata': 'Cukraus vata',
+  'serbetas': 'Šerbetas',
+  'šerbetas': 'Šerbetas',
+  'popcorn': 'Popcorn',
+  'popkorn': 'Popcorn',
+  'burbulai': 'Burbulų mašina',
+  'burbulu': 'Burbulų mašina',
+  'burbulų': 'Burbulų mašina',
+  'vr': 'Virtuali realybė',
+  'putos': 'Putų šou',
+  'putu šou': 'Putų šou',
+  'putų šou': 'Putų šou',
+  'fotikas': 'Instax Mini',
+  'instax': 'Instax Mini',
+  'sumo': 'Sumo kostiumai',
+  'prailgintuvas': 'Prailgintuvas',
+  'jbl': 'JBL PartyBox',
+  'partybox': 'JBL PartyBox',
+};
 
-PARSE_TASKS_CODE = EQUIPMENT_ALIASES_JS + r"""
-// Input: $json.items = array of Google Tasks
-const tasks = ($input.first().json.items || []).filter(t => t.status !== 'completed');
-if (tasks.length === 0) return [{ json: { hasTasks: false, bookings: [] } }];
-
-function matchEquipment(title) {
-  const lower = (title || '').toLowerCase()
+// Normalize Lithuanian diacritics
+function norm(s) {
+  return (s || '').toLowerCase()
     .replace(/ą/g,'a').replace(/č/g,'c').replace(/ę/g,'e').replace(/ė/g,'e')
     .replace(/į/g,'i').replace(/š/g,'s').replace(/ų/g,'u').replace(/ū/g,'u').replace(/ž/g,'z');
+}
+
+// Classification: ORDER / TODO / INTERNAL
+const TODO_PREFIXES = ['nurasyti','nurašyti','palaistyti','sutvarkyti','pakrauti','ivertinti','įvertinti','paskambinti','patikrinti','atsiusti','atsiųsti'];
+
+function classify(task, hasEquipment, hasPrice, hasAddress, hasDate) {
+  const titleNorm = norm(task.title || '');
+  // TODO prefix beats everything: "nurasyti 30 eur Candy Pop" is a write-off, not a booking
+  for (const verb of TODO_PREFIXES) {
+    if (titleNorm.startsWith(verb)) return 'TODO';
+  }
+  // Strong order signal
+  if (hasEquipment && (hasPrice || hasAddress) && hasDate) return 'ORDER';
+  // Weaker: equipment + date = still likely an order
+  if (hasEquipment && hasDate) return 'ORDER';
+  // Equipment but no date + no address + no price => probably a note, skip
+  if (hasEquipment && !hasDate && !hasAddress && !hasPrice) return 'INTERNAL';
+  // Fallback: has equipment at all (e.g. dated item with no address) => ORDER
+  if (hasEquipment) return 'ORDER';
+  return 'INTERNAL';
+}
+"""
+
+PARSE_TASKS_CODE = PARSER_PREAMBLE_JS + r"""
+
+// Extract matches (returns {equipment:[], addons:[]})
+function extractItems(text) {
+  const n = norm(text);
+  const foundEquip = [];
+  const foundAddons = [];
   for (const eq of EQUIPMENT) {
     for (const kw of eq.kw) {
-      const kwNorm = kw.toLowerCase()
-        .replace(/ą/g,'a').replace(/č/g,'c').replace(/ę/g,'e').replace(/ė/g,'e')
-        .replace(/į/g,'i').replace(/š/g,'s').replace(/ų/g,'u').replace(/ū/g,'u').replace(/ž/g,'z');
-      if (lower.includes(kwNorm)) return eq.name;
+      if (n.includes(kw)) {
+        if (!foundEquip.find(e => e.name === eq.name)) {
+          foundEquip.push({ name: eq.name, tier: eq.tier, modular: !!eq.modular });
+        }
+        break;
+      }
     }
   }
-  return title; // fallback: use raw title as equipment name
+  for (const [kw, label] of Object.entries(ADDONS)) {
+    if (n.includes(kw) && !foundAddons.includes(label)) {
+      // Skip add-on if already matched as equipment (e.g. Sumo kostiumai is both)
+      if (foundEquip.find(e => e.name === label)) continue;
+      foundAddons.push(label);
+    }
+  }
+  return { equipment: foundEquip, addons: foundAddons };
 }
 
-function extractPrice(title) {
-  // Match: "uz 200", "už 70 Eur", "uz 150€", "| 200€"
-  const m = (title || '').match(/(?:u[zž]\s*|[\|]\s*)(\d+)\s*(?:€|Eur)?/i);
-  return m ? parseInt(m[1], 10) : 0;
+// Price extraction
+// Handles: "uz 200", "už 70 Eur", "200€", "| 200 eur", "150 eurų"
+function extractPrice(text) {
+  if (!text) return 0;
+  const patterns = [
+    /u[zž]\s*(\d+)\s*(?:€|eur|eurų|euru)?/i,
+    /(\d+)\s*(?:€|eur|eurų|euru)\b/i,
+    /[\|\-]\s*(\d+)(?:\s|$)/,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m) return parseInt(m[1], 10);
+  }
+  return 0;
 }
 
+// Per-item quantity extraction for price verification using matchAll
+function extractQuantities(text) {
+  if (!text) return [];
+  const quantities = [];
+  const re = /(\d+)\s+(kedz|kėdz|kede|kėde|kedes|kėdes|stalai|stalu|stalų|stal)/gi;
+  for (const m of text.matchAll(re)) {
+    quantities.push({ qty: parseInt(m[1], 10), unit: m[2].toLowerCase() });
+  }
+  return quantities;
+}
+
+// Price double-check
+// Standard rates: kėdė=2.5€, stalas=15€ (approximate; owner may override)
+const UNIT_RATES = { 'kede': 2.5, 'kėde': 2.5, 'kedes': 2.5, 'kėdes': 2.5, 'kedz': 2.5, 'kėdz': 2.5,
+                      'stal': 15, 'stalai': 15, 'stalu': 15, 'stalų': 15 };
+
+function verifyPrice(statedPrice, quantities) {
+  if (!statedPrice || !quantities.length) return { verified: false, expected: 0, match: null };
+  let expected = 0;
+  for (const q of quantities) {
+    const rate = UNIT_RATES[q.unit] || 0;
+    expected += q.qty * rate;
+  }
+  const diff = Math.abs(statedPrice - expected);
+  const match = diff <= 5;
+  return {
+    verified: expected > 0,
+    expected: expected,
+    stated: statedPrice,
+    match: match,
+    diff: diff,
+    breakdown: quantities.map(q => q.qty + '×' + (UNIT_RATES[q.unit] || '?') + '€').join(' + '),
+  };
+}
+
+// Notes parser: extract address, phones, email, customer name
 function parseNotes(notes) {
-  if (!notes) return { address: '', phones: [], customerName: '' };
+  if (!notes) return { address: '', phones: [], email: '', customerName: '', rawLines: [] };
   const lines = notes.split(/\n/).map(l => l.trim()).filter(Boolean);
-  const phones = lines.filter(l => /^0\d{7,}$/.test(l.replace(/[\s\-\(\)]/g, '')));
-  const address = lines[0] || '';
-  const nonPhoneNonAddr = lines.slice(1).filter(l => !phones.includes(l));
-  return { address, phones, customerName: nonPhoneNonAddr[0] || '' };
+  const phoneRe = /(?:\+370|8|0)\d[\d\s\-()]{6,}/;
+  const emailRe = /[\w.+-]+@[\w-]+\.[\w.-]+/;
+  const phones = [];
+  let email = '';
+  const nonContact = [];
+  for (const line of lines) {
+    const pm = line.match(phoneRe);
+    const em = line.match(emailRe);
+    if (pm && line.replace(/\D/g,'').length >= 8) phones.push(pm[0]);
+    if (em) email = em[0];
+    if (!pm && !em) nonContact.push(line);
+  }
+  const address = nonContact[0] || '';
+  const customerName = nonContact.slice(1).join(' · ') || '';
+  return { address, phones, email, customerName, rawLines: lines };
 }
 
-const bookings = tasks.map(t => {
-  const equipment = matchEquipment(t.title || '');
-  const price = extractPrice(t.title || '');
-  const parsed = parseNotes(t.notes || '');
-  const due = t.due ? t.due.substring(0, 10) : new Date().toISOString().substring(0, 10);
+// Tag extraction
+function extractTags(text, notes) {
+  const tags = [];
+  const n = norm(text + ' ' + (notes || ''));
+  if (n.includes('bendruomen') && (n.includes('namai') || n.includes('centr'))) tags.push('Bendruomenės namai');
+  if (n.includes('per nakti') || n.includes('per naktį') || n.includes('nakvoja')) tags.push('Per naktį');
+  if (n.includes('sms') || n.includes('zinute') || n.includes('žinutė')) tags.push('SMS tik');
+  if (n.includes('2 diena') || n.includes('antra diena') || n.includes('2d.')) tags.push('Multi-day');
+  if (n.includes('vr ') || n.startsWith('vr')) tags.push('VR');
+  return tags;
+}
+
+// Multi-day detection
+function isMultiDay(task) {
+  const t = norm(task.title || '');
+  const n = norm(task.notes || '');
+  return t.includes('2 diena') || n.includes('2 diena') ||
+         t.includes('antra diena') || n.includes('antra diena') ||
+         t.includes('2d.') || n.includes('2d.');
+}
+
+// Build booking from a task
+function buildBooking(task) {
+  const title = task.title || '';
+  const notes = task.notes || '';
+  const items = extractItems(title + ' ' + notes);
+  const price = extractPrice(title) || extractPrice(notes);
+  const quantities = extractQuantities(title + ' ' + notes);
+  const priceCheck = verifyPrice(price, quantities);
+  const parsedNotes = parseNotes(notes);
+  const tags = extractTags(title, notes);
+  const due = task.due ? task.due.substring(0, 10) : null;
+
+  const hasEquip = items.equipment.length > 0;
+  const hasAddr = !!parsedNotes.address;
+  const hasDate = !!due;
+  const classification = classify(task, hasEquip, price > 0, hasAddr, hasDate);
 
   return {
-    taskId: t.id,
-    taskTitle: t.title,
-    equipment: equipment,
-    customer_name: parsed.customerName || 'Iš Google Tasks',
-    phone: parsed.phones[0] || '',
-    address: parsed.address,
-    startDate: due,
-    durationDays: 1,
+    taskId: task.id,
+    taskTitle: title,
+    taskNotes: notes,
+    classification: classification,
+    equipment: items.equipment,
+    addons: items.addons,
+    primaryEquipment: items.equipment[0]?.name || '',
     price: price,
-    notes: `Sinchronizuota iš Google Tasks: ${t.title}\n${t.notes || ''}`.trim(),
-    addons: [],
+    priceCheck: priceCheck,
+    address: parsedNotes.address,
+    customerName: parsedNotes.customerName || 'Iš Google Tasks',
+    phones: parsedNotes.phones,
+    phone: parsedNotes.phones[0] || '',
+    email: parsedNotes.email,
+    startDate: due,
+    isMultiDay: isMultiDay(task),
+    tags: tags,
+  };
+}
+
+// Multi-day + address-based merging
+function mergeRelated(bookings) {
+  const merged = [];
+  const used = new Set();
+  for (let i = 0; i < bookings.length; i++) {
+    if (used.has(i)) continue;
+    const b = bookings[i];
+    used.add(i);
+    if (!b.address) { merged.push(b); continue; }
+    const siblings = [];
+    for (let j = i + 1; j < bookings.length; j++) {
+      if (used.has(j)) continue;
+      const o = bookings[j];
+      if (!o.address) continue;
+      const sameAddr = norm(o.address) === norm(b.address);
+      const sameDate = o.startDate === b.startDate;
+      const nextDay = b.startDate && o.startDate &&
+        (new Date(o.startDate) - new Date(b.startDate)) === 86400000;
+      if (sameAddr && (sameDate || o.isMultiDay || b.isMultiDay || nextDay)) {
+        siblings.push(o);
+        used.add(j);
+      }
+    }
+    if (siblings.length === 0) { merged.push(b); continue; }
+    const allEquip = [...b.equipment];
+    const allAddons = [...b.addons];
+    const allTags = [...b.tags];
+    const allTaskIds = [b.taskId];
+    let totalPrice = b.price;
+    let latestDate = b.startDate;
+    let isMulti = b.isMultiDay;
+    for (const s of siblings) {
+      for (const e of s.equipment) if (!allEquip.find(x => x.name === e.name)) allEquip.push(e);
+      for (const a of s.addons) if (!allAddons.includes(a)) allAddons.push(a);
+      for (const t of s.tags) if (!allTags.includes(t)) allTags.push(t);
+      allTaskIds.push(s.taskId);
+      totalPrice += s.price;
+      if (s.startDate > latestDate) latestDate = s.startDate;
+      if (s.isMultiDay) isMulti = true;
+    }
+    const duration = isMulti || (latestDate !== b.startDate) ? 2 : 1;
+    merged.push({
+      ...b,
+      equipment: allEquip,
+      addons: allAddons,
+      tags: [...new Set([...allTags, ...(duration > 1 ? ['Multi-day'] : [])])],
+      price: totalPrice,
+      primaryEquipment: allEquip[0]?.name || '',
+      durationDays: duration,
+      mergedTaskIds: allTaskIds,
+      endDate: latestDate,
+    });
+  }
+  return merged;
+}
+
+// MAIN
+const raw = ($input.first().json.items || []);
+const all = raw.map(buildBooking);
+
+const orders = all.filter(b => b.classification === 'ORDER');
+const todos = all.filter(b => b.classification === 'TODO');
+const internals = all.filter(b => b.classification === 'INTERNAL');
+
+const mergedOrders = mergeRelated(orders);
+
+const bookings = mergedOrders.map(o => {
+  const equipNames = o.equipment.map(e => e.name).join(', ');
+  const addonStr = o.addons.length ? '\n+ Priedai: ' + o.addons.join(', ') : '';
+  const tagStr = o.tags.length ? '\n[' + o.tags.join(' · ') + ']' : '';
+  const priceVerif = o.priceCheck && o.priceCheck.verified && !o.priceCheck.match
+    ? '\nVERIFY: stated ' + o.priceCheck.stated + '€ vs expected ' + o.priceCheck.expected + '€ (' + o.priceCheck.breakdown + ')'
+    : '';
+  const phoneStr = o.phones.length ? '\n' + o.phones.join(', ') : '';
+  const emailStr = o.email ? '\n' + o.email : '';
+  const summary = equipNames + (o.price ? ' — ' + o.price + '€' : '');
+  const description = [
+    equipNames + addonStr,
+    o.address || 'Nenurodyta',
+    o.customerName,
+    phoneStr.trim(),
+    emailStr.trim(),
+    (o.price || 0) + '€' + priceVerif,
+    tagStr.trim(),
+    '--- Sinchronizuota iš Google Tasks ---',
+    'Original task(s): ' + (o.mergedTaskIds || [o.taskId]).join(', '),
+    'Title: ' + o.taskTitle,
+  ].filter(Boolean).join('\n');
+
+  return {
+    equipment: o.primaryEquipment,
+    equipmentList: o.equipment.map(e => e.name),
+    addons: o.addons,
+    customer_name: o.customerName,
+    phone: o.phone,
+    email: o.email,
+    address: o.address,
+    startDate: o.startDate,
+    durationDays: o.durationDays || 1,
+    price: o.price,
+    tags: o.tags,
+    priceCheck: o.priceCheck,
+    summary: summary,
+    description: description,
+    notes: description,
     source: 'google_tasks',
+    taskIds: o.mergedTaskIds || [o.taskId],
+    taskTitle: o.taskTitle,
   };
 });
 
-return [{ json: { hasTasks: true, bookings: bookings } }];
+return [{
+  json: {
+    hasTasks: bookings.length > 0,
+    stats: {
+      total: all.length,
+      orders: orders.length,
+      todos: todos.length,
+      internals: internals.length,
+      merged: mergedOrders.length,
+    },
+    bookings: bookings,
+    skipped: {
+      todos: todos.map(t => ({ taskId: t.taskId, title: t.taskTitle })),
+      internals: internals.map(t => ({ taskId: t.taskId, title: t.taskTitle })),
+    },
+  }
+}];
 """
-
-# ── Code node: Prepare individual booking requests ───────────────────────────
 
 SPLIT_BOOKINGS_CODE = r"""
-// Split bookings array into individual items for sequential processing
-const bookings = $input.first().json.bookings || [];
+const payload = $input.first().json;
+const bookings = payload.bookings || [];
+if (!bookings.length) return [];
 return bookings.map(b => ({ json: b }));
 """
-
-# ── Code node: Format Telegram summary ───────────────────────────────────────
-
-TELEGRAM_SUMMARY_CODE = r"""
-const booking = $input.first().json;
-const calResult = $('Create Calendar Event').first().json;
-const success = calResult && !calResult.error;
-
-let msg = '';
-if (success) {
-  msg = `✅ Tasks → Kalendorius sinchronizuota:\n` +
-    `📦 ${booking.equipment}\n` +
-    `📅 ${booking.startDate}\n` +
-    `📍 ${booking.address || 'Nenurodyta'}\n` +
-    `💰 ${booking.price ? booking.price + '€' : 'Nenurodyta'}\n` +
-    `📝 ${booking.taskTitle}`;
-} else {
-  msg = `⚠️ Nepavyko sinchronizuoti:\n` +
-    `📝 ${booking.taskTitle}\n` +
-    `❌ ${calResult?.error || 'Nežinoma klaida'}`;
-}
-return [{ json: { chatId: '""" + OWNER_CHAT_ID + r"""', message: msg } }];
-"""
-
-# ── Build workflow ───────────────────────────────────────────────────────────
 
 def build():
     nodes = []
@@ -167,90 +429,40 @@ def build():
             "node": to_name, "type": "main", "index": to_idx
         })
 
-    # Node 1: Schedule Trigger (every 10 minutes)
-    n1 = {
+    nodes.append({
         "parameters": {"rule": {"interval": [{"field": "minutes", "minutesInterval": 10}]}},
         "id": uid(), "name": "Every 10 Minutes",
         "type": "n8n-nodes-base.scheduleTrigger",
         "typeVersion": 1.2,
         "position": [240, Y]
-    }
-    nodes.append(n1)
+    })
 
-    # Node 2: HTTP Request — List Task Lists (find "Batutynas Tauragė" list ID)
-    n2 = {
+    nodes.append({
         "parameters": {
             "method": "GET",
-            "url": "https://tasks.googleapis.com/tasks/v1/users/@me/lists",
+            "url": "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks?showCompleted=false&maxResults=100",
             "authentication": "predefinedCredentialType",
-            "nodeCredentialType": "googleCalendarOAuth2Api",
-            "options": {"timeout": 10000}
-        },
-        "id": uid(), "name": "List Task Lists",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
-        "position": [460, Y],
-        "credentials": {"googleCalendarOAuth2Api": {"id": GCAL_CRED_ID, "name": GCAL_CRED_NAME}},
-        "continueOnFail": True,
-        "alwaysOutputData": True
-    }
-    nodes.append(n2)
-
-    # Node 3: Code — Find the right task list and fetch its tasks
-    find_list_code = r"""
-// Find "Batutynas" task list from the lists response
-const lists = $input.first().json.items || [];
-let targetList = lists.find(l =>
-  (l.title || '').toLowerCase().includes('batutynas') ||
-  (l.title || '').toLowerCase().includes('taurag')
-);
-// Fallback: use the first non-default list, or the default
-if (!targetList && lists.length > 1) targetList = lists[1];
-if (!targetList && lists.length > 0) targetList = lists[0];
-if (!targetList) return [{ json: { error: 'No task lists found', hasTasks: false, bookings: [] } }];
-
-return [{ json: { taskListId: targetList.id, taskListTitle: targetList.title } }];
-"""
-    n3 = {
-        "parameters": {"jsCode": find_list_code},
-        "id": uid(), "name": "Find Batutynas List",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [680, Y]
-    }
-    nodes.append(n3)
-
-    # Node 4: HTTP Request — Fetch Tasks from the found list
-    n4 = {
-        "parameters": {
-            "method": "GET",
-            "url": "=https://tasks.googleapis.com/tasks/v1/lists/{{ $json.taskListId }}/tasks?showCompleted=false&maxResults=50",
-            "authentication": "predefinedCredentialType",
-            "nodeCredentialType": "googleCalendarOAuth2Api",
-            "options": {"timeout": 10000}
+            "nodeCredentialType": "googleTasksOAuth2Api",
+            "options": {"timeout": 15000}
         },
         "id": uid(), "name": "Fetch Uncompleted Tasks",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [900, Y],
-        "credentials": {"googleCalendarOAuth2Api": {"id": GCAL_CRED_ID, "name": GCAL_CRED_NAME}},
+        "position": [460, Y],
+        "credentials": {"googleTasksOAuth2Api": {"id": GTASKS_CRED_ID, "name": GTASKS_CRED_NAME}},
         "continueOnFail": True,
-        "alwaysOutputData": True
-    }
-    nodes.append(n4)
+        "alwaysOutputData": True,
+    })
 
-    # Node 5: Code — Parse tasks into bookings
-    n5 = {
+    nodes.append({
         "parameters": {"jsCode": PARSE_TASKS_CODE},
         "id": uid(), "name": "Parse Tasks",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [1120, Y]
-    }
-    nodes.append(n5)
+        "position": [680, Y]
+    })
 
-    # Node 6: IF — has tasks to sync
-    n6 = {
+    nodes.append({
         "parameters": {
             "conditions": {
                 "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
@@ -264,38 +476,40 @@ return [{ json: { taskListId: targetList.id, taskListTitle: targetList.title } }
             },
             "options": {}
         },
-        "id": uid(), "name": "Has Tasks?",
+        "id": uid(), "name": "Has Bookings?",
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
-        "position": [1340, Y]
-    }
-    nodes.append(n6)
+        "position": [900, Y]
+    })
 
-    # Node 7: Code — Split bookings into individual items
-    n7 = {
+    nodes.append({
         "parameters": {"jsCode": SPLIT_BOOKINGS_CODE},
         "id": uid(), "name": "Split Bookings",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [1560, Y - 100]
-    }
-    nodes.append(n7)
+        "position": [1120, Y - 120]
+    })
 
-    # Node 8: HTTP Request — Create Calendar Event via Calendar Bridge
-    n8 = {
+    nodes.append({
         "parameters": {
             "method": "POST",
             "url": CALENDAR_BRIDGE_CREATE,
             "sendBody": True,
             "specifyBody": "json",
             "jsonBody": """={
-  "equipment": "{{ $json.equipment }}",
-  "customer_name": "{{ $json.customer_name }}",
-  "phone": "{{ $json.phone }}",
-  "address": "{{ $json.address }}",
-  "startDate": "{{ $json.startDate }}",
+  "equipment": {{ JSON.stringify($json.equipment) }},
+  "equipmentList": {{ JSON.stringify($json.equipmentList) }},
+  "addons": {{ JSON.stringify($json.addons) }},
+  "customer_name": {{ JSON.stringify($json.customer_name) }},
+  "phone": {{ JSON.stringify($json.phone) }},
+  "email": {{ JSON.stringify($json.email || '') }},
+  "address": {{ JSON.stringify($json.address) }},
+  "startDate": {{ JSON.stringify($json.startDate) }},
   "durationDays": {{ $json.durationDays }},
   "price": {{ $json.price }},
+  "tags": {{ JSON.stringify($json.tags) }},
+  "summary": {{ JSON.stringify($json.summary) }},
+  "description": {{ JSON.stringify($json.description) }},
   "notes": {{ JSON.stringify($json.notes) }},
   "source": "google_tasks"
 }""",
@@ -304,18 +518,43 @@ return [{ json: { taskListId: targetList.id, taskListTitle: targetList.title } }
         "id": uid(), "name": "Create Calendar Event",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [1780, Y - 100],
-        "continueOnFail": True
-    }
-    nodes.append(n8)
+        "position": [1340, Y - 120],
+        "continueOnFail": True,
+        "alwaysOutputData": True,
+    })
 
-    # Node 9: HTTP Request — Mark task as completed
-    n9 = {
+    fan_out_code = r"""
+const booking = $('Split Bookings').item.json;
+const taskIds = booking.taskIds || [booking.taskId];
+const calResult = $('Create Calendar Event').first().json || {};
+const success = !calResult.error;
+return taskIds.map(tid => ({
+  json: {
+    taskId: tid,
+    success: success,
+    summary: booking.summary,
+    startDate: booking.startDate,
+    address: booking.address,
+    price: booking.price,
+    tags: booking.tags,
+    priceCheck: booking.priceCheck,
+  }
+}));
+"""
+    nodes.append({
+        "parameters": {"jsCode": fan_out_code},
+        "id": uid(), "name": "Fan Out Task IDs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1560, Y - 120]
+    })
+
+    nodes.append({
         "parameters": {
             "method": "PATCH",
-            "url": "=https://tasks.googleapis.com/tasks/v1/lists/{{ $('Find Batutynas List').first().json.taskListId }}/tasks/{{ $('Split Bookings').item.json.taskId }}",
+            "url": "=https://tasks.googleapis.com/tasks/v1/lists/@default/tasks/{{ $json.taskId }}",
             "authentication": "predefinedCredentialType",
-            "nodeCredentialType": "googleCalendarOAuth2Api",
+            "nodeCredentialType": "googleTasksOAuth2Api",
             "sendBody": True,
             "specifyBody": "json",
             "jsonBody": '={"status": "completed"}',
@@ -324,59 +563,65 @@ return [{ json: { taskListId: targetList.id, taskListTitle: targetList.title } }
         "id": uid(), "name": "Complete Task",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [2000, Y - 100],
-        "credentials": {"googleCalendarOAuth2Api": {"id": GCAL_CRED_ID, "name": GCAL_CRED_NAME}},
-        "continueOnFail": True
-    }
-    nodes.append(n9)
+        "position": [1780, Y - 120],
+        "credentials": {"googleTasksOAuth2Api": {"id": GTASKS_CRED_ID, "name": GTASKS_CRED_NAME}},
+        "continueOnFail": True,
+        "alwaysOutputData": True,
+    })
 
-    # Node 10: Telegram — notify owner
-    n10 = {
+    notify_text = (
+        "=Tasks -> Kalendorius sinchronizuota\n"
+        "{{ $json.summary }}\n"
+        "{{ $json.startDate }}\n"
+        "{{ $json.address || 'Nenurodyta' }}\n"
+        "{{ $json.price ? $json.price + '€' : '-' }}\n"
+        "{{ $json.tags && $json.tags.length ? $json.tags.join(' · ') : '' }}\n"
+        "{{ $json.priceCheck && $json.priceCheck.verified && !$json.priceCheck.match ? 'VERIFY: ' + $json.priceCheck.stated + '€ vs expected ' + $json.priceCheck.expected + '€' : '' }}"
+    )
+
+    nodes.append({
         "parameters": {
             "operation": "sendMessage",
             "chatId": OWNER_CHAT_ID,
-            "text": "=✅ Tasks sinchronizuota → Kalendorius:\n📦 {{ $('Split Bookings').item.json.equipment }}\n📅 {{ $('Split Bookings').item.json.startDate }}\n📍 {{ $('Split Bookings').item.json.address || 'Nenurodyta' }}\n💰 {{ $('Split Bookings').item.json.price ? $('Split Bookings').item.json.price + '€' : '-' }}",
-            "additionalFields": {"parse_mode": "HTML"}
+            "text": notify_text,
+            "additionalFields": {}
         },
         "id": uid(), "name": "Telegram Notify",
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
-        "position": [2220, Y - 100],
-        "credentials": {"telegramApi": {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}}
-    }
-    nodes.append(n10)
+        "position": [2000, Y - 120],
+        "credentials": {"telegramApi": {"id": TELEGRAM_CRED_ID, "name": TELEGRAM_CRED_NAME}},
+        "continueOnFail": True,
+    })
 
-    # Connections
-    connect("Every 10 Minutes", "List Task Lists")
-    connect("List Task Lists", "Find Batutynas List")
-    connect("Find Batutynas List", "Fetch Uncompleted Tasks")
+    connect("Every 10 Minutes", "Fetch Uncompleted Tasks")
     connect("Fetch Uncompleted Tasks", "Parse Tasks")
-    connect("Parse Tasks", "Has Tasks?")
-    connect("Has Tasks?", "Split Bookings", 0)  # true branch
+    connect("Parse Tasks", "Has Bookings?")
+    connect("Has Bookings?", "Split Bookings", 0)
     connect("Split Bookings", "Create Calendar Event")
-    connect("Create Calendar Event", "Complete Task")
+    connect("Create Calendar Event", "Fan Out Task IDs")
+    connect("Fan Out Task IDs", "Complete Task")
     connect("Complete Task", "Telegram Notify")
 
     workflow = {
-        "name": "Batutynas: Tasks → Calendar Sync",
+        "name": "Batutynas: Tasks -> Calendar Sync v2",
         "nodes": nodes,
         "connections": connections,
         "settings": {
             "executionOrder": "v1",
             "saveManualExecutions": True,
             "callerPolicy": "workflowsFromSameOwner"
-        },
-        "tags": [{"name": "batutynas"}, {"name": "cron"}]
+        }
     }
-
     return workflow
+
 
 if __name__ == "__main__":
     wf = build()
     out_path = os.path.join(os.path.dirname(__file__), "tasks-sync-workflow.json")
     with open(out_path, "w") as f:
         json.dump(wf, f, indent=2, ensure_ascii=False)
-    print(f"Generated: {out_path}")
-    print(f"  Nodes: {len(wf['nodes'])}")
-    print(f"  Schedule: every 10 minutes")
-    print(f"  Flow: Poll Tasks → Parse → Create Calendar Event → Complete Task → Telegram")
+    print("Generated: " + out_path)
+    print("  Nodes: " + str(len(wf['nodes'])))
+    print("  Flow: Schedule -> Fetch Tasks -> Parse (classify+merge) -> Has? -> Split -> Create Event -> Fan Out -> Complete Task -> Telegram")
+    print("  Features: ORDER/TODO/INTERNAL classification, multi-day merging, address merging, per-item price verification, B2B tags")
