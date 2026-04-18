@@ -28,10 +28,14 @@ import json, os, uuid
 # Configuration
 BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '')
 OWNER_CHAT_ID = os.environ.get('BATUTYNAS_OWNER_CHAT_ID', '8258463322')
-# Dashboard-only mode: tasks sync to /api/orders (MongoDB pending orders),
-# NOT to Google Calendar. Owner decides in dashboard whether to promote to
-# Calendar via the existing confirm flow. (Per owner directive 2026-04-18.)
-DASHBOARD_ORDERS_URL = "https://batutynas-chatbot.0uvai5.easypanel.host/api/orders"
+# Dashboard-only, silent-auto-confirm mode (owner directive 2026-04-18):
+# - URL: /api/webhook/n8n-tasks-import (NOT /api/orders)
+# - Creates status="confirmed", no email, no Telegram confirm-button trigger
+# - Requires x-sync-secret header matching N8N_SYNC_SECRET env var
+# - Idempotent on form_data.taskIds (never creates duplicates)
+DASHBOARD_ORDERS_URL = "https://batutynas-chatbot.0uvai5.easypanel.host/api/webhook/n8n-tasks-import"
+# Shared secret pulled from Telegram Bot V3 workflow (same value backend uses)
+N8N_SYNC_SECRET_VALUE = "__N8N_SYNC_SECRET__"
 # Deprecated (kept for reference — do NOT use, sent to Google Calendar):
 # CALENDAR_BRIDGE_CREATE = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create"
 
@@ -578,12 +582,20 @@ def build():
         "parameters": {
             "method": "POST",
             "url": DASHBOARD_ORDERS_URL,
+            "sendHeaders": True,
+            "specifyHeaders": "keypair",
+            "headerParameters": {
+                "parameters": [
+                    {"name": "x-sync-secret", "value": N8N_SYNC_SECRET_VALUE},
+                    {"name": "Content-Type", "value": "application/json"},
+                ],
+            },
             "sendBody": True,
             "specifyBody": "json",
-            # Backend expects {flow_type, form_data} — it stores as pending order
-            # in MongoDB and sends email + Telegram confirm-button notification.
-            # NOTHING is written to Google Calendar until the owner clicks
-            # confirm in the dashboard/Telegram.
+            # Backend /api/webhook/n8n-tasks-import:
+            # - Stores as status="confirmed" in MongoDB
+            # - No email, no Telegram, no Calendar side-effect
+            # - Idempotent on form_data.taskIds
             "jsonBody": """={{ JSON.stringify({flow_type: "party", form_data: {vardas: $json.customer_name, telefonas: $json.phone, epastas: $json.email || "", data: $json.startDate, vieta: $json.address, batutas: $json.equipment, priedai: ($json.addons||[]).join(", "), source: "google_tasks_sync", taskIds: $json.taskIds, taskTitle: $json.taskTitle, durationDays: $json.durationDays, price: $json.price, tags: $json.tags, priceCheck: $json.priceCheck, description: $json.description}}) }}""",
             "options": {"timeout": 15000}
         },
@@ -595,21 +607,26 @@ def build():
         "alwaysOutputData": True,
     })
 
+    # Fan Out code: one item per taskId for Complete Task, but ONLY if
+    # Create Pending Order succeeded. FastAPI 4xx/5xx returns {detail: "..."}
+    # (no .error field, no .id), so checking !createResult.id catches those
+    # and we bail with [] instead of falsely completing the Google Task.
     fan_out_code = r"""
 const booking = $('Split Bookings').item.json;
+const createResult = $('Create Pending Order').first().json || {};
+// Backend returns Order with .id on success (201) OR idempotent hit (200).
+// On 401/400/500 FastAPI returns {detail: "..."} — no .id, no .error.
+// On Calendar Bridge-style errors (legacy path): .error or .errorMessage.
+const failed = !createResult.id || createResult.detail || createResult.error || createResult.errorMessage;
+if (failed) return [];
 const taskIds = booking.taskIds || [booking.taskId];
-const calResult = $('Create Pending Order').first().json || {};
-const success = !calResult.error;
 return taskIds.map(tid => ({
   json: {
     taskId: tid,
-    success: success,
+    orderId: createResult.id,
     summary: booking.summary,
     startDate: booking.startDate,
-    address: booking.address,
-    price: booking.price,
-    tags: booking.tags,
-    priceCheck: booking.priceCheck,
+    mergedTaskCount: taskIds.length,
   }
 }));
 """
@@ -664,6 +681,9 @@ return taskIds.map(tid => ({
         "position": [2000, Y - 120],
         "credentials": {"telegramApi": {"id": TELEGRAM_CRED_ID, "name": TELEGRAM_CRED_NAME}},
         "continueOnFail": True,
+        # Disabled per owner directive 2026-04-18 ("No Telegram messages yet").
+        # Kept in the workflow so it can be re-enabled later by setting disabled: False.
+        "disabled": True,
     })
 
     connect("Every 10 Minutes", "Fetch Uncompleted Tasks")

@@ -130,7 +130,12 @@ N8N_BASE_URL         = os.environ.get('N8N_BASE_URL', '').rstrip('/')
 N8N_WEBHOOK_URL      = os.environ.get('N8N_WEBHOOK_URL', '')
 CALENDAR_BRIDGE_URL  = os.environ.get('CALENDAR_BRIDGE_URL', '')
 ADMIN_PASSWORD       = os.environ.get('ADMIN_PASSWORD', '')
-N8N_SYNC_SECRET      = os.environ.get('N8N_SYNC_SECRET', '')   # shared secret for /webhook/n8n-sync
+N8N_SYNC_SECRET      = os.environ.get('N8N_SYNC_SECRET', '')   # shared secret for /webhook/n8n-sync + /webhook/n8n-tasks-import
+if not N8N_SYNC_SECRET:
+    logging.getLogger(__name__).warning(
+        "N8N_SYNC_SECRET is not set — /webhook/n8n-sync and /webhook/n8n-tasks-import "
+        "are UNAUTHENTICATED. Set the env var to require header auth."
+    )
 GOOGLE_MAPS_API_KEY  = os.environ.get('GOOGLE_MAPS_API_KEY', '')  # Geocoding + Directions API
 
 VALID_FLOW_TYPES = {'birthday', 'company', 'party', 'purchase', 'faq'}
