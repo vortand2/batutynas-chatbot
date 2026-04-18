@@ -28,7 +28,12 @@ import json, os, uuid
 # Configuration
 BOT_TOKEN = os.environ.get('BATUTYNAS_BOT_TOKEN', '')
 OWNER_CHAT_ID = os.environ.get('BATUTYNAS_OWNER_CHAT_ID', '8258463322')
-CALENDAR_BRIDGE_CREATE = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create"
+# Dashboard-only mode: tasks sync to /api/orders (MongoDB pending orders),
+# NOT to Google Calendar. Owner decides in dashboard whether to promote to
+# Calendar via the existing confirm flow. (Per owner directive 2026-04-18.)
+DASHBOARD_ORDERS_URL = "https://batutynas-chatbot.0uvai5.easypanel.host/api/orders"
+# Deprecated (kept for reference — do NOT use, sent to Google Calendar):
+# CALENDAR_BRIDGE_CREATE = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create"
 
 # Google Tasks OAuth credential (separate from Calendar - different project/scope)
 GTASKS_CRED_ID = "2IWv8jjxCnAqLgx3"
@@ -573,29 +578,17 @@ def build():
     nodes.append({
         "parameters": {
             "method": "POST",
-            "url": CALENDAR_BRIDGE_CREATE,
+            "url": DASHBOARD_ORDERS_URL,
             "sendBody": True,
             "specifyBody": "json",
-            "jsonBody": """={
-  "equipment": {{ JSON.stringify($json.equipment) }},
-  "equipmentList": {{ JSON.stringify($json.equipmentList) }},
-  "addons": {{ JSON.stringify($json.addons) }},
-  "customer_name": {{ JSON.stringify($json.customer_name) }},
-  "phone": {{ JSON.stringify($json.phone) }},
-  "email": {{ JSON.stringify($json.email || '') }},
-  "address": {{ JSON.stringify($json.address) }},
-  "startDate": {{ JSON.stringify($json.startDate) }},
-  "durationDays": {{ $json.durationDays }},
-  "price": {{ $json.price }},
-  "tags": {{ JSON.stringify($json.tags) }},
-  "summary": {{ JSON.stringify($json.summary) }},
-  "description": {{ JSON.stringify($json.description) }},
-  "notes": {{ JSON.stringify($json.notes) }},
-  "source": "google_tasks"
-}""",
+            # Backend expects {flow_type, form_data} — it stores as pending order
+            # in MongoDB and sends email + Telegram confirm-button notification.
+            # NOTHING is written to Google Calendar until the owner clicks
+            # confirm in the dashboard/Telegram.
+            "jsonBody": """={{ JSON.stringify({flow_type: "party", form_data: {vardas: $json.customer_name, telefonas: $json.phone, epastas: $json.email || "", data: $json.startDate, vieta: $json.address, batutas: $json.equipment, priedai: ($json.addons||[]).join(", "), source: "google_tasks_sync", taskIds: $json.taskIds, taskTitle: $json.taskTitle, durationDays: $json.durationDays, price: $json.price, tags: $json.tags, priceCheck: $json.priceCheck, description: $json.description}}) }}""",
             "options": {"timeout": 15000}
         },
-        "id": uid(), "name": "Create Calendar Event",
+        "id": uid(), "name": "Create Pending Order",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
         "position": [1340, Y - 120],
@@ -606,7 +599,7 @@ def build():
     fan_out_code = r"""
 const booking = $('Split Bookings').item.json;
 const taskIds = booking.taskIds || [booking.taskId];
-const calResult = $('Create Calendar Event').first().json || {};
+const calResult = $('Create Pending Order').first().json || {};
 const success = !calResult.error;
 return taskIds.map(tid => ({
   json: {
@@ -678,8 +671,8 @@ return taskIds.map(tid => ({
     connect("Fetch Uncompleted Tasks", "Parse Tasks")
     connect("Parse Tasks", "Has Bookings?")
     connect("Has Bookings?", "Split Bookings", 0)
-    connect("Split Bookings", "Create Calendar Event")
-    connect("Create Calendar Event", "Fan Out Task IDs")
+    connect("Split Bookings", "Create Pending Order")
+    connect("Create Pending Order", "Fan Out Task IDs")
     connect("Fan Out Task IDs", "Complete Task")
     connect("Complete Task", "Telegram Notify")
 
