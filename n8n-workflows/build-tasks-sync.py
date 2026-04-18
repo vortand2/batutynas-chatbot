@@ -56,7 +56,13 @@ const EQUIPMENT = [
   { name: 'Džiumandži parkas',    kw: ['dziumandzi','džiumandži','jumanji'], tier: 'park' },
   { name: 'Candy Pop',            kw: ['candy pop','candypop','candy'], tier: 'compact' },
   { name: 'Chameleonas',          kw: ['chameleonas','chemeleonas','chameleon'], tier: 'compact' },
-  { name: 'Monstrai',             kw: ['monstrai','monstr'], tier: 'compact' },
+  { name: 'Monstrai',             kw: ['monstrai','monstai','monstr'], tier: 'compact' },
+  { name: 'Vidutinis batutas',    kw: ['vidutinis batut','vidutinis bat'], tier: 'compact' },
+  { name: 'Naujas batutas',       kw: ['naujas batut','naujas bat'], tier: 'compact' },
+  { name: 'Mega batutas (bendras)', kw: ['mega batut'], tier: 'mega' },
+  { name: 'Batutų parkas (bendras)', kw: ['batutu parkas','batutų parkas','batutu park'], tier: 'park' },
+  { name: 'Dino batutas',         kw: [' dino ',' dino,','dino uz','dino u\\u017E'], tier: 'compact' },
+  { name: 'Vandenynas',           kw: ['vandenynas'], tier: 'compact' },
   { name: 'Aštuonkojis',          kw: ['astuonkojis','aštuonkojis','octopus'], tier: 'compact' },
   { name: 'Vienaragiai',          kw: ['vienaragiai','vienaragi','unicorn'], tier: 'compact' },
   { name: 'Pilis mažiesiems',     kw: ['pilis','pilis maziesiems','castle'], tier: 'toddler' },
@@ -91,6 +97,11 @@ const ADDONS = {
   'prailgintuvas': 'Prailgintuvas',
   'jbl': 'JBL PartyBox',
   'partybox': 'JBL PartyBox',
+  'dumu masina': 'Dūmų mašina',
+  'dūmų mašina': 'Dūmų mašina',
+  'dumai': 'Dūmų mašina',
+  'popcorn aparat': 'Popcorn aparatas',
+  'popkorn aparat': 'Popcorn aparatas',
 };
 
 // Normalize Lithuanian diacritics
@@ -101,22 +112,34 @@ function norm(s) {
 }
 
 // Classification: ORDER / TODO / INTERNAL
-const TODO_PREFIXES = ['nurasyti','nurašyti','palaistyti','sutvarkyti','pakrauti','ivertinti','įvertinti','paskambinti','patikrinti','atsiusti','atsiųsti'];
+const TODO_PREFIXES = [
+  'nurasyti','nurašyti','palaistyti','sutvarkyti','pakrauti',
+  'ivertinti','įvertinti','paskambinti','patikrinti','atsiusti','atsiųsti',
+  'sumoketi','sumokėti','susisiekti','nupirkti','nuvezti','paruosti',
+  'domejosi','domėjosi','pasiimti','grazinti','gražinti','perpildyti','uzsakyti','užsakyti',
+  'ratu suvedimas','ratų suvedimas',
+];
 
-function classify(task, hasEquipment, hasPrice, hasAddress, hasDate) {
+function classify(task, hasEquipment, hasPrice, hasAddress, hasDate, hasPhone) {
   const titleNorm = norm(task.title || '');
   // TODO prefix beats everything: "nurasyti 30 eur Candy Pop" is a write-off, not a booking
   for (const verb of TODO_PREFIXES) {
     if (titleNorm.startsWith(verb)) return 'TODO';
   }
-  // Strong order signal
-  if (hasEquipment && (hasPrice || hasAddress) && hasDate) return 'ORDER';
-  // Weaker: equipment + date = still likely an order
+  // TODO verb embedded in short title with no real booking fields:
+  // "Turi nurasyti SUMA" — 'turi' isn't a prefix but contains 'nurasyti'
+  if (!hasDate && !hasAddress && !hasPrice) {
+    for (const verb of TODO_PREFIXES) {
+      if (titleNorm.includes(' ' + verb) || titleNorm.includes(verb + ' ')) return 'TODO';
+    }
+  }
+  // ORDER requires a scheduled booking with either a location or a price
+  if (hasEquipment && hasDate && (hasPrice || hasAddress || hasPhone)) return 'ORDER';
+  // ORDER without phone/addr/price but has date — still likely a draft booking
   if (hasEquipment && hasDate) return 'ORDER';
-  // Equipment but no date + no address + no price => probably a note, skip
-  if (hasEquipment && !hasDate && !hasAddress && !hasPrice) return 'INTERNAL';
-  // Fallback: has equipment at all (e.g. dated item with no address) => ORDER
-  if (hasEquipment) return 'ORDER';
+  // Chair/equipment rental with contact info but no date — request waiting to be scheduled
+  if (hasEquipment && (hasPrice || hasAddress) && hasPhone) return 'ORDER';
+  // Draft: equipment mentioned but no date, no address, no price, no phone → not actionable
   return 'INTERNAL';
 }
 """
@@ -149,18 +172,31 @@ function extractItems(text) {
 }
 
 // Price extraction
-// Handles: "uz 200", "už 70 Eur", "200€", "| 200 eur", "150 eurų"
+// Handles: "uz 200", "už 70 Eur", "200€", "| 200 eur", "150 eurų",
+// "170+25" (sum), "140-14=126€" (final after discount), "3x50" (quantity)
 function extractPrice(text) {
   if (!text) return 0;
-  const patterns = [
-    /u[zž]\s*(\d+)\s*(?:€|eur|eurų|euru)?/i,
-    /(\d+)\s*(?:€|eur|eurų|euru)\b/i,
-    /[\|\-]\s*(\d+)(?:\s|$)/,
-  ];
-  for (const re of patterns) {
-    const m = text.match(re);
-    if (m) return parseInt(m[1], 10);
-  }
+
+  // Priority 1: explicit final price after "=" (discount/computed)
+  const eq = text.match(/=\s*(\d+)\s*(?:€|eur|eurų|euru)?/i);
+  if (eq) return parseInt(eq[1], 10);
+
+  // Priority 2: sum pattern "170+25" right before € / Eur
+  const sum = text.match(/(\d+)\s*\+\s*(\d+)\s*(?:€|eur|eurų|euru)?/i);
+  if (sum) return parseInt(sum[1], 10) + parseInt(sum[2], 10);
+
+  // Priority 3: "uz N" / "už N" + optional unit
+  const uz = text.match(/u[zž]\s*(\d+)\s*(?:€|eur|eurų|euru)?/i);
+  if (uz) return parseInt(uz[1], 10);
+
+  // Priority 4: bare number followed by €/eur
+  const eur = text.match(/(\d+)\s*(?:€|eur|eurų|euru)\b/i);
+  if (eur) return parseInt(eur[1], 10);
+
+  // Priority 5: pipe/dash separated "| 200"
+  const sep = text.match(/[\|\-]\s*(\d+)(?:\s|$)/);
+  if (sep) return parseInt(sep[1], 10);
+
   return 0;
 }
 
@@ -199,25 +235,44 @@ function verifyPrice(statedPrice, quantities) {
   };
 }
 
-// Notes parser: extract address, phones, email, customer name
-function parseNotes(notes) {
-  if (!notes) return { address: '', phones: [], email: '', customerName: '', rawLines: [] };
-  const lines = notes.split(/\n/).map(l => l.trim()).filter(Boolean);
-  const phoneRe = /(?:\+370|8|0)\d[\d\s\-()]{6,}/;
+// Notes parser: extract address, phones, email, customer name.
+// If notes is empty, falls back to parsing the TITLE for inline contact
+// (e.g. "Kempiniukas uz 70€, šeštadienį, Bendruomenės namai 863587425").
+function parseNotes(notes, titleFallback) {
+  const source = notes || '';
+  const phoneRe = /(?:\+370|8|0)\d[\d\s\-()]{6,}/g;
   const emailRe = /[\w.+-]+@[\w-]+\.[\w.-]+/;
+
   const phones = [];
   let email = '';
-  const nonContact = [];
-  for (const line of lines) {
-    const pm = line.match(phoneRe);
-    const em = line.match(emailRe);
-    if (pm && line.replace(/\D/g,'').length >= 8) phones.push(pm[0]);
-    if (em) email = em[0];
-    if (!pm && !em) nonContact.push(line);
+
+  // Harvest phones + email from both notes AND title (phones may live in title)
+  for (const pool of [source, titleFallback || '']) {
+    const pm = pool.match(phoneRe);
+    if (pm) for (const p of pm) if (pool.replace(/\D/g,'').length >= 8 && !phones.includes(p)) phones.push(p);
+    const em = pool.match(emailRe);
+    if (em && !email) email = em[0];
   }
-  const address = nonContact[0] || '';
-  const customerName = nonContact.slice(1).join(' · ') || '';
-  return { address, phones, email, customerName, rawLines: lines };
+
+  // Address extraction
+  let address = '';
+  let customerName = '';
+  if (source) {
+    const lines = source.split(/\n/).map(l => l.trim()).filter(Boolean);
+    const nonContact = lines.filter(l => !l.match(phoneRe) && !l.match(emailRe));
+    address = nonContact[0] || '';
+    customerName = nonContact.slice(1).join(' · ') || '';
+  } else if (titleFallback) {
+    // Fallback: strip price/equipment/phone from title, use remainder as address
+    let rest = titleFallback
+      .replace(phoneRe, '')
+      .replace(/u[zž]\s*\d+\s*(?:€|eur|eurų|euru)?/gi, '')
+      .replace(/\d+\s*(?:€|eur|eurų|euru)\b/gi, '')
+      .replace(/^[A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž ]+?(?:\+|,|$)/, ''); // strip leading equipment word
+    rest = rest.replace(/[,\|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (rest.length > 3) address = rest;
+  }
+  return { address, phones, email, customerName, rawLines: source.split(/\n/) };
 }
 
 // Tag extraction
@@ -249,14 +304,15 @@ function buildBooking(task) {
   const price = extractPrice(title) || extractPrice(notes);
   const quantities = extractQuantities(title + ' ' + notes);
   const priceCheck = verifyPrice(price, quantities);
-  const parsedNotes = parseNotes(notes);
+  const parsedNotes = parseNotes(notes, title);
   const tags = extractTags(title, notes);
   const due = task.due ? task.due.substring(0, 10) : null;
 
   const hasEquip = items.equipment.length > 0;
   const hasAddr = !!parsedNotes.address;
   const hasDate = !!due;
-  const classification = classify(task, hasEquip, price > 0, hasAddr, hasDate);
+  const hasPhone = (parsedNotes.phones || []).length > 0;
+  const classification = classify(task, hasEquip, price > 0, hasAddr, hasDate, hasPhone);
 
   return {
     taskId: task.id,
