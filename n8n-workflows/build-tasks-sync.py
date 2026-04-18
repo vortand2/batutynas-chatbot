@@ -181,8 +181,9 @@ function extractPrice(text) {
   const eq = text.match(/=\s*(\d+)\s*(?:€|eur|eurų|euru)?/i);
   if (eq) return parseInt(eq[1], 10);
 
-  // Priority 2: sum pattern "170+25" right before € / Eur
-  const sum = text.match(/(\d+)\s*\+\s*(\d+)\s*(?:€|eur|eurų|euru)?/i);
+  // Priority 2: sum pattern "170+25" or "170+25€" — both operands 1-4 digits,
+  // second operand NOT followed by more digits (prevents "5 +37063473711" = phone).
+  const sum = text.match(/(\d{1,4})\s*\+\s*(\d{1,4})(?!\d)(?:\s*(?:€|(?:eur|eurų|euru)\b))?/i);
   if (sum) return parseInt(sum[1], 10) + parseInt(sum[2], 10);
 
   // Priority 3: "uz N" / "už N" + optional unit
@@ -190,7 +191,7 @@ function extractPrice(text) {
   if (uz) return parseInt(uz[1], 10);
 
   // Priority 4: bare number followed by €/eur
-  const eur = text.match(/(\d+)\s*(?:€|eur|eurų|euru)\b/i);
+  const eur = text.match(/(\d+)\s*(?:€|(?:eur|eurų|euru)\b)/i);
   if (eur) return parseInt(eur[1], 10);
 
   // Priority 5: pipe/dash separated "| 200"
@@ -267,7 +268,7 @@ function parseNotes(notes, titleFallback) {
     let rest = titleFallback
       .replace(phoneRe, '')
       .replace(/u[zž]\s*\d+\s*(?:€|eur|eurų|euru)?/gi, '')
-      .replace(/\d+\s*(?:€|eur|eurų|euru)\b/gi, '')
+      .replace(/\d+\s*(?:€|(?:eur|eurų|euru)\b)/gi, '')
       .replace(/^[A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž ]+?(?:\+|,|$)/, ''); // strip leading equipment word
     rest = rest.replace(/[,\|]+/g, ' ').replace(/\s+/g, ' ').trim();
     if (rest.length > 3) address = rest;
@@ -364,6 +365,7 @@ function mergeRelated(bookings) {
     const allTags = [...b.tags];
     const allTaskIds = [b.taskId];
     let totalPrice = b.price;
+    let earliestDate = b.startDate;
     let latestDate = b.startDate;
     let isMulti = b.isMultiDay;
     for (const s of siblings) {
@@ -372,10 +374,11 @@ function mergeRelated(bookings) {
       for (const t of s.tags) if (!allTags.includes(t)) allTags.push(t);
       allTaskIds.push(s.taskId);
       totalPrice += s.price;
-      if (s.startDate > latestDate) latestDate = s.startDate;
+      if (s.startDate && (!earliestDate || s.startDate < earliestDate)) earliestDate = s.startDate;
+      if (s.startDate && s.startDate > latestDate) latestDate = s.startDate;
       if (s.isMultiDay) isMulti = true;
     }
-    const duration = isMulti || (latestDate !== b.startDate) ? 2 : 1;
+    const duration = isMulti || (latestDate !== earliestDate) ? 2 : 1;
     merged.push({
       ...b,
       equipment: allEquip,
@@ -383,6 +386,7 @@ function mergeRelated(bookings) {
       tags: [...new Set([...allTags, ...(duration > 1 ? ['Multi-day'] : [])])],
       price: totalPrice,
       primaryEquipment: allEquip[0]?.name || '',
+      startDate: earliestDate, // use earliest, not first-iterated
       durationDays: duration,
       mergedTaskIds: allTaskIds,
       endDate: latestDate,
@@ -393,7 +397,20 @@ function mergeRelated(bookings) {
 
 // MAIN
 const raw = ($input.first().json.items || []);
-const all = raw.map(buildBooking);
+
+// Filter: reject tasks with due date > 90 days in the past (ancient/stale).
+// Prevents re-syncing old orders like "Kempiniukas 2023-12-01".
+const NOW = new Date();
+const MAX_PAST_DAYS = 90;
+const recent = raw.filter(t => {
+  if (!t.due) return true; // no date — still evaluate (classify may drop it)
+  const dueMs = new Date(t.due).getTime();
+  if (isNaN(dueMs)) return true;
+  const daysAgo = (NOW.getTime() - dueMs) / 86400000;
+  return daysAgo <= MAX_PAST_DAYS;
+});
+
+const all = recent.map(buildBooking);
 
 const orders = all.filter(b => b.classification === 'ORDER');
 const todos = all.filter(b => b.classification === 'TODO');
