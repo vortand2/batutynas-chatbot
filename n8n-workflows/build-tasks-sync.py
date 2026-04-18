@@ -396,7 +396,14 @@ function mergeRelated(bookings) {
 }
 
 // MAIN
-const raw = ($input.first().json.items || []);
+// Support both shapes:
+//   (a) native googleTasks node — one item per task at $input.all()[i].json
+//   (b) HTTP Request Google Tasks API — { items: [...] } at $input.first().json.items
+const allItems = $input.all();
+const firstJson = allItems[0] ? allItems[0].json : {};
+const raw = Array.isArray(firstJson.items)
+  ? firstJson.items
+  : allItems.map(it => it.json).filter(t => t && (t.id || t.title));
 
 // Filter: reject tasks with due date > 90 days in the past (ancient/stale).
 // Prevents re-syncing old orders like "Kempiniukas 2023-12-01".

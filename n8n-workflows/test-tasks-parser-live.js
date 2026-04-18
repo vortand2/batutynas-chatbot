@@ -22,8 +22,13 @@ if (!parseNode) { console.error('Parse Tasks node not found'); process.exit(1); 
 const tasks = JSON.parse(fs.readFileSync('/tmp/batutynas-tasks.json', 'utf8'));
 
 function runParser(taskList) {
+  // Support both shapes: HTTP API (json.items) and native googleTasks (one item per task)
+  const items = taskList.map(t => ({ json: t }));
   const sandbox = {
-    $input: { first: () => ({ json: { items: taskList } }) },
+    $input: {
+      first: () => ({ json: { items: taskList } }), // backward-compat
+      all: () => items,
+    },
     $json: null,
     console: console,
     Date: Date, Math: Math, JSON: JSON, Set: Set,

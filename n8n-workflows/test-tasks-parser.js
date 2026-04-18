@@ -64,7 +64,10 @@ const sampleTasks = [
 // Sandbox the parser code using vm
 const jsCode = parseNode.parameters.jsCode;
 const sandbox = {
-  $input: { first: () => ({ json: { items: sampleTasks } }) },
+  $input: {
+    first: () => ({ json: { items: sampleTasks } }),
+    all: () => sampleTasks.map(t => ({ json: t })),
+  },
   $json: null,
   console: console,
   Date: Date,
