@@ -410,16 +410,15 @@ const raw = Array.isArray(firstJson.items)
   ? firstJson.items
   : allItems.map(it => it.json).filter(t => t && (t.id || t.title));
 
-// Filter: reject tasks with due date > 90 days in the past (ancient/stale).
-// Prevents re-syncing old orders like "Kempiniukas 2023-12-01".
-const NOW = new Date();
-const MAX_PAST_DAYS = 90;
+// Future-only: only sync tasks whose due date is today or later.
+// String compare on YYYY-MM-DD is timezone-safe and avoids time-of-day edge
+// cases (Google Tasks typically stores due as midnight UTC).
+// Per owner directive 2026-04-18: "Do only for the ones in the future from today on."
+const TODAY_STR = new Date().toISOString().substring(0, 10);
 const recent = raw.filter(t => {
-  if (!t.due) return true; // no date — still evaluate (classify may drop it)
-  const dueMs = new Date(t.due).getTime();
-  if (isNaN(dueMs)) return true;
-  const daysAgo = (NOW.getTime() - dueMs) / 86400000;
-  return daysAgo <= MAX_PAST_DAYS;
+  if (!t.due) return false; // no due date — can't schedule, skip
+  const dueStr = t.due.substring(0, 10);
+  return dueStr >= TODAY_STR;
 });
 
 const all = recent.map(buildBooking);
