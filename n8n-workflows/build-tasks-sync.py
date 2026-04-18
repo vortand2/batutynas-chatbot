@@ -498,10 +498,36 @@ return [{
 """
 
 SPLIT_BOOKINGS_CODE = r"""
-const payload = $input.first().json;
-const bookings = payload.bookings || [];
+// Split bookings AND pre-build the /api/webhook/n8n-tasks-import payload.
+// n8n expression language chokes on nested ({...||[]}).join(...) inside
+// HTTP jsonBody templates, so we construct the body here in plain JS.
+const bookings = $input.first().json.bookings || [];
 if (!bookings.length) return [];
-return bookings.map(b => ({ json: b }));
+return bookings.map(b => ({
+  json: {
+    ...b,
+    apiBody: {
+      flow_type: 'party',
+      form_data: {
+        vardas: b.customer_name,
+        telefonas: b.phone,
+        epastas: b.email || '',
+        data: b.startDate,
+        vieta: b.address,
+        batutas: b.equipment,
+        priedai: (b.addons || []).join(', '),
+        source: 'google_tasks_sync',
+        taskIds: b.taskIds,
+        taskTitle: b.taskTitle,
+        durationDays: b.durationDays,
+        price: b.price,
+        tags: b.tags,
+        priceCheck: b.priceCheck,
+        description: b.description,
+      },
+    },
+  },
+}));
 """
 
 def build():
@@ -596,7 +622,10 @@ def build():
             # - Stores as status="confirmed" in MongoDB
             # - No email, no Telegram, no Calendar side-effect
             # - Idempotent on form_data.taskIds
-            "jsonBody": """={{ JSON.stringify({flow_type: "party", form_data: {vardas: $json.customer_name, telefonas: $json.phone, epastas: $json.email || "", data: $json.startDate, vieta: $json.address, batutas: $json.equipment, priedai: ($json.addons||[]).join(", "), source: "google_tasks_sync", taskIds: $json.taskIds, taskTitle: $json.taskTitle, durationDays: $json.durationDays, price: $json.price, tags: $json.tags, priceCheck: $json.priceCheck, description: $json.description}}) }}""",
+            # Payload is pre-built in Split Bookings as $json.apiBody — keeps the
+            # jsonBody expression simple and avoids n8n expression parser choking
+            # on nested `||` defaults and `.join()` inside object literals.
+            "jsonBody": "={{ JSON.stringify($json.apiBody) }}",
             "options": {"timeout": 15000}
         },
         "id": uid(), "name": "Create Pending Order",
