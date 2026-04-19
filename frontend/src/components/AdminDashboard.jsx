@@ -743,8 +743,11 @@ export default function AdminDashboard() {
     try {
       const { data } = await api.get('/admin/synced-orders', { params: { month: monthStr } });
       setSyncedOrders(Array.isArray(data) ? data : []);
-    } catch { setSyncedOrders([]); /* silent fail — banner already covers big problems */ }
-  }, [token, monthStr]);
+    } catch (e) {
+      if (e?.response?.status === 401) { handleLogout(); return; }
+      setSyncedOrders([]);
+    }
+  }, [token, monthStr]); // eslint-disable-line
 
   useEffect(() => { fetchData(); }, [fetchData]);
   // Fetch pending on mount (not only on Pending tab) so the Calendar view
@@ -838,10 +841,14 @@ export default function AdminDashboard() {
     const fd = o?.form_data || {};
     const start = fd.data || '';
     const days = Number(fd.durationDays) || 1;
+    // UTC math — parsing "YYYY-MM-DDT00:00:00" without suffix triggers local-
+    // time parsing, which (in EEST/UTC+3) drifts endDate one day back when
+    // serialized via toISOString. Split the string and use Date.UTC instead.
     const endDate = (() => {
       if (!start || days <= 1) return start;
-      const d = new Date(start + 'T00:00:00');
-      d.setDate(d.getDate() + days - 1);
+      const [y, m, dd] = start.split('-').map(Number);
+      if (!y || !m || !dd) return start;
+      const d = new Date(Date.UTC(y, m - 1, dd + days - 1));
       return d.toISOString().substring(0, 10);
     })();
     const addons = typeof fd.priedai === 'string'
@@ -856,7 +863,7 @@ export default function AdminDashboard() {
       startDate:     start,
       endDate:       endDate,
       days:          days,
-      customer_name: fd.vardas || 'Iš Google Tasks',
+      customer_name: fd.vardas || '', // blank → BookingCard renders "Nežinomas klientas" (keeps search consistent)
       phone:         (fd.telefonas || '').trim(),
       email:         fd.epastas || '',
       address:       fd.vieta || '',
@@ -1002,7 +1009,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <button onClick={fetchData} disabled={loading} data-testid="refresh-btn"
+          <button onClick={() => { fetchData(); fetchPending(); fetchSyncedOrders(); }} disabled={loading} data-testid="refresh-btn"
             className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 transition-colors disabled:opacity-50">
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
