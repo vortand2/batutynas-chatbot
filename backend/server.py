@@ -609,6 +609,35 @@ async def admin_verify(x_admin_token: Optional[str] = Header(None)):
 # ── Pending orders (chatbot → awaiting confirmation) ─────────────────────────
 
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
+_YMD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+@api_router.patch("/admin/synced-orders/{order_id}")
+async def patch_synced_order(order_id: str, body: Dict[str, Any] = Body(...), _=Depends(require_admin)):
+    """Move a synced order to a new date. Body: {data: 'YYYY-MM-DD'}."""
+    new_date = str(body.get("data", "")).strip()
+    if not _YMD_RE.match(new_date):
+        raise HTTPException(400, "data privalo būti YYYY-MM-DD formatu")
+    result = await db.orders.update_one(
+        {"id": order_id, "form_data.source": "google_tasks_sync"},
+        {"$set": {"form_data.data": new_date, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Užsakymas nerastas")
+    return {"success": True, "order_id": order_id, "data": new_date}
+
+
+@api_router.delete("/admin/synced-orders/{order_id}")
+async def delete_synced_order(order_id: str, _=Depends(require_admin)):
+    """Permanently remove a synced order from the dashboard (MongoDB only —
+    does not affect Google Tasks or Google Calendar)."""
+    result = await db.orders.delete_one(
+        {"id": order_id, "form_data.source": "google_tasks_sync"}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Užsakymas nerastas")
+    return {"success": True, "order_id": order_id}
+
 
 @api_router.get("/admin/synced-orders")
 async def get_synced_orders(month: str = "", _=Depends(require_admin)):

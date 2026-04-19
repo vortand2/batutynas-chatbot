@@ -358,7 +358,7 @@ const isPastBooking = b => {
   const endCmp = b.endDate || b.end_date || b.startDate || b.event_date || '';
   return endCmp && endCmp < _todayYMD();
 };
-const BookingCard = ({ booking, onEdit, onDelete, onConfirm, deleting }) => {
+const BookingCard = ({ booking, onEdit, onDelete, onConfirm, onMoveSynced, onDeleteSynced, deleting }) => {
   const isPending = !!booking.isPending;
   const isSynced  = !!booking.isSynced;
   const isDelivered = !isPending && isPastBooking(booking);
@@ -439,9 +439,17 @@ const BookingCard = ({ booking, onEdit, onDelete, onConfirm, deleting }) => {
               <CheckCheck size={12} /> Patvirtinti → Kalendorių
             </button>
           ) : isSynced ? (
-            <p className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 rounded-xl py-2">
-              <CheckCheck size={12} /> Patvirtinta automatiškai
-            </p>
+            <>
+              <button onClick={() => onMoveSynced?.(booking)} data-testid={`synced-move-${booking.id}`}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-xl py-2 transition-colors">
+                <Calendar size={12} /> Perkelti
+              </button>
+              <button onClick={() => onDeleteSynced?.(booking)} disabled={deleting === booking.id} data-testid={`synced-delete-${booking.id}`}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl py-2 transition-colors disabled:opacity-50">
+                {deleting === booking.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                Ištrinti
+              </button>
+            </>
           ) : (
             <>
               <button onClick={() => onEdit(booking)} data-testid={`booking-edit-${booking.id}`}
@@ -890,6 +898,30 @@ export default function AdminDashboard() {
     } finally { setDeleting(''); }
   };
 
+  // Synced-order (google_tasks_sync) handlers
+  const handleMoveSynced = async booking => {
+    const current = booking.startDate || '';
+    const next = window.prompt(`Perkelti į naują datą (YYYY-MM-DD):`, current);
+    if (!next || next === current) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) { alert('Neteisinga data. Formatas: YYYY-MM-DD'); return; }
+    try {
+      await api.patch(`/admin/synced-orders/${booking.id}`, { data: next });
+      fetchData();
+    } catch (e) {
+      alert(e?.response?.data?.detail || 'Klaida perkeliant');
+    }
+  };
+  const handleDeleteSynced = async booking => {
+    if (!window.confirm(`Ištrinti užsakymą iš dashboard: ${booking.equipment} – ${booking.customer_name || 'be vardo'}?\n\nTai pašalina TIK iš dashboard (MongoDB). Google Tasks/Calendar nepaliečiama.`)) return;
+    setDeleting(booking.id);
+    try {
+      await api.delete(`/admin/synced-orders/${booking.id}`);
+      fetchData();
+    } catch (e) {
+      alert(e?.response?.data?.detail || 'Klaida trinant');
+    } finally { setDeleting(''); }
+  };
+
   const handleSaved = () => {
     setModal(null);
     fetchData();
@@ -1281,6 +1313,8 @@ export default function AdminDashboard() {
                       onEdit={() => setModal(b)}
                       onDelete={() => handleDelete(b)}
                       onConfirm={() => b._raw && setConfirmOrder(b._raw)}
+                      onMoveSynced={handleMoveSynced}
+                      onDeleteSynced={handleDeleteSynced}
                       deleting={deleting} />
                   ))
                 )}
