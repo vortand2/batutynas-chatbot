@@ -351,11 +351,12 @@ const StatsCard = ({ icon: Icon, label, value, sub, subUp, color, loading }) => 
 // ── BookingCard (in DayPanel) ─────────────────────────────────────────────────
 const PENDING_AMBER = '#f59e0b';
 const SYNCED_TEAL = '#0d9488';
-// Is the booking's startDate strictly before today (UTC day)?
+// Is the booking's END strictly before today? Uses endDate so multi-day
+// rentals don't get tagged "delivered" until they've fully ended.
 const _todayYMD = () => new Date().toISOString().substring(0, 10);
 const isPastBooking = b => {
-  const sd = b.startDate || b.event_date || '';
-  return sd && sd < _todayYMD();
+  const endCmp = b.endDate || b.end_date || b.startDate || b.event_date || '';
+  return endCmp && endCmp < _todayYMD();
 };
 const BookingCard = ({ booking, onEdit, onDelete, onConfirm, deleting }) => {
   const isPending = !!booking.isPending;
