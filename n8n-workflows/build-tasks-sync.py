@@ -134,6 +134,8 @@ const TODO_PREFIXES = [
   'sumoketi','sumokėti','susisiekti','nupirkti','nuvezti','paruosti',
   'domejosi','domėjosi','pasiimti','grazinti','gražinti','perpildyti','uzsakyti','užsakyti',
   'ratu suvedimas','ratų suvedimas',
+  'paimti','paiimti','atsiimti','atiduoti','issiaiskinti','išsiaiškinti',
+  'ivykdyti','įvykdyti','susitikti','susitart',
 ];
 
 function classify(task, hasEquipment, hasPrice, hasAddress, hasDate, hasPhone) {
@@ -263,10 +265,14 @@ function parseNotes(notes, titleFallback) {
   const phones = [];
   let email = '';
 
-  // Harvest phones + email from both notes AND title (phones may live in title)
+  // Harvest phones + email from both notes AND title (phones may live in title).
+  // Trim phones — regex character class `\s` eats trailing newlines from notes.
   for (const pool of [source, titleFallback || '']) {
     const pm = pool.match(phoneRe);
-    if (pm) for (const p of pm) if (pool.replace(/\D/g,'').length >= 8 && !phones.includes(p)) phones.push(p);
+    if (pm) for (const raw of pm) {
+      const p = raw.trim();
+      if (pool.replace(/\D/g,'').length >= 8 && p && !phones.includes(p)) phones.push(p);
+    }
     const em = pool.match(emailRe);
     if (em && !email) email = em[0];
   }
@@ -296,7 +302,9 @@ function parseNotes(notes, titleFallback) {
 function extractTags(text, notes) {
   const tags = [];
   const n = norm(text + ' ' + (notes || ''));
-  if (n.includes('bendruomen') && (n.includes('namai') || n.includes('centr'))) tags.push('Bendruomenės namai');
+  // Owner uses "bendruomene"/"bendruomenei"/"bendruomenė" for community
+  // venue (B2B); not every case has "namai" in the name.
+  if (n.includes('bendruomen')) tags.push('Bendruomenės namai');
   if (n.includes('per nakti') || n.includes('per naktį') || n.includes('nakvoja')) tags.push('Per naktį');
   if (n.includes('sms') || n.includes('zinute') || n.includes('žinutė')) tags.push('SMS tik');
   if (n.includes('2 diena') || n.includes('antra diena') || n.includes('2d.')) tags.push('Multi-day');
