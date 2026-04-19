@@ -121,6 +121,27 @@ Edit in the n8n UI (`https://n8n-n8n.0uvai5.easypanel.host`) → Save → workfl
 3. If `Exit` or `Restarting`: `docker compose -f /opt/batutynas/docker-compose.yml logs --tail=50 backend` to see why.
 4. Force restart: `docker compose -f /opt/batutynas/docker-compose.yml up -d --force-recreate backend`
 
+### "Easypanel itself is down (can't SSH, can't reach any `.0uvai5.easypanel.host` URL)"
+
+Easypanel is the control plane on your Hostinger VPS. If the entire host is unreachable:
+
+1. Log into Hostinger hPanel → VPS → check server status / reboot if hung.
+2. If the VPS is up but SSH is refused, use Hostinger's browser console to get in.
+3. Once in: `systemctl status docker` → if stopped, `systemctl start docker`.
+4. Then `cd /opt/batutynas && docker compose up -d` to resurrect all Batutynas containers.
+5. Easypanel itself runs in Docker — if its container is broken, reboot the VPS from Hostinger UI.
+
+Hostinger support: `support@hostinger.com` / live chat on hpanel.hostinger.com. Have your VPS ID ready.
+
+### "Vercel frontend deploys but dashboard breaks"
+
+The dashboard calls `/api/*` relative to its origin. Vercel rewrites `/api/*` → the Easypanel backend via `frontend/vercel.json`. If the dashboard loads but shows "Serverio klaida" everywhere, either:
+
+1. Backend is down (see above)
+2. Vercel project environment variables were changed. Check Vercel dashboard → project `batutynas-chatbot` → Settings → Environment Variables. Expected:
+   - `REACT_APP_GOOGLE_MAPS_KEY` (for the Route Planner embedded maps)
+   - No backend URL needed — it's a relative `/api` rewrite in `vercel.json`.
+
 ---
 
 ## Rotating API keys
@@ -139,6 +160,47 @@ Same console (`https://console.cloud.google.com/apis/credentials`). Update `GOOG
 ### Telegram bot token
 
 Very rare. `@BotFather` → `/token` → select `@Batutynas_bot` → generate new token. Update in n8n credential `Batutynas Telegram Bot` + in `.env` → redeploy backend.
+
+### N8N_SYNC_SECRET (shared between backend and 3 n8n workflows)
+
+Used by: Tasks → Dashboard sync (posts to `/api/webhook/n8n-tasks-import`) and both briefings (fetch `/api/internal/synced-bookings`). The current value was once visible in a published Vercel JS bundle.
+
+To rotate:
+
+1. Pick a new strong value (e.g. `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`).
+2. SSH in: `ssh batutynas-vps`, edit `/opt/batutynas/.env` and change `N8N_SYNC_SECRET=<new>`, save.
+3. `docker compose -f /opt/batutynas/docker-compose.yml up -d --force-recreate backend`.
+4. In n8n, open these 3 workflows and update the `x-sync-secret` header in the HTTP nodes that call the backend:
+   - `Oi5fvZXMXZoiAy2v` — Tasks → Dashboard → "Create Pending Order" node
+   - `8SuYKMdFcsg2992D` — Morning Briefing V2 → "Prepare Weather" code node (hardcoded string in the inline `httpRequest` call)
+   - `1zQidq9TNo8RwTQk` — Evening Check V2 → same pattern
+5. Run each workflow once manually to confirm the new secret works.
+
+---
+
+## MongoDB backup & restore
+
+MongoDB runs in the `batutynas-mongo-1` Docker container. Daily backup to a file on the host:
+
+```bash
+ssh batutynas-vps 'docker compose -f /opt/batutynas/docker-compose.yml exec -T mongo \
+  mongodump --db batutynas_db --archive --gzip' > ~/batutynas-backup-$(date +%F).gz
+```
+
+Put that one-liner in a `crontab -e` on your laptop (or the VPS) to run nightly:
+
+```cron
+0 3 * * * ssh batutynas-vps '...' > ~/backups/batutynas-$(date +\%F).gz
+```
+
+**Restore** (destructive — wipes current DB, use carefully):
+
+```bash
+cat ~/batutynas-backup-2026-04-19.gz | ssh batutynas-vps 'docker compose -f /opt/batutynas/docker-compose.yml exec -T mongo \
+  mongorestore --drop --gzip --archive --db batutynas_db'
+```
+
+The synced-orders collection is the most important — without it, past Google Tasks syncs are lost (Google Tasks itself only retains ~30 days of completed tasks).
 
 ---
 

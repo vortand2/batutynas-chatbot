@@ -872,15 +872,33 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
     return result
 
 
+# Cache the last public-health probe for 60s so unauthenticated traffic can't
+# amplify load on MongoDB / Calendar Bridge. Uptime monitors that hit this
+# endpoint more than once a minute will just see the cached result.
+_PUBLIC_HEALTH_CACHE: Dict[str, Any] = {"at": 0.0, "body": None, "ok": False}
+_PUBLIC_HEALTH_TTL_S = 60
+
+
 @api_router.get("/health")
 async def public_health():
     """Public health endpoint — safe for uptime monitors. No auth, no secrets.
     Reports `ok` only when MongoDB AND Calendar Bridge are reachable.
     Status codes: 200 healthy, 503 degraded (so monitors trigger on non-200).
+    Result cached 60s to protect downstream services from probe amplification.
     """
+    import time
+    now_ts = time.time()
+    if _PUBLIC_HEALTH_CACHE["body"] and (now_ts - _PUBLIC_HEALTH_CACHE["at"]) < _PUBLIC_HEALTH_TTL_S:
+        body = _PUBLIC_HEALTH_CACHE["body"]
+        if not _PUBLIC_HEALTH_CACHE["ok"]:
+            raise HTTPException(status_code=503, detail=body)
+        return body
+
+    # MongoDB ping — use dict form (Motor/PyMongo-safe). `admin.command` goes
+    # through the client's admin db and is the canonical liveness probe.
     mongo_ok = False
     try:
-        await db.command("ping")
+        await db.client.admin.command({"ping": 1})
         mongo_ok = True
     except Exception as e:
         logger.error("public_health mongo ping failed: %s", e)
@@ -890,7 +908,9 @@ async def public_health():
         try:
             async with httpx.AsyncClient(timeout=5) as c:
                 r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]})
-                n8n_ok = r.status_code < 500
+                # 4xx means the webhook is misrouted / gone — treat as degraded.
+                # Only 2xx-3xx (+ the rare 5xx-back-from-overload) count as reachable.
+                n8n_ok = r.status_code < 400
         except Exception as e:
             logger.error("public_health n8n reach failed: %s", e)
 
@@ -901,6 +921,9 @@ async def public_health():
         "calendar_bridge":  n8n_ok,
         "timestamp":        datetime.now(timezone.utc).isoformat(),
     }
+    _PUBLIC_HEALTH_CACHE["at"]   = now_ts
+    _PUBLIC_HEALTH_CACHE["body"] = body
+    _PUBLIC_HEALTH_CACHE["ok"]   = healthy
     if not healthy:
         raise HTTPException(status_code=503, detail=body)
     return body
