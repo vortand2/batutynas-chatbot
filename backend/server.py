@@ -607,6 +607,19 @@ async def admin_verify(x_admin_token: Optional[str] = Header(None)):
 
 # ── Pending orders (chatbot → awaiting confirmation) ─────────────────────────
 
+@api_router.get("/admin/synced-orders")
+async def get_synced_orders(month: str = "", _=Depends(require_admin)):
+    """Returns confirmed orders from google_tasks_sync, optionally filtered by month (YYYY-MM).
+    Used by the dashboard Calendar tab to render Tasks-synced orders alongside GCal bookings."""
+    q: Dict[str, Any] = {"status": "confirmed", "form_data.source": "google_tasks_sync"}
+    if month and len(month) == 7:
+        q["form_data.data"] = {"$regex": f"^{month}"}
+    rows = await db.orders.find(q).sort("created_at", -1).to_list(500)
+    for r in rows:
+        r.pop("_id", None)
+    return rows
+
+
 @api_router.get("/admin/pending-orders")
 async def get_pending_orders(_=Depends(require_admin)):
     cursor = db.orders.find(
