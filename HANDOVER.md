@@ -39,7 +39,7 @@ If any one of these is missing, see *Troubleshooting* below.
 
 ## Health monitoring
 
-A **Uptime Monitor** n8n workflow (`Batutynas: Uptime Monitor`) runs every 15 min and pings three critical endpoints. If any fails **twice in a row**, you get a Telegram alert like:
+A **Uptime Monitor** n8n workflow (`Batutynas: Uptime Monitor`, id `a80oNUpDMuNfMOp8`) runs every 15 min and pings three critical endpoints. If any fails **twice in a row**, you get a Telegram alert like:
 
 > 🚨 Batutynas nepasiekiamas: Backend (mongo down)
 
