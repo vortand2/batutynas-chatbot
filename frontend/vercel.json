@@ -3,6 +3,14 @@
     {
       "source": "/api/:path*",
       "destination": "https://batutynas-chatbot.0uvai5.easypanel.host/api/:path*"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index.html"
     }
   ]
 }
