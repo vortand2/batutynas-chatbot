@@ -81,8 +81,9 @@ const EQUIPMENT = [
   { name: 'Rodeo bulius',         kw: ['rodeo','bulius','rodeobulius'], tier: 'interactive' },
   { name: 'Banketo stalai ir kėdės', kw: ['stalai ir kedes','stalai ir kėdės','kedziu ir stalu','kedes','kėdės','kedziu','kėdžių','banketo','stalai'], tier: 'party-equipment' },
   { name: 'Disco paviljonas',     kw: ['disco','paviljonas','klubas','diskoteka'], tier: 'party-equipment' },
-  { name: 'Sumo kostiumai',       kw: ['sumo kostium','sumo'], tier: 'interactive' },
-  { name: 'Virtuali realybė (VR)', kw: [' vr ',' vr,','vr akiniai','virtuali realybe','virtuali realybė'], tier: 'interactive' },
+  // Sumo + VR are usually ADDONS (paired with primary equipment). Keeping them
+  // in ADDONS only; rare standalone bookings fall through to INTERNAL and the
+  // owner handles them manually.
 ];
 
 // Add-ons (tracked separately from equipment; flagged in notes/tags)
@@ -114,6 +115,9 @@ const ADDONS = {
   'kolonele': 'Kolonėlė',
   'kolonėlė': 'Kolonėlė',
   'kolonel': 'Kolonėlė',
+  'prieziura': 'Priežiūra',
+  'priežiūra': 'Priežiūra',
+  'priziureti': 'Priežiūra',
 };
 
 // Normalize Lithuanian diacritics
