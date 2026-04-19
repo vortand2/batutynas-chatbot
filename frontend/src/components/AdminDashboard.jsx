@@ -350,16 +350,31 @@ const StatsCard = ({ icon: Icon, label, value, sub, subUp, color, loading }) => 
 
 // ── BookingCard (in DayPanel) ─────────────────────────────────────────────────
 const PENDING_AMBER = '#f59e0b';
+const SYNCED_TEAL = '#0d9488';
 const BookingCard = ({ booking, onEdit, onDelete, onConfirm, deleting }) => {
   const isPending = !!booking.isPending;
-  const color = isPending ? PENDING_AMBER : equipColor(booking.equipment);
+  const isSynced  = !!booking.isSynced;
+  const color = isPending ? PENDING_AMBER
+              : isSynced  ? SYNCED_TEAL
+              : equipColor(booking.equipment);
+  const borderCls = isPending ? 'border-amber-200 ring-1 ring-amber-200'
+                  : isSynced  ? 'border-teal-200 ring-1 ring-teal-200'
+                  : 'border-gray-100';
+  const testId = isPending ? `pending-card-${booking.id}`
+              : isSynced  ? `synced-card-${booking.id}`
+              : undefined;
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow ${isPending ? 'border-amber-200 ring-1 ring-amber-200' : 'border-gray-100'}`}
-         data-testid={isPending ? `pending-card-${booking.id}` : undefined}>
+    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow ${borderCls}`}
+         data-testid={testId}>
       <div className="h-1" style={{ background: color }} />
       {isPending && (
         <div className="px-4 pt-3 -mb-1 flex items-center gap-1.5 text-[11px] font-bold text-amber-700">
           <Clock size={11} /> LAUKIA PATVIRTINIMO
+        </div>
+      )}
+      {isSynced && (
+        <div className="px-4 pt-3 -mb-1 flex items-center gap-1.5 text-[11px] font-bold text-teal-700">
+          📋 IŠ GOOGLE TASKS · PATVIRTINTA
         </div>
       )}
       <div className="p-4">
@@ -409,6 +424,10 @@ const BookingCard = ({ booking, onEdit, onDelete, onConfirm, deleting }) => {
               className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl py-2 transition-colors shadow-sm">
               <CheckCheck size={12} /> Patvirtinti → Kalendorių
             </button>
+          ) : isSynced ? (
+            <p className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 rounded-xl py-2">
+              <CheckCheck size={12} /> Patvirtinta automatiškai
+            </p>
           ) : (
             <>
               <button onClick={() => onEdit(booking)} data-testid={`booking-edit-${booking.id}`}
@@ -671,6 +690,9 @@ export default function AdminDashboard() {
   const [confirmOrder, setConfirmOrder]     = useState(null);
   const [acting, setActing]                 = useState('');
 
+  // ── Synced orders (Google Tasks → Dashboard, status=confirmed) ──
+  const [syncedOrders, setSyncedOrders] = useState([]);
+
   // ── System health (diagnostic banner) ──
   const [health, setHealth] = useState(null);
 
@@ -712,10 +734,23 @@ export default function AdminDashboard() {
     } catch { /* banner just stays hidden */ }
   }, [token]);
 
+  // Fetch Google-Tasks-sync'd confirmed orders for the current month so the
+  // Calendar tab can render them alongside GCal bookings. These are NOT in
+  // Google Calendar by design (per owner directive) — MongoDB is the sole
+  // source of truth for this batch.
+  const fetchSyncedOrders = useCallback(async () => {
+    if (!token) return;
+    try {
+      const { data } = await api.get('/admin/synced-orders', { params: { month: monthStr } });
+      setSyncedOrders(Array.isArray(data) ? data : []);
+    } catch { setSyncedOrders([]); /* silent fail — banner already covers big problems */ }
+  }, [token, monthStr]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
   // Fetch pending on mount (not only on Pending tab) so the Calendar view
   // can overlay pending orders as amber dots alongside confirmed events.
   useEffect(() => { fetchPending(); }, [fetchPending]);
+  useEffect(() => { fetchSyncedOrders(); }, [fetchSyncedOrders]);
   useEffect(() => { fetchHealth(); }, [fetchHealth]);
 
   const prevMonth = () => { if (month === 0) { setYear(y=>y-1); setMonth(11); } else setMonth(m=>m-1); };
@@ -795,14 +830,55 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  // Map bookings to dates for calendar. Unions confirmed GCal events from
-  // /admin/dashboard with pending MongoDB orders so owners see both on the
-  // calendar view (pending rendered in amber).
+  // Convert a synced (google_tasks_sync, status=confirmed) order into a
+  // booking-shaped object for calendar rendering. Marked with isSynced=true
+  // so the UI can skip the Delete button (no GCal event to delete) and the
+  // Confirm button (already confirmed).
+  const syncedToBooking = useCallback(o => {
+    const fd = o?.form_data || {};
+    const start = fd.data || '';
+    const days = Number(fd.durationDays) || 1;
+    const endDate = (() => {
+      if (!start || days <= 1) return start;
+      const d = new Date(start + 'T00:00:00');
+      d.setDate(d.getDate() + days - 1);
+      return d.toISOString().substring(0, 10);
+    })();
+    const addons = typeof fd.priedai === 'string'
+      ? fd.priedai.split(',').map(s => s.trim()).filter(Boolean)
+      : (Array.isArray(fd.priedai) ? fd.priedai : []);
+    const equip = fd.batutas || '';
+    return {
+      id:            o.id,
+      isSynced:      true,
+      source:        'google_tasks_sync',
+      _raw:          o,
+      startDate:     start,
+      endDate:       endDate,
+      days:          days,
+      customer_name: fd.vardas || 'Iš Google Tasks',
+      phone:         (fd.telefonas || '').trim(),
+      email:         fd.epastas || '',
+      address:       fd.vieta || '',
+      equipment:     equip,
+      equipmentList: equip ? [equip] : [],
+      price:         Number(fd.price) || 0,
+      addons,
+      tags:          Array.isArray(fd.tags) ? fd.tags : [],
+      taskTitle:     fd.taskTitle || '',
+    };
+  }, []);
+
+  // Map bookings to dates for calendar. Unions:
+  //  - confirmed GCal events from /admin/dashboard
+  //  - pending MongoDB orders (rendered in amber)
+  //  - Google-Tasks-sync'd confirmed orders (MongoDB-only, NOT in GCal)
   const bookingsByDate = useMemo(() => {
     const map = {};
     const all = [
       ...data.bookings.map(normalise),
       ...pending.map(pendingToBooking).filter(b => b.startDate),
+      ...syncedOrders.map(syncedToBooking).filter(b => b.startDate),
     ];
     all.forEach(b => {
       const start = b.startDate;
@@ -818,7 +894,7 @@ export default function AdminDashboard() {
       }
     });
     return map;
-  }, [data.bookings, pending, pendingToBooking]); // eslint-disable-line
+  }, [data.bookings, pending, pendingToBooking, syncedOrders, syncedToBooking]); // eslint-disable-line
 
   // Filter bookings for selected day
   const dayBookings = useMemo(() => {
@@ -1183,13 +1259,14 @@ export default function AdminDashboard() {
                         ${isToday ? 'bg-violet-600 text-white shadow-sm shadow-violet-300' : isSelected ? 'text-violet-700' : 'text-gray-700'}`}>
                         {new Date(date + 'T00:00:00').getDate()}
                       </span>
-                      {/* Booking dots (pending orders rendered in amber) */}
+                      {/* Booking dots: amber=pending, teal=Google-Tasks-synced, default=GCal */}
                       {filtered.length > 0 && (
                         <div className="flex flex-wrap gap-0.5 mt-0.5">
                           {filtered.slice(0, 4).map((b, i) => (
-                            <span key={i} title={`${b.equipment}${b.isPending ? ' · laukia patvirtinimo' : ''}`}
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isPending ? 'ring-2 ring-amber-200' : ''}`}
-                              style={{ background: b.isPending ? PENDING_AMBER : equipColor(b.equipment) }} />
+                            <span key={i}
+                              title={`${b.equipment}${b.isPending ? ' · laukia patvirtinimo' : b.isSynced ? ' · iš Google Tasks' : ''}`}
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${b.isPending ? 'ring-2 ring-amber-200' : b.isSynced ? 'ring-2 ring-teal-200' : ''}`}
+                              style={{ background: b.isPending ? PENDING_AMBER : b.isSynced ? SYNCED_TEAL : equipColor(b.equipment) }} />
                           ))}
                           {filtered.length > 4 && <span className="text-[9px] text-gray-400 font-bold">+{filtered.length-4}</span>}
                         </div>
