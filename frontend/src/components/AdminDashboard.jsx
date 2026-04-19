@@ -866,14 +866,17 @@ export default function AdminDashboard() {
   //  - no search query → only the selected day's bookings (original behavior)
   //  - with search query → search ALL days (full current month), sorted by:
   //      1) today, 2) future dates (nearest first), 3) past dates (most recent first)
+  //  - diacritic-insensitive: "astuonkojis" matches "Aštuonkojis" (LT owner
+  //    types both forms, mirrors the n8n parser's norm() helper)
   const dayBookings = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const norm = s => (s || '').toLowerCase()
+      .replace(/ą/g,'a').replace(/č/g,'c').replace(/ę/g,'e').replace(/ė/g,'e')
+      .replace(/į/g,'i').replace(/š/g,'s').replace(/ų/g,'u').replace(/ū/g,'u').replace(/ž/g,'z');
+    const q = norm(search.trim());
     const eqOk = b => !filterEquip || b.equipment === filterEquip || b.equipmentList?.includes(filterEquip);
-    // Narrow search scope: current day only if no query; otherwise all dates in bookingsByDate
     if (!q) {
       return (bookingsByDate[selectedDay] || []).filter(eqOk);
     }
-    // Flatten, de-dupe by id (multi-day events appear on multiple dates)
     const seen = new Set();
     const all = [];
     Object.values(bookingsByDate).forEach(list => list.forEach(b => {
@@ -881,14 +884,13 @@ export default function AdminDashboard() {
       seen.add(b.id);
       all.push(b);
     }));
-    // Match against any order-identifying text field
     const matches = all.filter(b => {
       if (!eqOk(b)) return false;
-      const hay = [
+      const hay = norm([
         b.customer_name, b.phone, b.email, b.address, b.equipment,
         ...(b.equipmentList || []), ...(b.addons || []),
         ...(b.tags || []), b.taskTitle, b.notes, b.raw_summary,
-      ].filter(Boolean).join(' ').toLowerCase();
+      ].filter(Boolean).join(' '));
       return hay.includes(q);
     });
     // Priority: today → future (ascending) → past (descending)
