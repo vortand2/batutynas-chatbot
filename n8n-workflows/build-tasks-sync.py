@@ -111,6 +111,9 @@ const ADDONS = {
   'dumai': 'Dūmų mašina',
   'popcorn aparat': 'Popcorn aparatas',
   'popkorn aparat': 'Popcorn aparatas',
+  'kolonele': 'Kolonėlė',
+  'kolonėlė': 'Kolonėlė',
+  'kolonel': 'Kolonėlė',
 };
 
 // Normalize Lithuanian diacritics
