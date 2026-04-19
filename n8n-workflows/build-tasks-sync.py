@@ -216,6 +216,15 @@ function extractPrice(text) {
   const sep = text.match(/[\|\-]\s*(\d+)(?:\s|$)/);
   if (sep) return parseInt(sep[1], 10);
 
+  // Priority 6: bare number at END of text (2-4 digits), preceded by space or +.
+  // Catches "Mega ufonautai + putos 280" style where currency was dropped but
+  // a 2-4 digit tail is almost certainly the price. Excludes start-of-string
+  // quantities like "20 kedziu" because there's no leading whitespace boundary
+  // after .match position, and excludes "Mega waikiki 2 diena" because "2 diena"
+  // ends with "diena", not a number.
+  const tail = text.trim().match(/(?:\s|\+)(\d{2,4})\s*\.?$/);
+  if (tail) return parseInt(tail[1], 10);
+
   return 0;
 }
 

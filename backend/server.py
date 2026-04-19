@@ -395,8 +395,11 @@ async def n8n_tasks_import(
     if len(str(data.form_data)) > 10_000:
         raise HTTPException(413, "form_data per didelis")
 
-    # Idempotency: skip if any taskId in this batch is already imported.
+    # Idempotency (race-safe): two concurrent n8n retries with the same taskId
+    # must not create duplicates. Atomic update_one + $setOnInsert + upsert.
     task_ids = data.form_data.get('taskIds') if isinstance(data.form_data, dict) else None
+
+    # Fast-path: if any taskId in this batch already exists, return existing
     if task_ids and isinstance(task_ids, list):
         existing = await db.orders.find_one({
             "form_data.source": "google_tasks_sync",
@@ -407,7 +410,25 @@ async def n8n_tasks_import(
             logger.info("n8n-tasks-import: idempotent skip for taskIds=%s", task_ids)
             return Order(**existing)
 
+    # Slow-path: build the new order, but use upsert with a filter on taskIds
+    # so two parallel requests converge on the same doc.
     order = Order(flow_type=data.flow_type, form_data=data.form_data, status="confirmed")
+    if task_ids and isinstance(task_ids, list):
+        filter_q = {
+            "form_data.source": "google_tasks_sync",
+            "form_data.taskIds": {"$in": task_ids},
+        }
+        await db.orders.update_one(
+            filter_q,
+            {"$setOnInsert": order.model_dump()},
+            upsert=True,
+        )
+        # Read back whatever ended up in the DB (ours or the racing peer's)
+        winner = await db.orders.find_one(filter_q)
+        if winner:
+            winner.pop('_id', None)
+            return Order(**winner)
+    # No taskIds → plain insert (no race possible, manual creations)
     await db.orders.insert_one(order.model_dump())
     logger.info("n8n-tasks-import: created order %s with taskIds=%s", order.id, task_ids)
     return order

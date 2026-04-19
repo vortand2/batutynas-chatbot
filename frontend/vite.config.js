@@ -53,5 +53,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',   // keep same output dir as CRA so Vercel detects it
+    sourcemap: false,  // don't publish *.js.map on production bundle
   },
 });

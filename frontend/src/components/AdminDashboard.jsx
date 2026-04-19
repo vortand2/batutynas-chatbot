@@ -1163,7 +1163,7 @@ export default function AdminDashboard() {
                 <p className="text-indigo-300">{'// n8n HTTP Request node settings:'}</p>
                 <p><span className="text-emerald-400">URL:</span> {`${process.env.REACT_APP_BACKEND_URL}/api/webhook/n8n-sync`}</p>
                 <p><span className="text-emerald-400">Method:</span> POST</p>
-                <p><span className="text-emerald-400">Header:</span> x-sync-secret: __N8N_SYNC_SECRET__</p>
+                <p><span className="text-emerald-400">Header:</span> x-sync-secret: &lt;N8N_SYNC_SECRET&gt;</p>
                 <p><span className="text-emerald-400">Body:</span> {'{'}"orderId": {'{{'}orderId{'}}'}, "status": "confirmed", "bkId": {'{{'}bookingId{'}}'}, "source": "telegram"{'}'}</p>
               </div>
               <p className="text-xs text-indigo-500 mt-2">orderId yra iš <strong>batutynas-booking-notify</strong> payload lauko — jis jau siunčiamas į Telegram.</p>
