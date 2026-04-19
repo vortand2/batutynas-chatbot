@@ -701,6 +701,14 @@ def _n8n_url(path: str) -> str:
     return f"{N8N_BASE_URL}/webhook/{path}"
 
 
+def _to_float(v) -> float:
+    """Tolerant float parser: handles "2.5", "2,5", 2, None, "". Never raises."""
+    try:
+        return float(str(v).replace(",", "."))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _sync_order_to_booking(o: dict) -> dict:
     """Shape a google_tasks_sync MongoDB order like a Calendar Bridge booking."""
     fd = o.get("form_data", {}) or {}
@@ -712,7 +720,7 @@ def _sync_order_to_booking(o: dict) -> dict:
             y, m, d = map(int, start.split("-"))
             end = (datetime(y, m, d, tzinfo=timezone.utc) + timedelta(days=days - 1)).strftime("%Y-%m-%d")
         except Exception:
-            end = start
+            end = start  # malformed date → degrade to single-day, keep merge alive
     equip = fd.get("batutas", "") or ""
     return {
         "id":             o.get("id"),
@@ -730,7 +738,7 @@ def _sync_order_to_booking(o: dict) -> dict:
         "address":        fd.get("vieta", "") or "",
         "equipment":      equip,
         "equipmentList":  [equip] if equip else [],
-        "price":          int(fd.get("price") or 0),
+        "price":          _to_float(fd.get("price")),
         "addons":         [s.strip() for s in (fd.get("priedai") or "").split(",") if s.strip()],
         "tags":           fd.get("tags") if isinstance(fd.get("tags"), list) else [],
     }
@@ -767,7 +775,9 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
         if month and _MONTH_RE.match(month):
             q["form_data.data"] = {"$gte": f"{month}-00", "$lt": f"{month}-32"}
         synced = await db.orders.find(q).to_list(length=500)
-        result.setdefault("bookings", [])
+        # Positive null-guard: Calendar Bridge may return {"bookings": null}
+        if not isinstance(result.get("bookings"), list):
+            result["bookings"] = []
         result["bookings"].extend(_sync_order_to_booking(o) for o in synced)
     except Exception as e:
         logger.error("admin_dashboard synced-merge error: %s", e)
