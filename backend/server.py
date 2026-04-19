@@ -633,6 +633,43 @@ _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 _YMD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+@api_router.get("/internal/synced-bookings")
+async def internal_synced_bookings(month: str = "", x_sync_secret: Optional[str] = Header(None)):
+    """Sync-secret-auth'd endpoint for n8n morning/evening briefings.
+    Returns google_tasks_sync confirmed orders in Calendar-Bridge booking shape
+    (event_date, customer_name, customer_phone, delivery_address, etc.) so the
+    briefing workflows can merge into their existing bookings[] array with zero
+    reshape."""
+    if N8N_SYNC_SECRET and x_sync_secret != N8N_SYNC_SECRET:
+        raise HTTPException(401, "Invalid sync secret")
+    q: Dict[str, Any] = {"status": "confirmed", "form_data.source": "google_tasks_sync"}
+    if month and _MONTH_RE.match(month):
+        q["form_data.data"] = {"$gte": f"{month}-00", "$lt": f"{month}-32"}
+    rows = await db.orders.find(q).to_list(length=500)
+    # Shape like Calendar Bridge bookings (event_date, customer_*, delivery_address, equipment[])
+    bookings = []
+    for o in rows:
+        fd = o.get("form_data", {}) or {}
+        equip_name = fd.get("batutas", "") or ""
+        bookings.append({
+            "id":                o.get("id"),
+            "isSynced":          True,
+            "source":            "google_tasks_sync",
+            "event_date":        fd.get("data", "") or "",
+            "end_date":          fd.get("data", "") or "",
+            "duration_days":     int(fd.get("durationDays") or 1),
+            "customer_name":     fd.get("vardas", "") or "",
+            "customer_phone":    (fd.get("telefonas", "") or "").strip(),
+            "customer_email":    fd.get("epastas", "") or "",
+            "delivery_address":  fd.get("vieta", "") or "",
+            "equipment":         [{"name": equip_name, "icon": "🎪"}] if equip_name else [],
+            "raw_summary":       fd.get("taskTitle", "") or "",
+            "price":             _to_float(fd.get("price")),
+            "tags":              fd.get("tags") if isinstance(fd.get("tags"), list) else [],
+        })
+    return {"bookings": bookings}
+
+
 @api_router.patch("/admin/synced-orders/{order_id}")
 async def patch_synced_order(order_id: str, body: Dict[str, Any] = Body(...), _=Depends(require_admin)):
     """Move a synced order to a new date. Body: {data: 'YYYY-MM-DD'}."""
