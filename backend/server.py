@@ -872,6 +872,40 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
     return result
 
 
+@api_router.get("/health")
+async def public_health():
+    """Public health endpoint — safe for uptime monitors. No auth, no secrets.
+    Reports `ok` only when MongoDB AND Calendar Bridge are reachable.
+    Status codes: 200 healthy, 503 degraded (so monitors trigger on non-200).
+    """
+    mongo_ok = False
+    try:
+        await db.command("ping")
+        mongo_ok = True
+    except Exception as e:
+        logger.error("public_health mongo ping failed: %s", e)
+
+    n8n_ok = False
+    if N8N_BASE_URL:
+        try:
+            async with httpx.AsyncClient(timeout=5) as c:
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]})
+                n8n_ok = r.status_code < 500
+        except Exception as e:
+            logger.error("public_health n8n reach failed: %s", e)
+
+    healthy = mongo_ok and n8n_ok
+    body = {
+        "ok":               healthy,
+        "mongo":            mongo_ok,
+        "calendar_bridge":  n8n_ok,
+        "timestamp":        datetime.now(timezone.utc).isoformat(),
+    }
+    if not healthy:
+        raise HTTPException(status_code=503, detail=body)
+    return body
+
+
 @api_router.get("/admin/health")
 async def admin_health(_=Depends(require_admin)):
     """Diagnostic endpoint — surfaces config + live reachability of the

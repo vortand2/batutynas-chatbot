@@ -64,3 +64,9 @@ n8n-workflows/format-response-code.js
 
 # Unused prompts
 prompts/ghl-system-prompt.md
+
+# Tool / session scratch (Claude Code, Obsidian dumps, memory palace experiments)
+.claude/
+entities.json
+mempalace.yaml
+obsidian-dump-*.md

@@ -5,6 +5,22 @@ Generates: morning-briefing-v2-workflow.json, evening-check-v2-workflow.json
 
 These are cron-triggered workflows that send daily summaries via Telegram.
 Gemini generates intelligent narrative summaries from booking + weather data.
+
+⚠️  DO NOT REGENERATE + DEPLOY WITHOUT SYNCING FIRST — the live workflows
+(`8SuYKMdFcsg2992D` morning, `1zQidq9TNo8RwTQk` evening) have manual patches
+applied directly via REST API since 2026-04-18 that are NOT in this builder:
+  - synced-bookings merge (inline HTTP fetch of /api/internal/synced-bookings)
+  - stats recompute after merge (month_count, month_revenue from merged set)
+  - dual-ID dedup (id AND calendarEventId)
+  - Vilnius-local _today (not UTC)
+  - Tauragė coords hardcoded (not per-booking city)
+  - Wind risk tier (🟢🟡🟠🔴) including gusts from wind_gusts_10m_max
+  - `thinkingConfig.thinkingBudget: 0` on Gemini 2.5 Flash
+  - Concise prompt caps (120 words morning / 100 evening)
+Running this builder and PUTting the resulting JSON will silently overwrite
+all of the above. Either (a) pull the live jsCode from n8n first and port it
+into this builder, or (b) patch the live nodes directly (see
+/tmp/patch_briefings.py pattern from session 40).
 """
 
 import json, uuid, os
