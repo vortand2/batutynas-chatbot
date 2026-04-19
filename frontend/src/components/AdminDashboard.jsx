@@ -862,15 +862,50 @@ export default function AdminDashboard() {
     return map;
   }, [data.bookings, pending, pendingToBooking]); // eslint-disable-line
 
-  // Filter bookings for selected day
+  // dayBookings:
+  //  - no search query → only the selected day's bookings (original behavior)
+  //  - with search query → search ALL days (full current month), sorted by:
+  //      1) today, 2) future dates (nearest first), 3) past dates (most recent first)
   const dayBookings = useMemo(() => {
-    const all = (bookingsByDate[selectedDay] || []);
-    const q = search.toLowerCase();
-    return all.filter(b =>
-      (!filterEquip || b.equipment === filterEquip || b.equipmentList?.includes(filterEquip)) &&
-      (!q || (b.customer_name||'').toLowerCase().includes(q) || (b.equipment||'').toLowerCase().includes(q))
-    );
-  }, [bookingsByDate, selectedDay, filterEquip, search]);
+    const q = search.trim().toLowerCase();
+    const eqOk = b => !filterEquip || b.equipment === filterEquip || b.equipmentList?.includes(filterEquip);
+    // Narrow search scope: current day only if no query; otherwise all dates in bookingsByDate
+    if (!q) {
+      return (bookingsByDate[selectedDay] || []).filter(eqOk);
+    }
+    // Flatten, de-dupe by id (multi-day events appear on multiple dates)
+    const seen = new Set();
+    const all = [];
+    Object.values(bookingsByDate).forEach(list => list.forEach(b => {
+      if (seen.has(b.id)) return;
+      seen.add(b.id);
+      all.push(b);
+    }));
+    // Match against any order-identifying text field
+    const matches = all.filter(b => {
+      if (!eqOk(b)) return false;
+      const hay = [
+        b.customer_name, b.phone, b.email, b.address, b.equipment,
+        ...(b.equipmentList || []), ...(b.addons || []),
+        ...(b.tags || []), b.taskTitle, b.notes, b.raw_summary,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+    // Priority: today → future (ascending) → past (descending)
+    const today = todayYMD;
+    matches.sort((a, b) => {
+      const aD = a.startDate || a.event_date || '';
+      const bD = b.startDate || b.event_date || '';
+      const aBucket = aD === today ? 0 : (aD > today ? 1 : 2);
+      const bBucket = bD === today ? 0 : (bD > today ? 1 : 2);
+      if (aBucket !== bBucket) return aBucket - bBucket;
+      // Within bucket: future = earliest first, past = latest first, today = any
+      if (aBucket === 1) return aD.localeCompare(bD);
+      if (aBucket === 2) return bD.localeCompare(aD);
+      return 0;
+    });
+    return matches;
+  }, [bookingsByDate, selectedDay, filterEquip, search, todayYMD]);
 
   // Unique equipment in current month's bookings for filter chips
   const equipInMonth = useMemo(() => {
@@ -1274,7 +1309,9 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
                   <Calendar size={14} className="text-violet-500" />
-                  {selLabel || 'Pasirinkite dieną'}
+                  {search.trim()
+                    ? `Paieška visame mėnesyje`
+                    : (selLabel || 'Pasirinkite dieną')}
                 </h3>
                 {dayBookings.length > 0 && (
                   <span className="bg-violet-100 text-violet-700 text-xs font-bold px-2 py-0.5 rounded-full">
@@ -1283,12 +1320,12 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              {/* Search in day */}
+              {/* Search — empty = selected day, non-empty = all days this month */}
               <div className="px-4 py-3 border-b border-gray-50">
                 <div className="relative">
                   <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input value={search} onChange={e=>setSearch(e.target.value)}
-                    placeholder="Ieškoti rezervacijų..." data-testid="day-search"
+                    placeholder="Ieškoti visuose mėnesio užsakymuose..." data-testid="day-search"
                     className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-100 transition-all" />
                 </div>
               </div>
@@ -1301,21 +1338,33 @@ export default function AdminDashboard() {
                 ) : dayBookings.length === 0 ? (
                   <div className="text-center py-8">
                     <Clock size={28} className="text-gray-200 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400 font-medium">Šiai dienai rezervacijų nėra</p>
-                    <button onClick={() => setModal('create')}
-                      className="mt-3 text-xs text-violet-600 font-semibold hover:underline">
-                      + Sukurti rezervaciją
-                    </button>
+                    <p className="text-sm text-gray-400 font-medium">
+                      {search.trim() ? `Nieko nerasta pagal „${search.trim()}"` : 'Šiai dienai rezervacijų nėra'}
+                    </p>
+                    {!search.trim() && (
+                      <button onClick={() => setModal('create')}
+                        className="mt-3 text-xs text-violet-600 font-semibold hover:underline">
+                        + Sukurti rezervaciją
+                      </button>
+                    )}
                   </div>
                 ) : (
                   dayBookings.map(b => (
-                    <BookingCard key={b.id} booking={b}
-                      onEdit={() => setModal(b)}
-                      onDelete={() => handleDelete(b)}
-                      onConfirm={() => b._raw && setConfirmOrder(b._raw)}
-                      onMoveSynced={handleMoveSynced}
-                      onDeleteSynced={handleDeleteSynced}
-                      deleting={deleting} />
+                    <div key={b.id} className="space-y-1">
+                      {search.trim() && b.startDate && b.startDate !== selectedDay && (
+                        <button onClick={() => setSelectedDay(b.startDate)}
+                          className="text-[11px] font-bold text-violet-600 hover:text-violet-800 transition-colors">
+                          📅 {b.startDate}
+                        </button>
+                      )}
+                      <BookingCard booking={b}
+                        onEdit={() => setModal(b)}
+                        onDelete={() => handleDelete(b)}
+                        onConfirm={() => b._raw && setConfirmOrder(b._raw)}
+                        onMoveSynced={handleMoveSynced}
+                        onDeleteSynced={handleDeleteSynced}
+                        deleting={deleting} />
+                    </div>
                   ))
                 )}
               </div>
