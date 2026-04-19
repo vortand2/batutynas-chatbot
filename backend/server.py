@@ -701,23 +701,78 @@ def _n8n_url(path: str) -> str:
     return f"{N8N_BASE_URL}/webhook/{path}"
 
 
+def _sync_order_to_booking(o: dict) -> dict:
+    """Shape a google_tasks_sync MongoDB order like a Calendar Bridge booking."""
+    fd = o.get("form_data", {}) or {}
+    start = fd.get("data", "") or ""
+    days = int(fd.get("durationDays") or 1)
+    end = start
+    if start and days > 1:
+        try:
+            y, m, d = map(int, start.split("-"))
+            end = (datetime(y, m, d, tzinfo=timezone.utc) + timedelta(days=days - 1)).strftime("%Y-%m-%d")
+        except Exception:
+            end = start
+    equip = fd.get("batutas", "") or ""
+    return {
+        "id":             o.get("id"),
+        "isSynced":       True,
+        "source":         "google_tasks_sync",
+        "startDate":      start,
+        "endDate":        end,
+        "event_date":     start,
+        "end_date":       end,
+        "days":           days,
+        "duration_days":  days,
+        "customer_name":  fd.get("vardas", "") or "",
+        "phone":          (fd.get("telefonas", "") or "").strip(),
+        "email":          fd.get("epastas", "") or "",
+        "address":        fd.get("vieta", "") or "",
+        "equipment":      equip,
+        "equipmentList":  [equip] if equip else [],
+        "price":          int(fd.get("price") or 0),
+        "addons":         [s.strip() for s in (fd.get("priedai") or "").split(",") if s.strip()],
+        "tags":           fd.get("tags") if isinstance(fd.get("tags"), list) else [],
+    }
+
+
 @api_router.get("/admin/dashboard")
 async def admin_dashboard(month: str = "", _=Depends(require_admin)):
+    # Start with Calendar Bridge response (bookings from Google Calendar)
     if not N8N_BASE_URL:
-        return {
+        result = {
             "bookings": [], "stats": {}, "equipment": [],
             "source": "no_n8n",
             "error": "N8N_BASE_URL aplinkos kintamasis nenustatytas backend'e",
         }
+    else:
+        try:
+            params = {"month": month} if month else {}
+            async with httpx.AsyncClient(timeout=20) as c:
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params=params)
+                r.raise_for_status()
+                result = r.json()
+                if not isinstance(result, dict):
+                    result = {"bookings": [], "stats": {}, "equipment": []}
+        except Exception as e:
+            logger.error("admin_dashboard proxy error: %s", e)
+            result = {"bookings": [], "stats": {}, "equipment": [], "error": str(e)}
+
+    # Append google_tasks_sync confirmed orders into the same bookings list so
+    # the Calendar tab renders them identically to GCal events. They carry
+    # isSynced=true + source='google_tasks_sync' so the frontend can style
+    # differently if it wants.
     try:
-        params = {"month": month} if month else {}
-        async with httpx.AsyncClient(timeout=20) as c:
-            r = await c.get(_n8n_url("batutynas-dashboard-v2"), params=params)
-            r.raise_for_status()
-            return r.json()
+        q: Dict[str, Any] = {"status": "confirmed", "form_data.source": "google_tasks_sync"}
+        if month and _MONTH_RE.match(month):
+            q["form_data.data"] = {"$gte": f"{month}-00", "$lt": f"{month}-32"}
+        synced = await db.orders.find(q).to_list(length=500)
+        result.setdefault("bookings", [])
+        result["bookings"].extend(_sync_order_to_booking(o) for o in synced)
     except Exception as e:
-        logger.error("admin_dashboard proxy error: %s", e)
-        return {"bookings": [], "stats": {}, "equipment": [], "error": str(e)}
+        logger.error("admin_dashboard synced-merge error: %s", e)
+
+    return result
 
 
 @api_router.get("/admin/health")
