@@ -1,6 +1,6 @@
 # Batutynas — savininko vadovas
 
-Kasdienis sistemos naudojimas. Viskas, ko reikia, kad gerai dirbtum kiekvieną dieną. Be technikos.
+Kasdienis sistemos naudojimas — be technikos.
 
 ---
 
@@ -35,11 +35,9 @@ Kasdienis sistemos naudojimas. Viskas, ko reikia, kad gerai dirbtum kiekvieną d
 | 🟠 rizika | 30–39 km/h | Galvok, ar atidėti, ypač aukštesnius |
 | 🔴 PAVOJINGA | 40+ km/h | **Neleidžiama** — skambink klientams dėl perkėlimo |
 
-Svarbu: ženklas skaičiuojamas pagal **didesnį** iš dviejų — jei gūsiai stiprūs, o vėjas ramus, vis tiek matysi tikrąją riziką.
+Skaičiuojama pagal **didesnį** iš dviejų — gūsiai svarbesni už vidutinį vėją.
 
-3. **Prisijungi prie dashboard'o**: https://batutynas-chatbot.vercel.app/admin
-   - Slaptažodis: `__ADMIN_PASSWORD__`
-   - Matai kalendorių, šiandienos sąrašą, laukiančias užklausas.
+3. **Dashboard**: https://batutynas-chatbot.vercel.app/admin · slaptažodis `__ADMIN_PASSWORD__`
 
 ### Per dieną
 
@@ -55,11 +53,11 @@ Svarbu: ženklas skaičiuojamas pagal **didesnį** iš dviejų — jei gūsiai s
 
 ## 2. Kaip pridėti užsakymą
 
-Trys būdai. Rinkis pagal patogumą — visi rodo dashboard'e.
+Trys būdai, visi rodo dashboard'e.
 
 ### A. Google Tasks (rekomenduojama — telefono klaviatūra)
 
-Atsidarai Google Tasks → "Batutynas Tauragė" sąrašą → **+ Pridėti užduotį**. Į pavadinimą rašai kaip įpratęs, pavyzdžiui:
+Google Tasks → "Batutynas Tauragė" sąrašas → **+ Pridėti užduotį**. Rašai laisva forma:
 
 ```
 Mega raketa už 200
@@ -68,7 +66,7 @@ Birutės g. 15, Dirkintai
 Jono 7-asis gimtadienis
 ```
 
-Per 10 minučių viskas atsiras dashboard'e. Sistema pati atskirs įrangą, kainą, telefoną, adresą.
+Per 10 min. pasirodys dashboard'e — įranga, kaina, telefonas, adresas atskiriami automatiškai.
 
 **Patarimai:**
 - Priedai (prie įrangos): `kolonėlė`, `cukraus vata`, `šerbetas`, `burbulų mašina`, `VR`, `putų šou`, `dūmų mašina`, `JBL`, `prailgintuvas` ir kt. Sistema juos atpažįsta.
@@ -77,7 +75,7 @@ Per 10 minučių viskas atsiras dashboard'e. Sistema pati atskirs įrangą, kain
 
 ### B. Google Calendar (tiesiai kalendoriuje)
 
-Jei iš karto įvedi su tiksliu laiku — atidarai Google Calendar, sukuri įvykį, pavadinime nurodai įrangą ir kainą. Pasirodys dashboard'e beveik iš karto.
+Sukuri įvykį Google Calendar, pavadinime — įranga ir kaina. Dashboard'e matosi beveik iš karto.
 
 ### C. Dashboard "Naujas" mygtukas
 
@@ -108,7 +106,7 @@ Spaudžia **Naujas** viršuje (arba violetinį + apačioje telefone). Užpildai 
 
 ### Įrangos filtras
 
-Žemiau stats — filtrų mygtukai su įrangos pavadinimais. Spaudi vieną → kalendorius ir sąrašas filtruojasi pagal tą įrangą. **Visi** — grąžina visus.
+Žemiau stats — įrangos filtrai. Spaudi pavadinimą → kalendorius ir sąrašas filtruojasi. **Visi** grąžina.
 
 ### Kalendorius
 
@@ -150,11 +148,11 @@ Kiekviena įranga ir ar laisva šiandien ("LAISVA" žalia / "UŽIMTA" raudona). 
 
 ### Laisvos datos (šalia dienos sąrašo)
 
-Išskleidžiamas meniu + **Ieškoti** mygtukas. Parodo artimiausias 8 laisvas datas per 30 d. pasirinktai įrangai. Naudinga, kai klientas klausia "kada laisvas Candy Pop?". Greitesnis būdas — parašyti Telegram botui `/kada Candy Pop` (žr. 7 skyrių).
+Meniu + **Ieškoti** → artimiausios 8 laisvos datos per 30 d. pasirinktai įrangai. Greičiau — Telegram botui `/kada Candy Pop` (7 sk.).
 
 ### Sveikatos juosta (raudona, pasirodo tik kai yra problema)
 
-Jei n8n arba duomenų bazė neveikia, viršuje matai raudoną juostą su konkrečia priežastimi. Jei nėra — viskas tvarkoje.
+Jei n8n arba DB neveikia, viršuje matysi raudoną juostą su priežastimi.
 
 ---
 
@@ -189,16 +187,15 @@ Taip pat klientas gali **tiesiog rašyti klausimą laisva forma** — AI (Gemini
 
 ### Ribos ir dalykai, kuriuos verta žinoti
 
-- **Darbo valandos 08:00–21:00** — formaliai taip, bet vizualiai klientas mato "Aktyvus dabar" bet kuriuo paros metu. Jei reikia "offline" režimo — paprašyk techniko įjungti.
 - **Kainos** — AI pagal instrukciją atsakys "nuo 30€" ir nukreipia skambinti. Tikslios kainos — tik per tavo skambutį.
-- **Atmintis** — botas **neatpažįsta** ankstesnių klientų. Jei tas pats klientas rašo antrą kartą, sistema jam kaip svetimam — klaus visko iš naujo.
-- **Kai API "nukrenta"** — klientas matys klaidą ir pranešimo pas tave **neateis**. Tavo monitoringo botas perspės, jei backend'as ilgiau neveikia (8 skyrius).
+- **Atmintis** — botas neatpažįsta grįžtančių klientų, klausia visko iš naujo.
+- **Kai API nukrenta** — klientas matys klaidą, pranešimo negausi. Monitoringas perspės (8 sk.).
 - **Geltona akcijų juosta** viršuje šiuo metu išjungta. Jei norisi paskelbti akciją (pvz., "Gegužės: -20% batutams"), paprašyk techniko įjungti.
 - **Katalogo siuntimas** — klientas, paspaudęs "Pirkti batutą", tikisi gauti PDF el. paštu. **Automatinio siuntimo nėra** — tu pats privalai nusiųsti katalogą po skambučio.
 
 ### Kai klientas prašo kalbėti su žmogumi
 
-Mato formą: vardas, telefonas/el. paštas, žinutė → paspaudžia siųsti → tau **ateina Telegram pranešimas**. Tu pats susisieki. Chat'e tiesiogiai bendrauti **negalima** — tai vienpusis pranešimas.
+Klientas pildo formą (vardas, kontaktas, žinutė) → tau ateina Telegram pranešimas. Susisieki pats. Tiesioginio pokalbio chat'e **nėra**.
 
 ---
 
@@ -211,8 +208,6 @@ Mato formą: vardas, telefonas/el. paštas, žinutė → paspaudžia siųsti →
 3. Paspaudi **Patvirtinti** → sukuriamas Google Calendar įvykis, kortelė dingsta.
 
 Atmesti užklausą → raudonas ✕ mažas mygtukas dešinėje. Be grįžimo, dingsta iškart.
-
-**Kada tai naudoti:** klientas atsiuntė užklausą per svetainės chatbotą. Skambini klientui patvirtinti detales, paspaudi Patvirtinti → Kalendorių.
 
 ---
 
@@ -231,12 +226,12 @@ Kasdienis maršrutų planavimas — kuris automobilis veža ką ir kur.
    - Spaudi atitinkamą mygtuką **Automobiliai** skiltyje
    - **Pervardyti** → gali įrašyti vairuotojo vardą ("Tomas") arba numerį
 5. **Rekomenduoti** (žalias mygtukas) → sistema paskirsto sustojimus automobiliams, optimizuoja maršrutą, parodo km ir minutes kiekvienam.
-6. Perbraukimo ("drag") funkcija — jei matai, kad kažkas netinkamai, traukia kortelę tarp automobilių.
+6. Jei paskirstymas netinka — pertempi kortelę tarp automobilių pele/pirštu.
 7. **Optimizuoti** (kiekvienam automobiliui atskirai) → perdėlioja tvarką pagal trumpiausią kelią.
 
 ### Vakaro / paėmimo (kita diena)
 
-Paėmimo data gali būti **kita** nei pristatymo — atsidarai **Daugiau nustatymų** → nustatai "Paėmimo data" ir **Gauti užsakymus** paima tuos pačius adresus kaip paėmimo sustojimus.
+Paėmimo data gali skirtis nuo pristatymo. **Daugiau nustatymų** → "Paėmimo data" → **Gauti užsakymus** paims tuos pačius adresus kaip paėmimo sustojimus.
 
 ### Žemėlapis ir nuoroda vairuotojui
 
@@ -310,7 +305,7 @@ Batutynas monitoringas
 🚨 Backend nepasiekiamas (30 min): HTTP 503
 ```
 
-Jei neveikia ilgiau, dar sykį praneša po **2 val.** ir po **24 val.** — užtikrina, kad nepamiršsi.
+Pakartoja po **2 val.** ir **24 val.**, kad nepamirštum.
 
 Kai viskas vėl veikia — gausi žalią pranešimą:
 
@@ -318,7 +313,7 @@ Kai viskas vėl veikia — gausi žalią pranešimą:
 ✅ Backend vėl veikia po 2 val. (HTTP 200)
 ```
 
-**Ką daryti:** tau pačiam nieko daryti nereikia — susisiek su techniku (žr. apačią). Daugumos problemų sprendimas — restartuoti serverį — trunka 5 min.
+**Ką daryti:** susisiek su techniku (žr. 10 sk.). Dažniausiai — restartuoja serverį, 5 min.
 
 > Pastaba: sistema **netikrina** svetainės frontend'o (batutynas.lt pagrindinis puslapis ir chatbot'o mygtukas). Jei klientas pasakys, kad jam nepasirodo chatbot'o apskritimas — tai atskira problema, kurios monitoringas nepagauna.
 
@@ -341,7 +336,7 @@ Viskas, kas Google Calendar'e, yra "tiesa". Dashboard tik rodo.
 
 ### Darbo valandos
 
-Formaliai chatbot'as skirtas **08:00–21:00**, bet **vizualiai** klientai gali rašyti bet kada — užklausos vis tiek ateina. Jei nori tikro "offline" režimo nakčiai — paprašyk techniko įjungti. Kol kas — užklausas gauni ir naktį; atsakai ryte.
+Oficialiai **08:00–21:00**, bet užklausos ateina ir naktį — atsakai ryte. "Offline" režimui reikia techniko.
 
 ### Naujas darbuotojas (vėliau)
 
@@ -352,9 +347,9 @@ Kai norėsi dalytis dashboard'u su darbuotoju — **duodi jam tą patį slaptaž
 ## 10. Kur kreiptis, jei įstrigai
 
 **Dashboard neužsikrauna / rodo tuščią:**
-1. Telefone / kompiuteryje paspausk **Ctrl+Shift+R** (atsinaujina be cache'o).
-2. Patikrink, ar yra internetas.
-3. Jei nepadeda — susisiek su techniku.
+1. **Ctrl+Shift+R** (atnaujina be cache'o).
+2. Patikrink internetą.
+3. Nepadeda → technikas.
 
 **Dashboard užsikrauna, bet rodo 0 užsakymų (nors žinai, kad yra):**
 1. Pažiūrėk viršuje, kuris mėnuo pasirinktas — gal ne šis. Spausk mygtukus **< / >** arba **Šiandien**.
