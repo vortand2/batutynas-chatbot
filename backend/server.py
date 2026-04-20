@@ -400,19 +400,26 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
     # response so the Telegram reply can flag it.
     if status == "confirmed" and N8N_BASE_URL:
         raw_price = fd.get("kaina") or fd.get("price") or 0
+        addons_raw = fd.get("priedai", fd.get("addons", []))
+        # Calendar Bridge's Format Event expects addons as a string (joined)
+        addons_str = addons_raw if isinstance(addons_raw, str) else ", ".join(str(a) for a in (addons_raw or []))
         payload = {
-            "equipment":     enriched["equipment"],
-            "customer_name": enriched["customer_name"],
-            "phone":         enriched["customer_phone"],
-            "address":       enriched["delivery_address"],
-            "startDate":     enriched["event_date"],
-            "durationDays":  int(fd.get("durationDays", 1) or 1),
-            "price":         float(raw_price) if raw_price not in ("", None) else 0,
-            "addons":        fd.get("priedai", fd.get("addons", [])),
-            "notes":         f"Chatbot užsakymas #{order_id[:8]}",
-            "source":        "chatbot",
-            "guests":        fd.get("vaikuSkaicius") or fd.get("sveciumSkaicius") or fd.get("guest_count", ""),
-            "company":       fd.get("imonesP", ""),
+            # Calendar Bridge uses snake_case field names (`date`, `duration_days`);
+            # camelCase aliases (`startDate`, `durationDays`) are NOT accepted.
+            "equipment":      enriched["equipment"],
+            "customer_name":  enriched["customer_name"],
+            "phone":          enriched["customer_phone"],
+            "customer_phone": enriched["customer_phone"],
+            "address":        enriched["delivery_address"],
+            "delivery_address": enriched["delivery_address"],
+            "date":           enriched["event_date"],
+            "duration_days":  int(fd.get("durationDays") or fd.get("duration_days") or 1),
+            "price":          float(raw_price) if raw_price not in ("", None) else 0,
+            "addons":         addons_str,
+            "notes":          f"Chatbot užsakymas #{order_id[:8]}",
+            "source":         "chatbot",
+            "guests":         fd.get("vaikuSkaicius") or fd.get("sveciumSkaicius") or fd.get("guest_count", ""),
+            "company":        fd.get("imonesP", ""),
         }
         try:
             async with httpx.AsyncClient(timeout=15) as c:
