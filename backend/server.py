@@ -329,13 +329,19 @@ async def root():
 async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(None)):
     """
     Sync endpoint: called by n8n / Telegram bot when owner clicks bk_ok / bk_no.
-    Updates the MongoDB order status so the dashboard stays in sync.
+    Updates the MongoDB order status and — when status=confirmed — creates
+    the Google Calendar event via Calendar Bridge so the booking lands on
+    eddobr@gmail.com's calendar in one atomic step.
 
     Required payload:
       { "orderId": "<mongodb_order_id>", "status": "confirmed" | "rejected" }
 
     Optional payload fields:
-      { "bkId": "<postgres_id>", "source": "telegram" | "n8n", "calendarEventId": "..." }
+      { "source": "telegram" | "n8n" }
+
+    Returns (when confirmed) enriched order data for downstream messaging:
+      { success, order_id, status, matched, customer_name, customer_phone,
+        customer_email, equipment, event_date, calendar_event_id }
 
     Secure with x-sync-secret header matching N8N_SYNC_SECRET env var.
     """
@@ -350,24 +356,80 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
     if status not in ("confirmed", "rejected"):
         raise HTTPException(400, "status must be 'confirmed' or 'rejected'")
 
+    # Load the order so we can enrich the response and (for confirm) build
+    # the Calendar Bridge payload from form_data.
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        logger.warning("n8n-sync: order %s not found", order_id)
+        raise HTTPException(404, "order not found")
+
+    fd = order.get("form_data", {}) or {}
+    enriched = {
+        "customer_name":  fd.get("vardas") or fd.get("kontaktinis") or fd.get("contact_name", ""),
+        "customer_phone": fd.get("telefonas") or fd.get("contact_phone", ""),
+        "customer_email": fd.get("elPaštas") or fd.get("email", ""),
+        "equipment":      fd.get("batutas") or fd.get("trampoline_preference", ""),
+        "event_date":     fd.get("data") or fd.get("date", ""),
+        "delivery_address": fd.get("vieta") or fd.get("adresas") or fd.get("location", ""),
+    }
+
+    calendar_event_id: Optional[str] = None
+    calendar_error:    Optional[str] = None
+
+    # On confirm, create the Google Calendar event via Calendar Bridge.
+    # Best-effort: if Calendar Bridge fails, still mark order confirmed in
+    # MongoDB so the dashboard stays truthful; surface the error in the
+    # response so the Telegram reply can flag it.
+    if status == "confirmed" and N8N_BASE_URL:
+        payload = {
+            "equipment":     enriched["equipment"],
+            "customer_name": enriched["customer_name"],
+            "phone":         enriched["customer_phone"],
+            "address":       enriched["delivery_address"],
+            "startDate":     enriched["event_date"],
+            "durationDays":  int(fd.get("durationDays", 1) or 1),
+            "price":         float(fd.get("kaina") or fd.get("price") or 0) if (fd.get("kaina") or fd.get("price")) else 0,
+            "addons":        fd.get("priedai", fd.get("addons", [])),
+            "notes":         f"Chatbot užsakymas #{order_id[:8]}",
+            "source":        "chatbot",
+            "guests":        fd.get("vaikuSkaicius") or fd.get("sveciumSkaicius") or fd.get("guest_count", ""),
+            "company":       fd.get("imonesP", ""),
+        }
+        try:
+            async with httpx.AsyncClient(timeout=15) as c:
+                r = await c.post(_n8n_url("batutynas-calendar-create"), json=payload)
+                r.raise_for_status()
+                cal = r.json()
+                calendar_event_id = (cal or {}).get("eventId") or (cal or {}).get("calendarEventId")
+            logger.info("n8n-sync: calendar event created for %s: %s", order_id, calendar_event_id)
+        except Exception as e:
+            calendar_error = str(e)[:200]
+            logger.error("n8n-sync: calendar create failed for %s: %s", order_id, e)
+
     update_fields: Dict[str, Any] = {
         "status":      status,
         "synced_from": body.get("source", "n8n"),
         "synced_at":   datetime.now(timezone.utc).isoformat(),
     }
-    if body.get("bkId"):
-        update_fields["external_bk_id"] = str(body["bkId"])
-    if body.get("calendarEventId"):
-        update_fields["calendar_event_id"] = str(body["calendarEventId"])
+    if calendar_event_id:
+        update_fields["calendar_event_id"] = calendar_event_id
+    if status == "confirmed":
+        update_fields["confirmed_at"] = datetime.now(timezone.utc).isoformat()
+    elif status == "rejected":
+        update_fields["rejected_at"] = datetime.now(timezone.utc).isoformat()
 
     result = await db.orders.update_one({"id": order_id}, {"$set": update_fields})
 
-    if result.matched_count == 0:
-        logger.warning("n8n-sync: order %s not found", order_id)
-        return {"success": False, "order_id": order_id, "matched": 0}
-
     logger.info("n8n-sync: %s → %s (via %s)", order_id, status, body.get("source", "n8n"))
-    return {"success": True, "order_id": order_id, "status": status, "matched": result.matched_count}
+    return {
+        "success":            True,
+        "order_id":           order_id,
+        "status":             status,
+        "matched":            result.matched_count,
+        "calendar_event_id":  calendar_event_id,
+        "calendar_error":     calendar_error,
+        **enriched,
+    }
 
 
 @api_router.post("/webhook/n8n-tasks-import", response_model=Order)
