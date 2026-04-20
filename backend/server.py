@@ -376,11 +376,30 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
     calendar_event_id: Optional[str] = None
     calendar_error:    Optional[str] = None
 
+    # Idempotency guard: if caller double-taps Patvirtinti on mobile, two
+    # concurrent confirms must not create two calendar events. Key on the
+    # presence of `calendar_event_id` so retries after a prior Calendar
+    # Bridge failure still reach the create path.
+    if status == "confirmed" and order.get("calendar_event_id"):
+        logger.info("n8n-sync: %s already confirmed with cal=%s, skipping",
+                    order_id, order["calendar_event_id"])
+        return {
+            "success":            True,
+            "order_id":           order_id,
+            "status":             "confirmed",
+            "matched":            1,
+            "calendar_event_id":  order["calendar_event_id"],
+            "calendar_error":     None,
+            "already_confirmed":  True,
+            **enriched,
+        }
+
     # On confirm, create the Google Calendar event via Calendar Bridge.
     # Best-effort: if Calendar Bridge fails, still mark order confirmed in
     # MongoDB so the dashboard stays truthful; surface the error in the
     # response so the Telegram reply can flag it.
     if status == "confirmed" and N8N_BASE_URL:
+        raw_price = fd.get("kaina") or fd.get("price") or 0
         payload = {
             "equipment":     enriched["equipment"],
             "customer_name": enriched["customer_name"],
@@ -388,7 +407,7 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
             "address":       enriched["delivery_address"],
             "startDate":     enriched["event_date"],
             "durationDays":  int(fd.get("durationDays", 1) or 1),
-            "price":         float(fd.get("kaina") or fd.get("price") or 0) if (fd.get("kaina") or fd.get("price")) else 0,
+            "price":         float(raw_price) if raw_price not in ("", None) else 0,
             "addons":        fd.get("priedai", fd.get("addons", [])),
             "notes":         f"Chatbot užsakymas #{order_id[:8]}",
             "source":        "chatbot",
