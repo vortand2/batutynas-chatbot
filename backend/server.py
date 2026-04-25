@@ -16,6 +16,9 @@ from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional, Union
 import uuid
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+
+VILNIUS_TZ = ZoneInfo("Europe/Vilnius")
 from google import genai as _genai
 from google.genai import types as _gtypes
 from bin_pack import bin_pack as _bin_pack, get_default_units
@@ -965,10 +968,8 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
         # Use Vilnius local time for "today" / week boundaries — owner reads the
         # dashboard from Lithuania, and bookings are stored as Y-M-D dates (no
         # tz). Using UTC would make ŠIANDIEN flip a day early at 21:00–24:00
-        # local time during DST. ZoneInfo is stdlib (Python 3.9+).
-        from zoneinfo import ZoneInfo
-        VILNIUS = ZoneInfo("Europe/Vilnius")
-        now_local = datetime.now(VILNIUS)
+        # local time during DST.
+        now_local = datetime.now(VILNIUS_TZ)
         today_str = now_local.strftime("%Y-%m-%d")
         # Mon..Sun of current Vilnius week
         monday = (now_local - timedelta(days=now_local.weekday())).strftime("%Y-%m-%d")
