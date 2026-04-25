@@ -957,6 +957,40 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
     except Exception as e:
         logger.error("admin_dashboard synced-merge error: %s", e)
 
+    # Stats recompute from MERGED bookings — Calendar Bridge stats only
+    # reflect GCal events, so without this synced orders never count toward
+    # dashboard cards (MĖNESIO, SAVAITĖS PAJAMOS, ŠIANDIEN, etc.).
+    try:
+        bookings = result.get("bookings") or []
+        today_str = _today()
+        now_utc = datetime.now(timezone.utc)
+        # Mon..Sun of current UTC week
+        monday = (now_utc - timedelta(days=now_utc.weekday())).strftime("%Y-%m-%d")
+        sunday = (now_utc - timedelta(days=now_utc.weekday()) + timedelta(days=6)).strftime("%Y-%m-%d")
+        # Mon..Sun of previous UTC week
+        last_monday = (now_utc - timedelta(days=now_utc.weekday() + 7)).strftime("%Y-%m-%d")
+        last_sunday = (now_utc - timedelta(days=now_utc.weekday() + 1)).strftime("%Y-%m-%d")
+
+        def _date(b: dict) -> str:
+            return b.get("event_date") or ""
+
+        def _price(b: dict) -> float:
+            return _to_float(b.get("price"))
+
+        priced = [_price(b) for b in bookings if _price(b) > 0]
+
+        stats = result.get("stats") or {}
+        stats["month_count"]       = len(bookings)
+        stats["month_revenue"]     = round(sum(_price(b) for b in bookings), 2)
+        stats["week_revenue"]      = round(sum(_price(b) for b in bookings if monday <= _date(b) <= sunday), 2)
+        stats["last_week_revenue"] = round(sum(_price(b) for b in bookings if last_monday <= _date(b) <= last_sunday), 2)
+        stats["today_count"]       = sum(1 for b in bookings if _date(b) == today_str)
+        stats["today_revenue"]     = round(sum(_price(b) for b in bookings if _date(b) == today_str), 2)
+        stats["avg_price"]         = round(sum(priced) / len(priced), 2) if priced else 0
+        result["stats"] = stats
+    except Exception as e:
+        logger.error("admin_dashboard stats-recompute error: %s", e)
+
     return result
 
 
