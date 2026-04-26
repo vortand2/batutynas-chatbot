@@ -691,12 +691,14 @@ async def get_availability(batutas: str, month: str):
 
 
 @api_router.get("/orders")
-async def get_orders():
+async def get_orders(_=Depends(require_admin)):
+    """Admin-only — returns customer PII (names, phones, addresses)."""
     return await db.orders.find({}, {"_id": 0}).to_list(200)
 
 
 @api_router.get("/escalations")
-async def get_escalations():
+async def get_escalations(_=Depends(require_admin)):
+    """Admin-only — returns customer PII for human-handoff escalations."""
     return await db.escalations.find({}, {"_id": 0}).to_list(200)
 
 
