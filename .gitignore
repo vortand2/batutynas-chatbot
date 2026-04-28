@@ -26,6 +26,11 @@ chatwoot/chatwoot-main.json
 *.secrets.json
 *.secret
 
+# n8n live workflow exports — regenerable from build-*.py + REST API
+# These have leaked Gemini keys 3× via Google's GitHub scanner.
+# Keep builders (.py) tracked; output JSON is artifact, not source of truth.
+n8n-workflows/*-workflow.json
+
 # BFG / git history cleanup artifacts
 secrets-to-purge.txt
 
