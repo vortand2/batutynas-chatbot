@@ -136,6 +136,7 @@ N8N_BASE_URL         = os.environ.get('N8N_BASE_URL', '').rstrip('/')
 N8N_WEBHOOK_URL      = os.environ.get('N8N_WEBHOOK_URL', '')
 CALENDAR_BRIDGE_URL  = os.environ.get('CALENDAR_BRIDGE_URL', '')
 ADMIN_PASSWORD       = os.environ.get('ADMIN_PASSWORD', '')
+BRIDGE_SECRET        = os.environ.get('BRIDGE_SECRET', '')   # x-bridge-secret header for Calendar Bridge webhooks
 N8N_SYNC_SECRET      = os.environ.get('N8N_SYNC_SECRET', '')   # shared secret for /webhook/n8n-sync + /webhook/n8n-tasks-import
 if not N8N_SYNC_SECRET:
     logging.getLogger(__name__).error(
@@ -463,7 +464,7 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
         }
         try:
             async with httpx.AsyncClient(timeout=15) as c:
-                r = await c.post(_n8n_url("batutynas-calendar-create"), json=payload)
+                r = await c.post(_n8n_url("batutynas-calendar-create"), json=payload, headers=_bridge_headers())
                 r.raise_for_status()
                 cal = r.json()
                 calendar_event_id = (cal or {}).get("eventId") or (cal or {}).get("calendarEventId")
@@ -687,8 +688,7 @@ async def _check_date_bridge(client: httpx.AsyncClient, batutas: str, date_str: 
         r = await client.get(
             CALENDAR_BRIDGE_URL,
             params={"date": date_str, "equipment": batutas},
-            timeout=8,
-        )
+            timeout=8, headers=_bridge_headers())
         r.raise_for_status()
         return _parse_bridge_response(r.json())
     except Exception as exc:
@@ -894,7 +894,7 @@ async def confirm_order(order_id: str, extra: Dict[str, Any] = Body({}), _=Depen
     if N8N_BASE_URL:
         try:
             async with httpx.AsyncClient(timeout=15) as c:
-                r = await c.post(_n8n_url("batutynas-calendar-create"), json=payload)
+                r = await c.post(_n8n_url("batutynas-calendar-create"), json=payload, headers=_bridge_headers())
                 r.raise_for_status()
                 calendar_result = r.json()
             logger.info("Calendar event created for order %s", order_id)
@@ -930,6 +930,12 @@ async def reject_order(order_id: str, _=Depends(require_admin)):
 
 def _n8n_url(path: str) -> str:
     return f"{N8N_BASE_URL}/webhook/{path}"
+
+
+def _bridge_headers() -> Dict[str, str]:
+    """Calendar Bridge webhooks require header auth. Without BRIDGE_SECRET every
+    bridge call 401s — that is the bridge enforcing, not a bug here."""
+    return {"x-bridge-secret": BRIDGE_SECRET} if BRIDGE_SECRET else {}
 
 
 def _to_float(v) -> float:
@@ -988,7 +994,7 @@ async def admin_dashboard(month: str = "", _=Depends(require_admin)):
         try:
             params = {"month": month} if month else {}
             async with httpx.AsyncClient(timeout=20) as c:
-                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params=params)
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params=params, headers=_bridge_headers())
                 r.raise_for_status()
                 result = r.json()
                 if not isinstance(result, dict):
@@ -1089,7 +1095,7 @@ async def public_health():
     if N8N_BASE_URL:
         try:
             async with httpx.AsyncClient(timeout=5) as c:
-                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]})
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]}, headers=_bridge_headers())
                 # 4xx means the webhook is misrouted / gone — treat as degraded.
                 # Only 2xx-3xx (+ the rare 5xx-back-from-overload) count as reachable.
                 n8n_ok = r.status_code < 400
@@ -1133,7 +1139,7 @@ async def admin_health(_=Depends(require_admin)):
     if N8N_BASE_URL:
         try:
             async with httpx.AsyncClient(timeout=3) as c:
-                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]})
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": _today()[:7]}, headers=_bridge_headers())
                 n8n_reachable = r.status_code < 500
         except Exception as e:
             n8n_error = str(e)[:200]
@@ -1156,7 +1162,7 @@ async def admin_next_free(equipment: str, days: int = 30, _=Depends(require_admi
         return {"freeDates": [], "error": "N8N_BASE_URL not configured"}
     try:
         async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.get(_n8n_url("batutynas-next-free"), params={"equipment": equipment, "days": min(days, 90)})
+            r = await c.get(_n8n_url("batutynas-next-free"), params={"equipment": equipment, "days": min(days, 90)}, headers=_bridge_headers())
             r.raise_for_status()
             return r.json()
     except Exception as e:
@@ -1178,7 +1184,7 @@ async def admin_booking_create(body: Dict[str, Any], _=Depends(require_admin)):
         raise HTTPException(503, "N8N_BASE_URL not configured")
     try:
         async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.post(_n8n_url("batutynas-calendar-create"), json=body)
+            r = await c.post(_n8n_url("batutynas-calendar-create"), json=body, headers=_bridge_headers())
             r.raise_for_status()
             return _safe_json(r)
     except httpx.HTTPStatusError as e:
@@ -1195,7 +1201,7 @@ async def admin_booking_update(body: Dict[str, Any], _=Depends(require_admin)):
         raise HTTPException(503, "N8N_BASE_URL not configured")
     try:
         async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.post(_n8n_url("batutynas-calendar-update"), json=body)
+            r = await c.post(_n8n_url("batutynas-calendar-update"), json=body, headers=_bridge_headers())
             r.raise_for_status()
             return _safe_json(r)
     except httpx.HTTPStatusError as e:
@@ -1212,7 +1218,7 @@ async def admin_booking_delete(body: Dict[str, Any], _=Depends(require_admin)):
         raise HTTPException(503, "N8N_BASE_URL not configured")
     try:
         async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.post(_n8n_url("batutynas-calendar-delete"), json=body)
+            r = await c.post(_n8n_url("batutynas-calendar-delete"), json=body, headers=_bridge_headers())
             r.raise_for_status()
             return _safe_json(r)
     except httpx.HTTPStatusError as e:
@@ -1274,7 +1280,7 @@ async def get_route_orders(date: str, x_admin_token: Optional[str] = Header(None
         try:
             month = date[:7]  # YYYY-MM
             async with httpx.AsyncClient(timeout=15) as c:
-                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": month})
+                r = await c.get(_n8n_url("batutynas-dashboard-v2"), params={"month": month}, headers=_bridge_headers())
                 r.raise_for_status()
                 cal_data = r.json()
             # Calendar Bridge stores event dates in UTC; Lithuanian events starting at
