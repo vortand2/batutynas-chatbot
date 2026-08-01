@@ -10,6 +10,7 @@ import logging
 import asyncio
 import hashlib
 import hmac
+from authutils import consteq as _consteq, client_ip as _client_ip
 import resend
 import httpx
 from pathlib import Path
@@ -156,7 +157,7 @@ def require_sync_secret(supplied: Optional[str]) -> None:
     env var went missing on a deploy."""
     if not N8N_SYNC_SECRET:
         raise HTTPException(503, "N8N_SYNC_SECRET not configured")
-    if not hmac.compare_digest(supplied or '', N8N_SYNC_SECRET):
+    if not _consteq(supplied or '', N8N_SYNC_SECRET):
         raise HTTPException(401, "Invalid sync secret")
 
 
@@ -196,7 +197,7 @@ def _yesterday() -> str:
 def _verify_admin_token(token: str) -> bool:
     if not ADMIN_PASSWORD or not token:
         return False
-    return any(hmac.compare_digest(token, valid)
+    return any(_consteq(token, valid)
                for valid in (_admin_token(_today()), _admin_token(_yesterday())))
 
 async def require_admin(x_admin_token: Optional[str] = Header(None)):
@@ -627,8 +628,7 @@ async def chat(data: ChatRequest, request: Request):
     # Public, unauthenticated endpoint that spends Gemini credits per call.
     # Generous cap — a real customer conversation is well under this; a scraper
     # billing us for free is not. ponytail: reuses the login throttle's counter shape.
-    _chat_ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-                or (request.client.host if request.client else "unknown"))
+    _chat_ip = _client_ip(request)
     _now = datetime.now(timezone.utc).timestamp()
     _recent = [t for t in _CHAT_HITS.get(_chat_ip, []) if _now - t < 900]
     if len(_recent) >= 60:
@@ -755,10 +755,9 @@ async def admin_login(body: Dict[str, Any], request: Request):
     pwd = body.get("password", "")
     if not ADMIN_PASSWORD:
         raise HTTPException(503, "ADMIN_PASSWORD not configured")
-    ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-          or (request.client.host if request.client else "unknown"))
+    ip = _client_ip(request)
     _login_throttle(ip)
-    if not hmac.compare_digest(str(pwd), ADMIN_PASSWORD):
+    if not _consteq(str(pwd), ADMIN_PASSWORD):
         _login_record_fail(ip)
         raise HTTPException(401, "Neteisingas slaptažodis")
     _LOGIN_FAILS.pop(ip, None)
