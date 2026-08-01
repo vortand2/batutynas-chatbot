@@ -682,8 +682,17 @@ def _parse_bridge_response(data: dict) -> bool:
     return False
 
 
-async def _check_date_bridge(client: httpx.AsyncClient, batutas: str, date_str: str) -> bool:
-    """One HTTP GET to the external bridge for a single date. Returns True = booked."""
+async def _check_date_bridge(client: httpx.AsyncClient, batutas: str, date_str: str) -> Optional[bool]:
+    """One HTTP GET to the external bridge for a single date.
+
+    True = booked, False = free, None = UNKNOWN (bridge unreachable/erroring).
+
+    This used to return False on error, i.e. "treat bridge errors as available".
+    That is fail-OPEN for a booking system: a bridge outage silently advertised
+    every taken date as free, and the response still claimed source
+    "calendar_bridge" as though the data were authoritative. Over-blocking is a
+    phone call; double-booking is two families at one birthday party.
+    """
     try:
         r = await client.get(
             CALENDAR_BRIDGE_URL,
@@ -692,14 +701,17 @@ async def _check_date_bridge(client: httpx.AsyncClient, batutas: str, date_str: 
         r.raise_for_status()
         return _parse_bridge_response(r.json())
     except Exception as exc:
-        logger.warning("Calendar bridge error for %s on %s: %s", batutas, date_str, exc)
-        return False  # treat bridge errors as available (do not block users)
+        logger.error("Calendar bridge error for %s on %s: %s", batutas, date_str, exc)
+        return None
 
 
-async def _booked_from_bridge(batutas: str, month: str) -> list[str]:
+async def _booked_from_bridge(batutas: str, month: str) -> tuple[list[str], list[str]]:
     """
     Fetch booked dates for *batutas* in *month* (YYYY-MM) by querying
     CALENDAR_BRIDGE_URL once per day in parallel.
+
+    Returns (booked_dates, unverified_dates). unverified_dates are days the
+    bridge could not answer for — the caller must NOT present those as free.
     """
     import calendar as cal_lib
     year, m = map(int, month.split("-"))
@@ -710,7 +722,9 @@ async def _booked_from_bridge(batutas: str, month: str) -> list[str]:
             *[_check_date_bridge(client, batutas, d) for d in dates],
             return_exceptions=False,
         )
-    return [dates[i] for i, booked in enumerate(results) if booked]
+    booked = [dates[i] for i, r in enumerate(results) if r is True]
+    unverified = [dates[i] for i, r in enumerate(results) if r is None]
+    return booked, unverified
 
 
 @api_router.get("/availability")
@@ -725,7 +739,16 @@ async def get_availability(batutas: str, month: str):
       "mongodb"         — fallback: dates found in local orders collection
     """
     if CALENDAR_BRIDGE_URL:
-        booked = await _booked_from_bridge(batutas, month)
+        booked, unverified = await _booked_from_bridge(batutas, month)
+        if unverified:
+            # Fail CLOSED: a day we could not verify is offered as unavailable, and
+            # the source is labelled so the caller knows this is not clean data.
+            logger.error("Calendar bridge degraded: %d/%d dates unverified for %s %s",
+                         len(unverified), len(unverified) + len(booked), batutas, month)
+            return {"batutas": batutas, "month": month,
+                    "booked_dates": sorted(set(booked) | set(unverified)),
+                    "source": "calendar_bridge_degraded",
+                    "unverified_count": len(unverified)}
         return {"batutas": batutas, "month": month, "booked_dates": booked, "source": "calendar_bridge"}
 
     # ── MongoDB fallback ───────────────────────────────────────────────────────
