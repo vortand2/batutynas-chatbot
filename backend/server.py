@@ -164,6 +164,7 @@ def require_sync_secret(supplied: Optional[str]) -> None:
 # ponytail: in-process dict, no Redis. Single Uvicorn worker today; if this ever
 # scales to multiple workers, move the counter to Mongo or Redis.
 _LOGIN_FAILS: Dict[str, List[float]] = {}
+_CHAT_HITS: Dict[str, List[float]] = {}   # public /chat abuse cap
 _LOGIN_WINDOW_S = 900      # 15 min
 _LOGIN_MAX_FAILS = 8
 
@@ -622,7 +623,20 @@ def clean_ai_response(text: str) -> str:
 
 
 @api_router.post("/chat")
-async def chat(data: ChatRequest):
+async def chat(data: ChatRequest, request: Request):
+    # Public, unauthenticated endpoint that spends Gemini credits per call.
+    # Generous cap — a real customer conversation is well under this; a scraper
+    # billing us for free is not. ponytail: reuses the login throttle's counter shape.
+    _chat_ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+                or (request.client.host if request.client else "unknown"))
+    _now = datetime.now(timezone.utc).timestamp()
+    _recent = [t for t in _CHAT_HITS.get(_chat_ip, []) if _now - t < 900]
+    if len(_recent) >= 60:
+        raise HTTPException(429, "Per daug žinučių. Pabandykite po kelių minučių.")
+    _recent.append(_now)
+    _CHAT_HITS[_chat_ip] = _recent
+    if len(_CHAT_HITS) > 10_000:
+        _CHAT_HITS.clear()
     if not GEMINI_API_KEY:
         return {"reply": "Atsiprašome, AI asistentas šiuo metu neveikia. Skambinkite: +37064880388"}
     try:
