@@ -162,12 +162,14 @@ def require_sync_secret(supplied: Optional[str]) -> None:
 
 
 # ── Admin login throttle ──────────────────────────────────────────────────────
-# ponytail: in-process dict, no Redis. Single Uvicorn worker today; if this ever
-# scales to multiple workers, move the counter to Mongo or Redis.
+# ponytail: in-process dicts, no Redis. NOTE the Dockerfile runs --workers 2, so each
+# worker holds its own counter and the effective cap is roughly LIMIT x workers. The
+# numbers below are halved to compensate. If worker count changes, or this needs to be
+# an exact ceiling rather than defence-in-depth, move the counters to Mongo.
 _LOGIN_FAILS: Dict[str, List[float]] = {}
 _CHAT_HITS: Dict[str, List[float]] = {}   # public /chat abuse cap
 _LOGIN_WINDOW_S = 900      # 15 min
-_LOGIN_MAX_FAILS = 8
+_LOGIN_MAX_FAILS = 4        # ~8 across 2 workers
 
 def _login_throttle(ip: str) -> None:
     now = datetime.now(timezone.utc).timestamp()
@@ -631,7 +633,7 @@ async def chat(data: ChatRequest, request: Request):
     _chat_ip = _client_ip(request)
     _now = datetime.now(timezone.utc).timestamp()
     _recent = [t for t in _CHAT_HITS.get(_chat_ip, []) if _now - t < 900]
-    if len(_recent) >= 60:
+    if len(_recent) >= 30:      # ~60 across 2 workers
         raise HTTPException(429, "Per daug žinučių. Pabandykite po kelių minučių.")
     _recent.append(_now)
     _CHAT_HITS[_chat_ip] = _recent
