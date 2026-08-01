@@ -1,0 +1,139 @@
+/* ============================================================
+   Batutynas.lt — Design tokens (CSS custom properties)
+   Generated from real-evidence audit, May 2026
+   Source of truth: docs/design-system/design-tokens.json
+   ============================================================ */
+
+:root {
+  /* --- Brand --- */
+  --color-brand-primary: #7C3AED;
+  --color-brand-primary-dark: #5025D1;
+  --color-brand-primary-soft: #F3E8FF;
+  --color-brand-accent: #FBBF24;
+  --color-brand-accent-soft: #FEF3C7;
+  --color-brand-spark: #E879F9;
+  --color-brand-banner-from: #D946EF;
+  --color-brand-banner-to: #A855F7;
+  --color-brand-deep: #18172A;
+  --gradient-banner: linear-gradient(90deg, #D946EF, #A855F7);
+  --gradient-hero: linear-gradient(180deg, #7C3AED 0%, #5025D1 100%);
+
+  /* --- Status (LOCKED — business meaning) --- */
+  --color-status-pending:   #FBBF24;  /* chatbot request awaiting owner */
+  --color-status-confirmed: #7C3AED;  /* in Google Calendar */
+  --color-status-synced:    #0D9488;  /* from Google Tasks */
+  --color-status-delivered: #6B7280;  /* PRISTATYTA */
+
+  /* --- Wind safety (LOCKED) --- */
+  --color-wind-safe:   #16A34A;  /* <=19 km/h */
+  --color-wind-watch:  #D97706;  /* 20-29 km/h */
+  --color-wind-risk:   #EA580C;  /* 30-39 km/h */
+  --color-wind-danger: #DC2626;  /* 40+ km/h */
+
+  /* --- Surfaces --- */
+  --color-surface-canvas: #FFFFFF;
+  --color-surface-soft:   #FAF5FF;
+  --color-surface-warm:   #FAF8F4;
+  --color-surface-subtle: #F8FAFC;
+
+  /* --- Borders --- */
+  --color-border-default: #E2E8F0;
+  --color-border-soft:    #E9D5FF;
+  --color-border-focus:   #7C3AED;
+
+  /* --- Text --- */
+  --color-text-primary:    #0F172A;
+  --color-text-secondary:  #64748B;
+  --color-text-tertiary:   #94A3B8;
+  --color-text-inverse:    #FFFFFF;
+  --color-text-bot:        #4C1D95;
+  --color-text-accent-fg:  #581C87;
+
+  /* --- Typography --- */
+  --font-family-display:  'Nunito', system-ui, sans-serif;
+  --font-family-body:     'Inter', system-ui, sans-serif;
+  --font-family-legacy:   'Montserrat', system-ui, sans-serif;
+
+  --font-weight-regular:   400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  --font-weight-extrabold: 800;
+
+  --font-size-display:  48px;
+  --font-size-h1:       36px;
+  --font-size-h2:       28px;
+  --font-size-h3:       20px;
+  --font-size-body-lg:  18px;
+  --font-size-body:     17px;
+  --font-size-small:    14px;
+  --font-size-caption:  12px;
+
+  --line-height-tight:   1.15;
+  --line-height-snug:    1.25;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.6;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.08em;
+
+  /* --- Radii --- */
+  --radius-sm:   8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  --radius-pill: 9999px;
+
+  /* --- Spacing scale --- */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* --- Shadows --- */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg:  0 10px 24px rgba(0,0,0,0.10);
+  --shadow-xl:  0 20px 48px rgba(0,0,0,0.14);
+  --shadow-2xl: 0 30px 60px -20px rgba(0,0,0,0.30);
+  --shadow-primary-glow: 0 8px 24px rgba(124,58,237,0.35);
+
+  /* --- Motion --- */
+  --duration-fast:  120ms;
+  --duration-base:  200ms;
+  --duration-slow:  350ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Tap targets --- */
+  --tap-min:         44px;
+  --tap-comfortable: 48px;
+  --tap-owner:       52px;
+
+  /* --- Semantic shortcuts (recommended for component CSS) --- */
+  --cta-primary-bg: var(--color-brand-primary);
+  --cta-primary-fg: var(--color-text-inverse);
+  --cta-accent-bg:  var(--color-brand-accent);
+  --cta-accent-fg:  var(--color-text-accent-fg);
+}
+
+/* Dark mode (optional — admin only) */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --color-surface-canvas: #0F0F1A;
+    --color-surface-soft:   #1A1730;
+    --color-text-primary:   #F1F5F9;
+    --color-text-secondary: #94A3B8;
+    --color-border-default: #2D2B45;
+  }
+}

@@ -37,7 +37,7 @@ Kasdienis sistemos naudojimas — be technikos.
 
 Skaičiuojama pagal **didesnį** iš dviejų — gūsiai svarbesni už vidutinį vėją.
 
-3. **Dashboard**: https://batutynas-chatbot.vercel.app/admin · slaptažodis `__ADMIN_PASSWORD__`
+3. **Dashboard**: https://batutynas-chatbot.vercel.app/admin · slaptažodis `<slaptažodis — klauskite Dovydo, nesaugomas repozitorijoje>`
 
 ### Per dieną
 
@@ -85,7 +85,7 @@ Spaudžia **Naujas** viršuje (arba violetinį + apačioje telefone). Užpildai 
 
 ## 3. Dashboard — ką matai ir ką spaudi
 
-**Adresas:** https://batutynas-chatbot.vercel.app/admin (slaptažodis `__ADMIN_PASSWORD__`)
+**Adresas:** https://batutynas-chatbot.vercel.app/admin (slaptažodis `<slaptažodis — klauskite Dovydo, nesaugomas repozitorijoje>`)
 
 ### Viršutinė juosta
 
@@ -340,7 +340,7 @@ Oficialiai **08:00–21:00**, bet užklausos ateina ir naktį — atsakai ryte. 
 
 ### Naujas darbuotojas (vėliau)
 
-Kai norėsi dalytis dashboard'u su darbuotoju — **duodi jam tą patį slaptažodį** (`__ADMIN_PASSWORD__`). Kai darbuotojas išeina — slaptažodį pakeisk (paprašyk techniko). Darbuotojas **nemato** n8n, serverio, kodo — tik dashboard'ą.
+Kai norėsi dalytis dashboard'u su darbuotoju — **duodi jam tą patį slaptažodį** (`<slaptažodis — klauskite Dovydo, nesaugomas repozitorijoje>`). Kai darbuotojas išeina — slaptažodį pakeisk (paprašyk techniko). Darbuotojas **nemato** n8n, serverio, kodo — tik dashboard'ą.
 
 ---
 

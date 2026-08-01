@@ -3,7 +3,9 @@
 
 import json, os
 
-BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']  # real token — local helper output only, never baked into JSON
+# Baked into generated workflow JSON. n8n resolves $env at runtime, so exports stay secret-free.
+BOT_TOKEN_EXPR = '{{ $env.BATUTYNAS_BOT_TOKEN }}'
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 GROQ_CRED = {"id": "yf0G3FBiIj8uxM4N", "name": "Groq Whisper API"}  # Whisper transcription
@@ -820,7 +822,7 @@ def build_workflow():
     nodes.append({
         "parameters": {
             "method": "GET",
-            "url": f"=https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={{{{ $json.fileId }}}}",
+            "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/getFile?file_id={{{{ $json.fileId }}}}",
             "options": {}
         },
         "id": "get-file-path",
@@ -834,7 +836,7 @@ def build_workflow():
     nodes.append({
         "parameters": {
             "method": "GET",
-            "url": f"=https://api.telegram.org/file/bot{BOT_TOKEN}/{{{{ $json.result.file_path }}}}",
+            "url": f"=https://api.telegram.org/file/bot{BOT_TOKEN_EXPR}/{{{{ $json.result.file_path }}}}",
             "options": {
                 "response": {"response": {"responseFormat": "file"}}
             }
@@ -987,7 +989,7 @@ return [{
     nodes.append({
         "parameters": {
             "method": "POST",
-            "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/sendMessage",
             "sendBody": True,
             "specifyBody": "json",
             "jsonBody": '={\n  "chat_id": {{ JSON.stringify($("Build Confirmation").first().json.chatId) }},\n  "text": {{ JSON.stringify($("Build Confirmation").first().json.reply) }},\n  "parse_mode": "HTML",\n  "reply_markup": {\n    "inline_keyboard": [\n      [\n        {"text": "\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n      ],\n      [\n        {"text": "\\u270f\\ufe0f Redaguoti", "web_app": {"url": {{ JSON.stringify($("Build Confirmation").first().json.miniAppUrl) }} }}\n      ]\n    ]\n  }\n}',
@@ -1098,7 +1100,7 @@ return [{
     nodes.append({
         "parameters": {
             "method": "POST",
-            "url": f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery",
+            "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/answerCallbackQuery",
             "sendBody": True,
             "specifyBody": "json",
             "jsonBody": '={\n  "callback_query_id": {{ JSON.stringify($json.callbackQueryId) }},\n  "text": {{ JSON.stringify($json.callbackAnswer) }}\n}',

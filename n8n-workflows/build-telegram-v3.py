@@ -26,7 +26,9 @@ XAI_CRED      = {"id": "3o4JPVqz73RdiO0Q", "name": "xAI Grok API"}
 POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 
 # All secrets from env vars — NO hardcoded fallbacks. Set in .env before running.
-BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']  # real token — local helper output only, never baked into JSON
+# Baked into generated workflow JSON. n8n resolves $env at runtime, so exports stay secret-free.
+BOT_TOKEN_EXPR = '{{ $env.BATUTYNAS_BOT_TOKEN }}'
 
 # ── Calendar Bridge API URLs ─────────────────────────────────────────────────
 
@@ -1450,7 +1452,7 @@ connect("IF Should Send", "Send Reply", 0)  # true branch only
 add_node({
     "parameters": {
         "method": "GET",
-        "url": f"=https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={{{{ $json.fileId }}}}",
+        "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/getFile?file_id={{{{ $json.fileId }}}}",
         "options": {}
     },
     "id": uid(),
@@ -1467,7 +1469,7 @@ connect("IF Is Voice", "Get File URL", 0)  # true branch of IF Is Voice
 add_node({
     "parameters": {
         "method": "GET",
-        "url": f"=https://api.telegram.org/file/bot{BOT_TOKEN}/{{{{ $json.result.file_path }}}}",
+        "url": f"=https://api.telegram.org/file/bot{BOT_TOKEN_EXPR}/{{{{ $json.result.file_path }}}}",
         "options": {
             "response": {"response": {"responseFormat": "file"}},
             "timeout": 15000
@@ -1657,7 +1659,7 @@ connect("IF Voice Create", "Format Voice Create", 0)  # true branch
 add_node({
     "parameters": {
         "method": "POST",
-        "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/sendMessage",
         "sendBody": True,
         "specifyBody": "json",
         "jsonBody": '={{ JSON.stringify({ chat_id: $json.chatId, text: $json.confirmMessage, parse_mode: "HTML", reply_markup: { inline_keyboard: $json.inlineKeyboard } }) }}',
@@ -1734,7 +1736,7 @@ connect("IF Is Callback", "No-Op Respond", 1)  # false branch → unknown messag
 add_node({
     "parameters": {
         "method": "POST",
-        "url": f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery",
+        "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/answerCallbackQuery",
         "sendBody": True,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.callbackAnswer }) }}"

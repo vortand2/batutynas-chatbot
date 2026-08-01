@@ -24,7 +24,7 @@
     "url": "POST https://batutynas.lt/api/webhook/n8n-sync",
     "security_header": {
       "name": "x-sync-secret",
-      "value": "__N8N_SYNC_SECRET__",
+      "value": "={{ $env.N8N_SYNC_SECRET }}",
       "note": "Privalomas header'is. Jei nesutampa – 401 klaida"
     },
     "request_body": {
@@ -147,7 +147,7 @@
             "method": "POST",
             "url": "https://batutynas.lt/api/webhook/n8n-sync",
             "headers": {
-              "x-sync-secret": "__N8N_SYNC_SECRET__",
+              "x-sync-secret": "={{ $env.N8N_SYNC_SECRET }}",
               "Content-Type": "application/json"
             },
             "body": {
@@ -521,8 +521,8 @@
       "N8N_BASE_URL": "https://n8n-n8n.0uvai5.easypanel.host",
       "N8N_WEBHOOK_URL": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify",
       "CALENDAR_BRIDGE_URL": "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability",
-      "ADMIN_PASSWORD": "__ADMIN_PASSWORD__",
-      "N8N_SYNC_SECRET": "__N8N_SYNC_SECRET__"
+      "ADMIN_PASSWORD": "={{ $env.ADMIN_PASSWORD }}",
+      "N8N_SYNC_SECRET": "={{ $env.N8N_SYNC_SECRET }}"
     },
     "messenger_bot": {
       "MONGO_URL": "mongodb://mongo:27017",

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Header, HTTPException, Body, Depends
+from fastapi import FastAPI, APIRouter, Header, HTTPException, Body, Depends, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -9,6 +9,7 @@ import math
 import logging
 import asyncio
 import hashlib
+import hmac
 import resend
 import httpx
 from pathlib import Path
@@ -136,9 +137,9 @@ CALENDAR_BRIDGE_URL  = os.environ.get('CALENDAR_BRIDGE_URL', '')
 ADMIN_PASSWORD       = os.environ.get('ADMIN_PASSWORD', '')
 N8N_SYNC_SECRET      = os.environ.get('N8N_SYNC_SECRET', '')   # shared secret for /webhook/n8n-sync + /webhook/n8n-tasks-import
 if not N8N_SYNC_SECRET:
-    logging.getLogger(__name__).warning(
+    logging.getLogger(__name__).error(
         "N8N_SYNC_SECRET is not set — /webhook/n8n-sync and /webhook/n8n-tasks-import "
-        "are UNAUTHENTICATED. Set the env var to require header auth."
+        "will REJECT all requests until the env var is set."
     )
 GOOGLE_MAPS_API_KEY  = os.environ.get('GOOGLE_MAPS_API_KEY', '')  # Geocoding + Directions API
 
@@ -146,6 +147,38 @@ VALID_FLOW_TYPES = {'birthday', 'company', 'party', 'purchase', 'faq'}
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
+
+# ── Shared-secret auth ────────────────────────────────────────────────────────
+
+def require_sync_secret(supplied: Optional[str]) -> None:
+    """Fail CLOSED: a missing/blank N8N_SYNC_SECRET rejects instead of waving through.
+    The previous `if N8N_SYNC_SECRET and ...` form silently disabled auth whenever the
+    env var went missing on a deploy."""
+    if not N8N_SYNC_SECRET:
+        raise HTTPException(503, "N8N_SYNC_SECRET not configured")
+    if not hmac.compare_digest(supplied or '', N8N_SYNC_SECRET):
+        raise HTTPException(401, "Invalid sync secret")
+
+
+# ── Admin login throttle ──────────────────────────────────────────────────────
+# ponytail: in-process dict, no Redis. Single Uvicorn worker today; if this ever
+# scales to multiple workers, move the counter to Mongo or Redis.
+_LOGIN_FAILS: Dict[str, List[float]] = {}
+_LOGIN_WINDOW_S = 900      # 15 min
+_LOGIN_MAX_FAILS = 8
+
+def _login_throttle(ip: str) -> None:
+    now = datetime.now(timezone.utc).timestamp()
+    fails = [t for t in _LOGIN_FAILS.get(ip, []) if now - t < _LOGIN_WINDOW_S]
+    _LOGIN_FAILS[ip] = fails
+    if len(fails) >= _LOGIN_MAX_FAILS:
+        raise HTTPException(429, "Per daug bandymų. Pabandykite vėliau.")
+
+def _login_record_fail(ip: str) -> None:
+    _LOGIN_FAILS.setdefault(ip, []).append(datetime.now(timezone.utc).timestamp())
+    if len(_LOGIN_FAILS) > 10_000:          # crude bound so this can't grow forever
+        _LOGIN_FAILS.clear()
+
 
 # ── Admin auth helpers ────────────────────────────────────────────────────────
 
@@ -162,7 +195,8 @@ def _yesterday() -> str:
 def _verify_admin_token(token: str) -> bool:
     if not ADMIN_PASSWORD or not token:
         return False
-    return token in (_admin_token(_today()), _admin_token(_yesterday()))
+    return any(hmac.compare_digest(token, valid)
+               for valid in (_admin_token(_today()), _admin_token(_yesterday())))
 
 async def require_admin(x_admin_token: Optional[str] = Header(None)):
     if not _verify_admin_token(x_admin_token or ''):
@@ -348,8 +382,7 @@ async def n8n_sync(body: Dict[str, Any], x_sync_secret: Optional[str] = Header(N
 
     Secure with x-sync-secret header matching N8N_SYNC_SECRET env var.
     """
-    if N8N_SYNC_SECRET and x_sync_secret != N8N_SYNC_SECRET:
-        raise HTTPException(401, "Invalid sync secret")
+    require_sync_secret(x_sync_secret)
 
     order_id = str(body.get("orderId", "")).strip()
     status   = str(body.get("status", "confirmed")).strip().lower()
@@ -478,8 +511,7 @@ async def n8n_tasks_import(
     Intended payload: {flow_type: "party", form_data: {..., source:
     "google_tasks_sync", taskIds: ["...","..."], ...}}
     """
-    if N8N_SYNC_SECRET and x_sync_secret != N8N_SYNC_SECRET:
-        raise HTTPException(401, "Invalid sync secret")
+    require_sync_secret(x_sync_secret)
 
     if data.flow_type not in VALID_FLOW_TYPES:
         raise HTTPException(400, f"Neteisingas flow_type. Galimi: {', '.join(sorted(VALID_FLOW_TYPES))}")
@@ -705,12 +737,17 @@ async def get_escalations(_=Depends(require_admin)):
 # ── Admin auth ────────────────────────────────────────────────────────────────
 
 @api_router.post("/admin/auth")
-async def admin_login(body: Dict[str, Any]):
+async def admin_login(body: Dict[str, Any], request: Request):
     pwd = body.get("password", "")
     if not ADMIN_PASSWORD:
         raise HTTPException(503, "ADMIN_PASSWORD not configured")
-    if pwd != ADMIN_PASSWORD:
+    ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+          or (request.client.host if request.client else "unknown"))
+    _login_throttle(ip)
+    if not hmac.compare_digest(str(pwd), ADMIN_PASSWORD):
+        _login_record_fail(ip)
         raise HTTPException(401, "Neteisingas slaptažodis")
+    _LOGIN_FAILS.pop(ip, None)
     day = _today()
     return {"token": _admin_token(day), "day": day}
 
@@ -733,8 +770,7 @@ async def internal_synced_bookings(month: str = "", x_sync_secret: Optional[str]
     (event_date, customer_name, customer_phone, delivery_address, etc.) so the
     briefing workflows can merge into their existing bookings[] array with zero
     reshape."""
-    if N8N_SYNC_SECRET and x_sync_secret != N8N_SYNC_SECRET:
-        raise HTTPException(401, "Invalid sync secret")
+    require_sync_secret(x_sync_secret)
     q: Dict[str, Any] = {"status": "confirmed", "form_data.source": "google_tasks_sync"}
     if month and _MONTH_RE.match(month):
         q["form_data.data"] = {"$gte": f"{month}-00", "$lt": f"{month}-32"}
@@ -1736,7 +1772,7 @@ async def get_route_plan(date: str, x_admin_token: Optional[str] = Header(None))
 app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware, allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=[o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip()],
     allow_methods=["*"], allow_headers=["*"],
 )
 

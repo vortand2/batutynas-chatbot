@@ -27,7 +27,9 @@ import json, uuid, os
 
 # All secrets loaded from environment variables — NO hardcoded fallbacks.
 # Set these in .env file or export before running: source .env && python3 build-daily-summaries-v2.py
-BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']  # real token — local helper output only, never baked into JSON
+# Baked into generated workflow JSON. n8n resolves $env at runtime, so exports stay secret-free.
+BOT_TOKEN_EXPR = '{{ $env.BATUTYNAS_BOT_TOKEN }}'
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 GEMINI_CRED = {"id": "V0fvCRokUIPzfmGC", "name": "Google Gemini(PaLM) Api account"}
 GEMINI_API_KEY = os.environ['GEMINI_API_KEY']

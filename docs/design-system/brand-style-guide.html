@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Batutynas — Brand Style Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#7C3AED;--brand-dark:#5025D1;--brand-soft:#F3E8FF;
+  --accent:#FBBF24;--accent-soft:#FEF3C7;--spark:#E879F9;
+  --banner-from:#D946EF;--banner-to:#A855F7;--deep:#18172A;
+  --pending:#FBBF24;--confirmed:#7C3AED;--synced:#0D9488;--delivered:#6B7280;
+  --wind-safe:#16A34A;--wind-watch:#D97706;--wind-risk:#EA580C;--wind-danger:#DC2626;
+  --canvas:#FFFFFF;--soft:#FAF5FF;--warm:#FAF8F4;--subtle:#F8FAFC;
+  --border:#E2E8F0;--border-soft:#E9D5FF;
+  --text:#0F172A;--text-2:#64748B;--text-3:#94A3B8;--text-bot:#4C1D95;--text-accent:#581C87;
+  --gradient-banner:linear-gradient(90deg,#D946EF,#A855F7);
+  --gradient-hero:linear-gradient(180deg,#7C3AED 0%,#5025D1 100%);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg:0 10px 24px rgba(0,0,0,0.10);
+  --shadow-2xl:0 30px 60px -20px rgba(0,0,0,0.30);
+  --shadow-glow:0 8px 24px rgba(124,58,237,0.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--text);background:var(--canvas);font-size:17px;line-height:1.55}
+.wrap{max-width:1200px;margin:0 auto;padding:48px 32px}
+
+/* Hero */
+.hero{background:var(--gradient-hero);color:#fff;padding:80px 32px 96px;text-align:center;border-radius:0 0 32px 32px;margin-bottom:64px}
+.hero-eyebrow{font-family:'Inter';font-size:13px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.7;margin-bottom:16px}
+.hero h1{font-family:'Nunito';font-weight:800;font-size:56px;line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px;text-transform:uppercase}
+.hero-sub{font-size:18px;opacity:0.85;max-width:640px;margin:0 auto}
+
+/* Section */
+section{margin-bottom:80px}
+.section-title{font-family:'Nunito';font-weight:800;font-size:28px;letter-spacing:-0.01em;margin-bottom:8px;text-transform:uppercase}
+.section-desc{color:var(--text-2);margin-bottom:32px;max-width:720px}
+.banner-pill{display:inline-block;background:var(--gradient-banner);color:#fff;padding:14px 32px;border-radius:9999px;font-family:'Nunito';font-weight:800;text-transform:uppercase;letter-spacing:0.02em;font-size:22px;margin-bottom:32px}
+
+/* Color grid */
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.swatch{border-radius:16px;overflow:hidden;border:1px solid var(--border);background:#fff;box-shadow:var(--shadow-md)}
+.swatch .chip{height:120px}
+.swatch .info{padding:12px 14px;font-size:13px}
+.swatch .name{font-weight:700;color:var(--text);margin-bottom:2px}
+.swatch .hex{font-family:'JetBrains Mono','SF Mono',monospace;color:var(--text-2);font-size:12px;letter-spacing:0.04em}
+.swatch .use{color:var(--text-3);font-size:11px;margin-top:4px;line-height:1.4}
+
+/* Type */
+.type-row{padding:24px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:160px 1fr;gap:32px;align-items:baseline}
+.type-row:last-child{border-bottom:none}
+.type-meta{font-family:'JetBrains Mono','SF Mono',monospace;font-size:12px;color:var(--text-3);letter-spacing:0.04em}
+.t-display{font-family:'Nunito';font-weight:800;font-size:48px;line-height:1.1;letter-spacing:-0.02em}
+.t-h1{font-family:'Nunito';font-weight:700;font-size:36px;line-height:1.15;letter-spacing:-0.01em}
+.t-h2{font-family:'Nunito';font-weight:700;font-size:28px;line-height:1.2}
+.t-h3{font-family:'Nunito';font-weight:700;font-size:20px;line-height:1.25}
+.t-body-lg{font-family:'Inter';font-weight:500;font-size:18px;line-height:1.55}
+.t-body{font-family:'Inter';font-weight:400;font-size:17px;line-height:1.55}
+.t-small{font-family:'Inter';font-weight:400;font-size:14px;line-height:1.5}
+.t-caption{font-family:'Inter';font-weight:600;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-2)}
+
+/* Components — buttons */
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:'Inter';font-weight:600;font-size:15px;padding:14px 28px;border-radius:9999px;transition:all 200ms cubic-bezier(0.16,1,0.3,1);min-height:48px}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-glow)}
+.btn-primary:hover{background:var(--brand-dark);transform:translateY(-1px)}
+.btn-accent{background:var(--accent);color:var(--text-accent);font-weight:700}
+.btn-accent:hover{background:#F59E0B;transform:translateY(-1px)}
+.btn-outline{background:#fff;color:var(--brand);border:2px solid var(--brand)}
+.btn-outline:hover{background:var(--brand-soft)}
+.btn-ghost{background:transparent;color:var(--text-2);padding:14px 20px}
+.btn-ghost:hover{background:var(--subtle)}
+.btn-icon{font-size:16px}
+.chip-quick{display:inline-flex;align-items:center;background:#fff;border:1px solid var(--border-soft);color:var(--brand-dark);padding:10px 18px;border-radius:9999px;font-size:14px;font-weight:500;cursor:pointer;transition:all 150ms}
+.chip-quick:hover{background:var(--brand-soft);border-color:var(--brand);transform:scale(1.03)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase}
+.badge-pending{background:var(--accent-soft);color:#92400E;border:1px solid var(--accent)}
+.badge-confirmed{background:var(--brand-soft);color:var(--text-bot);border:1px solid var(--brand)}
+.badge-synced{background:#CCFBF1;color:#0F766E;border:1px solid var(--synced)}
+.badge-delivered{background:var(--subtle);color:var(--delivered);border:1px solid #CBD5E1}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--shadow-md);transition:transform 200ms,box-shadow 200ms}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.card .img-ph{height:160px;background:linear-gradient(135deg,var(--brand) 0%,var(--spark) 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Nunito';font-weight:700;font-size:18px;letter-spacing:0.04em}
+.card .body{padding:20px}
+.card .body h4{font-family:'Nunito';font-weight:700;font-size:18px;margin-bottom:6px}
+.card .body p{font-size:14px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.card .meta{display:flex;justify-content:space-between;align-items:center}
+.card .price{font-family:'Nunito';font-weight:700;color:var(--brand)}
+
+/* Chat bubble */
+.chat-mock{background:#fff;border:1px solid var(--border);border-radius:24px;padding:24px;max-width:420px;box-shadow:var(--shadow-2xl)}
+.chat-header{display:flex;align-items:center;gap:12px;background:var(--soft);margin:-24px -24px 16px;padding:18px 24px;border-bottom:1px solid var(--border-soft)}
+.chat-avatar{width:40px;height:40px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:'Nunito'}
+.chat-title{font-family:'Nunito';font-weight:700}
+.chat-status{font-size:12px;color:var(--text-2)}
+.bubble{padding:12px 16px;margin-bottom:8px;max-width:85%;font-size:15px;line-height:1.5}
+.bubble-bot{background:var(--brand-soft);color:var(--text-bot);border-radius:18px 18px 18px 4px}
+.bubble-user{background:var(--brand);color:#fff;border-radius:18px 18px 4px 18px;margin-left:auto}
+.bubble-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+/* Calendar dot */
+.cal-mock{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:360px;font-family:'Inter';font-size:13px}
+.cal-day{aspect-ratio:1;border:1px solid var(--border);border-radius:8px;padding:6px;position:relative;display:flex;flex-direction:column}
+.cal-num{font-weight:600}
+.cal-dots{display:flex;gap:2px;margin-top:auto}
+.dot{width:6px;height:6px;border-radius:50%}
+.cal-today{background:var(--brand-soft);border-color:var(--brand)}
+
+/* Wind */
+.wind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.wind-card{border-radius:12px;padding:16px;color:#fff;font-weight:700}
+.wind-card small{display:block;font-size:11px;font-weight:500;opacity:0.85;letter-spacing:0.06em;text-transform:uppercase;margin-top:4px}
+
+/* Voice section */
+.voice-quote{background:var(--soft);border-left:4px solid var(--brand);padding:24px 28px;border-radius:0 16px 16px 0;font-family:'Nunito';font-weight:500;font-size:20px;line-height:1.4;color:var(--text-bot);margin-bottom:16px;max-width:760px}
+.voice-quote em{color:var(--text-2);font-size:14px;font-style:italic;font-weight:400;display:block;margin-top:8px;font-family:'Inter'}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.rule{padding:20px;background:#fff;border:1px solid var(--border-soft);border-radius:16px}
+.rule .emoji{font-size:28px;display:block;margin-bottom:8px}
+.rule h5{font-family:'Nunito';font-weight:700;font-size:16px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.02em}
+.rule p{font-size:14px;color:var(--text-2);line-height:1.5}
+
+/* Footer */
+footer{margin-top:96px;padding:32px;text-align:center;color:var(--text-3);font-size:13px;border-top:1px solid var(--border)}
+code{background:var(--subtle);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.9em}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-eyebrow">Batutynas.lt · Brand Style Guide · Gegužė 2026</div>
+  <h1>Pramogos be ribų — nuo kiemo iki miesto</h1>
+  <p class="hero-sub">Evidence-based design system. WOW emocijos. Besąlygiškas saugumas. 10 metų patirtis. Visi tokenai surinkti iš realių šaltinių — gyvos svetainės, gamybos kodo, klientų pokalbių.</p>
+</header>
+
+<main class="wrap">
+
+<section>
+  <div class="banner-pill">Brand identity</div>
+  <h2 class="section-title">Brand voice — 3 pillars</h2>
+  <p class="section-desc">Iš realių tekstų svetainėje + sistemos prompt'o. Ne išrasta — surinkta.</p>
+  <div class="rules">
+    <div class="rule"><span class="emoji">⚡️</span><h5>WOW</h5><p>Emocija prieš funkciją. „Pramogos be ribų". „WOW efektas". Brand žodis — niekada neversti.</p></div>
+    <div class="rule"><span class="emoji">🛡️</span><h5>BESĄLYGIŠKAS SAUGUMAS</h5><p>EN14960. Jokių kompromisų vaikų saugumui. Visi batutai sertifikuoti, 2025–2026 m. gamybos.</p></div>
+    <div class="rule"><span class="emoji">🏆</span><h5>10 METŲ PATIRTIS</h5><p>Nuo 2015-ųjų. Tiek šeimos gimtadienių, tiek miesto švenčių dalis.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Mission</h2>
+  <div class="voice-quote">
+    „Mes nesiekiame tiesiog pristatyti batuto. Mes siekiame viršyti Jūsų lūkesčius ir sukurti erdvę, kurioje gimsta geriausi vaikystės prisiminimai."
+    <em>— Batutynas.lt, Apie mus (tiesioginis citatas iš svetainės)</em>
+  </div>
+  <div class="voice-quote" style="border-left-color:var(--accent);color:var(--text-accent);background:var(--accent-soft)">
+    Batutynas.lt — Jūsų šventės emocijų architektai.
+    <em>— self-descriptor iš /apie-mus puslapio</em>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Color — brand</h2>
+  <p class="section-desc">Iš gamybos chatbot'o + svetainės. Violetinė + gintaro pora — tas pats palette tris kartus skirtinguose paviršiuose.</p>
+  <div class="colors">
+    <div class="swatch"><div class="chip" style="background:#7C3AED"></div><div class="info"><div class="name">brand.primary</div><div class="hex">#7C3AED</div><div class="use">CTA, FAB, focus rings</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#5025D1"></div><div class="info"><div class="name">brand.primary-dark</div><div class="hex">#5025D1</div><div class="use">Hover state</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#F3E8FF"></div><div class="info"><div class="name">brand.primary-soft</div><div class="hex">#F3E8FF</div><div class="use">Bot bubble, tints</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#FBBF24"></div><div class="info"><div class="name">brand.accent</div><div class="hex">#FBBF24</div><div class="use">CTA pill, badges, WOW</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#FEF3C7"></div><div class="info"><div class="name">brand.accent-soft</div><div class="hex">#FEF3C7</div><div class="use">Amber tints</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#E879F9"></div><div class="info"><div class="name">brand.spark</div><div class="hex">#E879F9</div><div class="use">Confetti, sparingly</div></div></div>
+    <div class="swatch"><div class="chip" style="background:linear-gradient(90deg,#D946EF,#A855F7)"></div><div class="info"><div class="name">gradient.banner</div><div class="hex">#D946EF → #A855F7</div><div class="use">H1 pill banner</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#18172A"></div><div class="info"><div class="name">brand.deep</div><div class="hex">#18172A</div><div class="use">Dark band only</div></div></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Color — status (LOCKED)</h2>
+  <p class="section-desc">Šios spalvos koduoja verslo prasmę. Negalima keisti — koduoja užsakymo kilmę admin dashboard'e.</p>
+  <div class="colors">
+    <div class="swatch"><div class="chip" style="background:#FBBF24"></div><div class="info"><div class="name">status.pending</div><div class="hex">#FBBF24</div><div class="use">Chatbot užklausa, laukia</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#7C3AED"></div><div class="info"><div class="name">status.confirmed</div><div class="hex">#7C3AED</div><div class="use">Google Calendar užsakymas</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#0D9488"></div><div class="info"><div class="name">status.synced</div><div class="hex">#0D9488</div><div class="use">Iš Google Tasks</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#6B7280"></div><div class="info"><div class="name">status.delivered</div><div class="hex">#6B7280</div><div class="use">PRISTATYTA / praeitis</div></div></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Color — wind safety tier (LOCKED)</h2>
+  <p class="section-desc">Pripučiamų batutų saugumas pagal vėjo gūsius. Skaičiuoja max(sustained, gusts) km/h. Life-safety — privaloma matomumas.</p>
+  <div class="wind-grid">
+    <div class="wind-card" style="background:#16A34A">🟢 SAUGU<small>iki 19 km/h</small></div>
+    <div class="wind-card" style="background:#D97706">🟡 DĖMESIO<small>20–29 km/h</small></div>
+    <div class="wind-card" style="background:#EA580C">🟠 RIZIKA<small>30–39 km/h</small></div>
+    <div class="wind-card" style="background:#DC2626">🔴 PAVOJINGA<small>40+ km/h — NELEIDŽIAMA</small></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Typography</h2>
+  <p class="section-desc">Nunito (display) + Inter (body). Diakritikai — ą č ę ė į š ų ū ž — natūraliai palaikomi.</p>
+  <div class="type-row"><div class="type-meta">display / 48 / Nunito 800</div><div class="t-display">Pramogos be ribų</div></div>
+  <div class="type-row"><div class="type-meta">h1 / 36 / Nunito 700</div><div class="t-h1">JŪSŲ KIEMO ŠVENTĖ BE RŪPESČIŲ</div></div>
+  <div class="type-row"><div class="type-meta">h2 / 28 / Nunito 700</div><div class="t-h2">MŪSŲ PRAMOGŲ ARSENALAS</div></div>
+  <div class="type-row"><div class="type-meta">h3 / 20 / Nunito 700</div><div class="t-h3">Kodėl rinktis BATUTYNAS.LT?</div></div>
+  <div class="type-row"><div class="type-meta">body-lg / 18 / Inter 500</div><div class="t-body-lg">Mūsų batutai yra nauji (2025–2026 m. gamybos), sertifikuoti pagal griežčiausius ES standartus.</div></div>
+  <div class="type-row"><div class="type-meta">body / 17 / Inter 400</div><div class="t-body">Atsakome ir preliminarų pasiūlymą pateikiame per 24 valandas. Jokių užstatų ar išankstinių mokėjimų.</div></div>
+  <div class="type-row"><div class="type-meta">small / 14 / Inter 400</div><div class="t-small">Privačios šventės — Tauragės apskritis, Šilutės, Kelmės, Raseinių r., Rietavo sav.</div></div>
+  <div class="type-row"><div class="type-meta">caption / 12 / Inter 600 tracked</div><div class="t-caption">Direction · Mobile · 390 × 844</div></div>
+</section>
+
+<section>
+  <h2 class="section-title">Buttons & chips</h2>
+  <p class="section-desc">Visada pill formos. Primary — violetinė. CTA pill svetainėje — gintaro. Minimum tap target 44 px, owner admin 52 px.</p>
+  <div class="row">
+    <button class="btn btn-primary">Užsisakyti</button>
+    <button class="btn btn-accent">Plačiau</button>
+    <button class="btn btn-outline">Sužinoti daugiau</button>
+    <button class="btn btn-ghost">Atšaukti</button>
+    <a class="btn btn-accent"><span class="btn-icon">📞</span>+370 648 803 88</a>
+  </div>
+  <div class="row">
+    <button class="chip-quick">Vaiko gimtadieniui</button>
+    <button class="chip-quick">Įmonės renginiui</button>
+    <button class="chip-quick">Šventės nuomai</button>
+    <button class="chip-quick">Pirkti batutą</button>
+    <button class="chip-quick">Kalbėti su žmogumi</button>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Status badges</h2>
+  <p class="section-desc">Naudojama admin dashboard'e ant užsakymų kortelių.</p>
+  <div class="row">
+    <span class="badge badge-pending">🟡 Laukia</span>
+    <span class="badge badge-confirmed">✅ Patvirtinta</span>
+    <span class="badge badge-synced">📋 Iš Google Tasks</span>
+    <span class="badge badge-delivered">✅ Pristatyta</span>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Equipment card (marketing site pattern)</h2>
+  <p class="section-desc">Naudojama /viesi-renginiai ir /batutai-privacioms-sventems puslapiuose.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="img-ph">Fantazijų parkas</div>
+      <div class="body"><h4>Fantazijų parkas</h4><p>Didžiulis pramogų parkas, kosminė tematika. Iki 150 lankytojų/val.</p><div class="meta"><span class="t-caption">14×14 m · 7 m</span><button class="btn btn-accent" style="padding:8px 16px;font-size:13px;min-height:36px">Plačiau</button></div></div>
+    </div>
+    <div class="card">
+      <div class="img-ph" style="background:linear-gradient(135deg,#FBBF24 0%,#EA580C 100%);color:#581C87">Candy Pop</div>
+      <div class="body"><h4>Candy Pop</h4><p>Spalvinga žaidimų aikštelė. 10–12 vaikų. Idealu kiemo gimtadieniui.</p><div class="meta"><span class="t-caption">8×5 m · 30 min surinkimas</span><button class="btn btn-accent" style="padding:8px 16px;font-size:13px;min-height:36px">Plačiau</button></div></div>
+    </div>
+    <div class="card">
+      <div class="img-ph" style="background:linear-gradient(135deg,#0D9488 0%,#7C3AED 100%)">Mega Waikiki</div>
+      <div class="body"><h4>Mega Waikiki</h4><p>Aukščiausias batutas su čiuožykle. Iki 70 vaikų/val.</p><div class="meta"><span class="t-caption">16×4 m · 8.5 m aukštis</span><button class="btn btn-accent" style="padding:8px 16px;font-size:13px;min-height:36px">Plačiau</button></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Chat widget</h2>
+  <p class="section-desc">Production komponentas. Floating violetinis FAB, atsidaro modaliniu langu, formos inline (be redirect'ų).</p>
+  <div class="chat-mock">
+    <div class="chat-header">
+      <div class="chat-avatar">B</div>
+      <div><div class="chat-title">Batutynas</div><div class="chat-status">● Online · 8:00–21:00</div></div>
+    </div>
+    <div class="bubble bubble-bot">Sveiki! Padėsiu suplanuoti šventę. Ko ieškote?</div>
+    <div class="bubble bubble-user">Gimtadienis sūnui, 8 metų</div>
+    <div class="bubble bubble-bot">Puiku! Kada planuojate šventę?</div>
+    <div class="bubble-actions">
+      <button class="chip-quick">Šeštadienį 21 d.</button>
+      <button class="chip-quick">Sekmadienį 22 d.</button>
+      <button class="chip-quick">Pasirinkti kitą</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Calendar with status dots</h2>
+  <p class="section-desc">Admin dashboard — kiekviena diena rodo iki 3 taškų, kiekvienas — užsakymo statusas pagal kilmę.</p>
+  <div class="cal-mock">
+    <div class="t-caption" style="grid-column:span 7;text-align:center;padding:8px">Gegužė 2026</div>
+    <div class="cal-day"><div class="cal-num">12</div><div class="cal-dots"><span class="dot" style="background:#7C3AED"></span></div></div>
+    <div class="cal-day"><div class="cal-num">13</div></div>
+    <div class="cal-day cal-today"><div class="cal-num">14</div><div class="cal-dots"><span class="dot" style="background:#7C3AED"></span><span class="dot" style="background:#0D9488"></span></div></div>
+    <div class="cal-day"><div class="cal-num">15</div><div class="cal-dots"><span class="dot" style="background:#FBBF24"></span></div></div>
+    <div class="cal-day"><div class="cal-num">16</div></div>
+    <div class="cal-day"><div class="cal-num">17</div><div class="cal-dots"><span class="dot" style="background:#7C3AED"></span><span class="dot" style="background:#7C3AED"></span></div></div>
+    <div class="cal-day"><div class="cal-num">18</div></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">5 auksinės taisyklės (real copy from /apie-mus)</h2>
+  <p class="section-desc">Tikra svetainės kopija. Emoji — semantiniai (ne dekoracija), naudojami kaip kulkos.</p>
+  <div class="rules">
+    <div class="rule"><span class="emoji">🛡️</span><h5>Saugumas be kompromisų</h5><p>Visi batutai atitinka EN14960 ES standartą. Po naudojimo — kruopščiai valoma ir tikrinama.</p></div>
+    <div class="rule"><span class="emoji">🚀</span><h5>Nuolatinė inovacija</h5><p>Mes nemiegame žiemos miegu. 2025/2026 m. sezoną pasitinkame su Mega serijos batutais ir DISCO pavėsine.</p></div>
+    <div class="rule"><span class="emoji">🌦️</span><h5>Nulinė rizika dėl oro</h5><p>Jei prognozė rodo audrą — rezervaciją perkeliame arba atšaukiame nemokamai. Jūsų ramybė svarbiausia.</p></div>
+    <div class="rule"><span class="emoji">📍</span><h5>Vietinis pasiekiamumas</h5><p>Esame Jūsų kaimynai. Greitai aptarnaujame Tauragę, Šilutę, Jurbarką, Pagėgius, Kelmę.</p></div>
+    <div class="rule"><span class="emoji">🍭</span><h5>Pilnas emocijų paketas</h5><p>Nuo kliūčių ruožų ir putų šou iki saldėsių aparatų bei galingos garso įrangos.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title">Pizza box facts (constraints to design around)</h2>
+  <div class="cards">
+    <div class="card" style="padding:0">
+      <div class="body">
+        <span class="t-caption">Kalba</span>
+        <h4 style="margin-top:6px">Lietuvių — pirminė</h4>
+        <p>Klientams skirta visa kopija — lietuviškai. Chatbot pereina į EN/RU kai klientas pradeda ne lietuviškai.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="body">
+        <span class="t-caption">Kontaktas</span>
+        <h4 style="margin-top:6px">Telefonas pirmoje vietoje</h4>
+        <p>+370 648 803 88 — visada matomas. Forma ir telefonas siūlomi kartu, ne vietoj.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="body">
+        <span class="t-caption">Darbo laikas</span>
+        <h4 style="margin-top:6px">I–VII / 8:00–21:00</h4>
+        <p>Kasdien, įskaitant sekmadienius. Ne "Pir–Pen".</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="body">
+        <span class="t-caption">Kainos</span>
+        <h4 style="margin-top:6px">Nuo 50 € · jokių užstatų</h4>
+        <p>Konkrečios kainos viešai nerodomos. „Nuo 50 €" ir nukreipia į užklausą.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="body">
+        <span class="t-caption">Atsako SLA</span>
+        <h4 style="margin-top:6px">Per 24 valandas</h4>
+        <p>Kiekviena forma rodo: „Atsakome ir preliminarų pasiūlymą pateikiame per 24 valandas".</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="body">
+        <span class="t-caption">Įranga</span>
+        <h4 style="margin-top:6px">13 batutai + 5 atrakcijos</h4>
+        <p>13 nuomojamų pripučiamų batutų + 5 papildomos pramogos (Dart, Rodeo, Disco ir t.t.).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Batutynas.lt · Brand Style Guide · Generated from real-evidence audit, 2026-05-19<br>
+  Šaltiniai: live svetainė (visi 7 puslapiai) · production chatbot · admin dashboard · /apie-mus · /duk
+</footer>
+
+</body>
+</html>

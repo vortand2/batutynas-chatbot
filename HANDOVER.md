@@ -8,7 +8,7 @@ One-page operational reference for the business automation system. Aimed at the 
 
 1. **Morning briefing arrived?** Telegram from `@Batutynas_bot` at 07:00 EEST. If yes → system is green.
 2. **Evening check arrived?** Same bot at 21:00 EEST.
-3. **Dashboard loads?** `https://batutynas-chatbot.vercel.app/admin` (password: `__ADMIN_PASSWORD__`) — should show orders, not a 500 error.
+3. **Dashboard loads?** `https://batutynas-chatbot.vercel.app/admin` (password: `<ADMIN_PASSWORD — see .env / Easypanel, never commit>`) — should show orders, not a 500 error.
 
 If any one of these is missing, see *Troubleshooting* below.
 
@@ -32,7 +32,7 @@ If any one of these is missing, see *Troubleshooting* below.
 
 ## Access
 
-- **Admin dashboard:** password `__ADMIN_PASSWORD__` (in `.env` as `ADMIN_PASSWORD`). Same password for future employees — just share it. If you fire someone, change `ADMIN_PASSWORD` in the backend `.env` and redeploy (below). All active sessions expire next day.
+- **Admin dashboard:** password `<ADMIN_PASSWORD — see .env / Easypanel, never commit>` (in `.env` as `ADMIN_PASSWORD`). Same password for future employees — just share it. If you fire someone, change `ADMIN_PASSWORD` in the backend `.env` and redeploy (below). All active sessions expire next day.
 - **Everything else:** logins are in Obsidian `Projects/batutynas-chatbot/credentials/n8n-api.md`.
 
 ---

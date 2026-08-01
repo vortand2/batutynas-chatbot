@@ -203,7 +203,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/getFile?file_id={{ $json.fileId }}",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/getFile?file_id={{ $json.fileId }}",
         "options": {}
       },
       "id": "get-file-path",
@@ -218,7 +218,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.telegram.org/file/bot__TELEGRAM_BOT_TOKEN__/{{ $json.result.file_path }}",
+        "url": "=https://api.telegram.org/file/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/{{ $json.result.file_path }}",
         "options": {
           "response": {
             "response": {
@@ -353,7 +353,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($(\"Build Confirmation\").first().json.chatId) }},\n  \"text\": {{ JSON.stringify($(\"Build Confirmation\").first().json.reply) }},\n  \"parse_mode\": \"HTML\",\n  \"reply_markup\": {\n    \"inline_keyboard\": [\n      [\n        {\"text\": \"\\u270f\\ufe0f Per\\u017ei\\u016br\\u0117ti ir patvirtinti\", \"web_app\": {\"url\": {{ JSON.stringify($(\"Build Confirmation\").first().json.miniAppUrl) }} }}\n      ],\n      [\n        {\"text\": \"\\u270f\\ufe0f Redaguoti\", \"web_app\": {\"url\": {{ JSON.stringify($(\"Build Confirmation\").first().json.miniAppUrl) }} }}\n      ]\n    ]\n  }\n}",
@@ -493,7 +493,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/answerCallbackQuery",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/answerCallbackQuery",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"callback_query_id\": {{ JSON.stringify($json.callbackQueryId) }},\n  \"text\": {{ JSON.stringify($json.callbackAnswer) }}\n}",

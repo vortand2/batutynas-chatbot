@@ -47,7 +47,7 @@ N8N_BASE_URL=https://n8n-n8n.0uvai5.easypanel.host
 N8N_WEBHOOK_URL=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-notify
 CALENDAR_BRIDGE_URL=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability
 ADMIN_PASSWORD=<saugus slaptažodis>
-N8N_SYNC_SECRET=__N8N_SYNC_SECRET__
+N8N_SYNC_SECRET=<N8N_SYNC_SECRET>
 ```
 
 ---
@@ -110,7 +110,7 @@ curl -X POST https://chat.batutynas.lt/api/admin/auth \
 # n8n sync webhook
 curl -X POST https://chat.batutynas.lt/api/webhook/n8n-sync \
   -H "Content-Type: application/json" \
-  -H "x-sync-secret: __N8N_SYNC_SECRET__" \
+  -H "x-sync-secret: <N8N_SYNC_SECRET>" \
   -d '{"orderId":"test","status":"confirmed","source":"test"}'
 # → {"success":false,"order_id":"test","matched":0} (normalu — "test" neegzistuoja)
 ```

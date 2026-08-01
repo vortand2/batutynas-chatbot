@@ -1,0 +1,259 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "Batutynas.lt — Design tokens. Generated from real-evidence audit (May 2026). All values cite source in $description.",
+  "color": {
+    "brand": {
+      "primary": {
+        "$value": "#7C3AED",
+        "$type": "color",
+        "$description": "Violet — primary CTA, FAB, focus rings. Source: chatbot production + marketing site hero."
+      },
+      "primary-dark": {
+        "$value": "#5025D1",
+        "$type": "color",
+        "$description": "Hover state for primary. Source: live site CSS var --color-primary-dark."
+      },
+      "primary-soft": {
+        "$value": "#F3E8FF",
+        "$type": "color",
+        "$description": "Bot bubble surface, hover tints. Source: chatbot purple-100."
+      },
+      "accent": {
+        "$value": "#FBBF24",
+        "$type": "color",
+        "$description": "Amber CTA pill, badges, WOW highlights. Source: marketing site yellow CTA + chatbot amber-400."
+      },
+      "accent-soft": {
+        "$value": "#FEF3C7",
+        "$type": "color",
+        "$description": "Amber background tint, popular-pick wrappers."
+      },
+      "spark": {
+        "$value": "#E879F9",
+        "$type": "color",
+        "$description": "Confetti, success bursts, sparingly. Source: chatbot fuchsia-400."
+      },
+      "banner-from": {
+        "$value": "#D946EF",
+        "$type": "color",
+        "$description": "Magenta-pink gradient start for H1 banner pills."
+      },
+      "banner-to": {
+        "$value": "#A855F7",
+        "$type": "color",
+        "$description": "Purple gradient end for H1 banner pills."
+      },
+      "deep": {
+        "$value": "#18172A",
+        "$type": "color",
+        "$description": "Dark navy — used sparingly on one site band only. Source: live homepage."
+      }
+    },
+    "status": {
+      "pending": {
+        "$value": "#FBBF24",
+        "$type": "color",
+        "$description": "Chatbot request awaiting owner Patvirtinti/Atmesti. LOCKED — encodes business meaning."
+      },
+      "confirmed": {
+        "$value": "#7C3AED",
+        "$type": "color",
+        "$description": "Booking in Google Calendar. LOCKED."
+      },
+      "synced": {
+        "$value": "#0D9488",
+        "$type": "color",
+        "$description": "Synced from Google Tasks. LOCKED."
+      },
+      "delivered": {
+        "$value": "#6B7280",
+        "$type": "color",
+        "$description": "Past booking (PRISTATYTA badge). LOCKED."
+      }
+    },
+    "wind": {
+      "safe": {
+        "$value": "#16A34A",
+        "$type": "color",
+        "$description": "Wind tier safe — gusts/sustained <=19 km/h. Used in morning briefing + dashboard."
+      },
+      "watch": {
+        "$value": "#D97706",
+        "$type": "color",
+        "$description": "Wind tier watch — 20-29 km/h."
+      },
+      "risk": {
+        "$value": "#EA580C",
+        "$type": "color",
+        "$description": "Wind tier risk — 30-39 km/h."
+      },
+      "danger": {
+        "$value": "#DC2626",
+        "$type": "color",
+        "$description": "Wind tier PAVOJINGA — 40+ km/h. Inflatable trampolines must NOT operate."
+      }
+    },
+    "surface": {
+      "canvas": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "$description": "Default page bg."
+      },
+      "soft": {
+        "$value": "#FAF5FF",
+        "$type": "color",
+        "$description": "Chatbot header tint, hover surfaces."
+      },
+      "warm": {
+        "$value": "#FAF8F4",
+        "$type": "color",
+        "$description": "Legacy admin cream surface (optional)."
+      },
+      "subtle": {
+        "$value": "#F8FAFC",
+        "$type": "color",
+        "$description": "Section alternation, table stripes."
+      }
+    },
+    "border": {
+      "default": {
+        "$value": "#E2E8F0",
+        "$type": "color",
+        "$description": "Form input default border."
+      },
+      "soft": {
+        "$value": "#E9D5FF",
+        "$type": "color",
+        "$description": "Chatbot purple-tinted border."
+      },
+      "focus": {
+        "$value": "#7C3AED",
+        "$type": "color",
+        "$description": "Focus ring color (matches brand.primary)."
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "#0F172A",
+        "$type": "color",
+        "$description": "Body text on light."
+      },
+      "secondary": {
+        "$value": "#64748B",
+        "$type": "color",
+        "$description": "Captions, helper text."
+      },
+      "tertiary": {
+        "$value": "#94A3B8",
+        "$type": "color",
+        "$description": "Placeholders, disabled."
+      },
+      "inverse": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "$description": "On dark hero / brand-primary fills."
+      },
+      "bot": {
+        "$value": "#4C1D95",
+        "$type": "color",
+        "$description": "Bot message text on purple-100."
+      },
+      "accent-fg": {
+        "$value": "#581C87",
+        "$type": "color",
+        "$description": "Text on amber/yellow fills (foreground for accent)."
+      }
+    }
+  },
+  "font": {
+    "family": {
+      "display": {
+        "$value": "Nunito, system-ui, sans-serif",
+        "$type": "fontFamily",
+        "$description": "Headings, hero, value props. Source: chatbot production."
+      },
+      "body": {
+        "$value": "Inter, system-ui, sans-serif",
+        "$type": "fontFamily",
+        "$description": "Body, UI labels. Replaces Figtree for broader availability."
+      },
+      "marketing-legacy": {
+        "$value": "Montserrat, system-ui, sans-serif",
+        "$type": "fontFamily",
+        "$description": "Current marketing site (Zyro). Migrate to display+body when site rebuilt."
+      }
+    },
+    "weight": {
+      "regular": { "$value": 400, "$type": "fontWeight" },
+      "medium": { "$value": 500, "$type": "fontWeight" },
+      "semibold": { "$value": 600, "$type": "fontWeight" },
+      "bold": { "$value": 700, "$type": "fontWeight" },
+      "extrabold": { "$value": 800, "$type": "fontWeight" }
+    },
+    "size": {
+      "display": { "$value": "48px", "$type": "dimension", "$description": "Hero H1 desktop. Mobile: 32px." },
+      "h1": { "$value": "36px", "$type": "dimension" },
+      "h2": { "$value": "28px", "$type": "dimension" },
+      "h3": { "$value": "20px", "$type": "dimension" },
+      "body-lg": { "$value": "18px", "$type": "dimension", "$description": "Owner admin body — single user reads daily, larger." },
+      "body": { "$value": "17px", "$type": "dimension", "$description": "Chatbot body, customer-facing." },
+      "small": { "$value": "14px", "$type": "dimension" },
+      "caption": { "$value": "12px", "$type": "dimension", "$description": "Uppercase, tracked, used for labels." }
+    },
+    "line-height": {
+      "tight": { "$value": 1.15, "$type": "number" },
+      "snug": { "$value": 1.25, "$type": "number" },
+      "normal": { "$value": 1.5, "$type": "number" },
+      "relaxed": { "$value": 1.6, "$type": "number" }
+    },
+    "tracking": {
+      "tight": { "$value": "-0.02em", "$type": "dimension", "$description": "Display + H1." },
+      "normal": { "$value": "0", "$type": "dimension" },
+      "wide": { "$value": "0.08em", "$type": "dimension", "$description": "Caption / uppercase labels." }
+    }
+  },
+  "radius": {
+    "sm": { "$value": "8px", "$type": "dimension" },
+    "md": { "$value": "12px", "$type": "dimension", "$description": "Buttons, inputs default." },
+    "lg": { "$value": "16px", "$type": "dimension" },
+    "xl": { "$value": "20px", "$type": "dimension", "$description": "Chat bubbles, cards." },
+    "2xl": { "$value": "24px", "$type": "dimension", "$description": "Form containers." },
+    "3xl": { "$value": "32px", "$type": "dimension", "$description": "Chatbot widget container." },
+    "pill": { "$value": "9999px", "$type": "dimension", "$description": "Quick-reply chips, FAB, CTA pills." }
+  },
+  "spacing": {
+    "0": { "$value": "0", "$type": "dimension" },
+    "1": { "$value": "4px", "$type": "dimension" },
+    "2": { "$value": "8px", "$type": "dimension" },
+    "3": { "$value": "12px", "$type": "dimension" },
+    "4": { "$value": "16px", "$type": "dimension" },
+    "5": { "$value": "20px", "$type": "dimension" },
+    "6": { "$value": "24px", "$type": "dimension" },
+    "8": { "$value": "32px", "$type": "dimension" },
+    "10": { "$value": "40px", "$type": "dimension" },
+    "12": { "$value": "48px", "$type": "dimension" },
+    "16": { "$value": "64px", "$type": "dimension" },
+    "20": { "$value": "80px", "$type": "dimension" },
+    "24": { "$value": "96px", "$type": "dimension" }
+  },
+  "shadow": {
+    "sm": { "$value": "0 1px 2px rgba(0,0,0,0.05)", "$type": "shadow" },
+    "md": { "$value": "0 4px 12px rgba(0,0,0,0.08)", "$type": "shadow" },
+    "lg": { "$value": "0 10px 24px rgba(0,0,0,0.10)", "$type": "shadow" },
+    "xl": { "$value": "0 20px 48px rgba(0,0,0,0.14)", "$type": "shadow" },
+    "2xl": { "$value": "0 30px 60px -20px rgba(0,0,0,0.30)", "$type": "shadow", "$description": "Chatbot widget shadow." },
+    "primary-glow": { "$value": "0 8px 24px rgba(124,58,237,0.35)", "$type": "shadow", "$description": "Violet glow under primary CTA on hover." }
+  },
+  "motion": {
+    "duration-fast": { "$value": "120ms", "$type": "duration" },
+    "duration-base": { "$value": "200ms", "$type": "duration" },
+    "duration-slow": { "$value": "350ms", "$type": "duration" },
+    "ease-out": { "$value": "cubic-bezier(0.16, 1, 0.3, 1)", "$type": "cubicBezier" },
+    "spring": { "$value": "{ stiffness: 260, damping: 20 }", "$type": "other", "$description": "Framer Motion spring for widget open." }
+  },
+  "tap-target": {
+    "min": { "$value": "44px", "$type": "dimension", "$description": "WCAG AA minimum." },
+    "comfortable": { "$value": "48px", "$type": "dimension" },
+    "owner": { "$value": "52px", "$type": "dimension", "$description": "Owner admin — possible gloves in winter delivery." }
+  }
+}

@@ -9,8 +9,8 @@ import hashlib
 from datetime import datetime, timezone
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
-ADMIN_PASSWORD = "__ADMIN_PASSWORD__"
-N8N_SYNC_SECRET = "__N8N_SYNC_SECRET__"
+ADMIN_PASSWORD = "test-admin-password-not-real"
+N8N_SYNC_SECRET = "test-sync-secret-not-real"
 
 def get_admin_token():
     day = datetime.now(timezone.utc).strftime('%Y-%m-%d')

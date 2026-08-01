@@ -78,7 +78,7 @@ RESEND_API_KEY=<reikia nustatyti iš resend.com>
 ## Papildoma įgyvendinta
 
 ## Admin Dashboard `/admin` (2026-02):
-- **Slaptažodžio apsauga**: login ekranas, SHA256 dienos raktas, `ADMIN_PASSWORD=__ADMIN_PASSWORD__` `.env`
+- **Slaptažodžio apsauga**: login ekranas, SHA256 dienos raktas, `ADMIN_PASSWORD=<ADMIN_PASSWORD>` `.env`
 - **Laukiančios tab**: rodo chatbot užsakymus su statusu `pending` iš MongoDB
 - **Patvirtinti → Kalendorių**: savininkas peržiūri → patikslina duomenis → `batutynas-calendar-create` sukuria Google Calendar įvykį
 - **Atmesti**: pakeičia statusą į `rejected`

@@ -424,7 +424,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/getFile?file_id={{ $json.fileId }}",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/getFile?file_id={{ $json.fileId }}",
         "options": {}
       },
       "id": "90fd153c69cb4c938401",
@@ -440,7 +440,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.telegram.org/file/bot__TELEGRAM_BOT_TOKEN__/{{ $json.result.file_path }}",
+        "url": "=https://api.telegram.org/file/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/{{ $json.result.file_path }}",
         "options": {
           "response": {
             "response": {
@@ -679,7 +679,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.confirmMessage, parse_mode: \"HTML\", reply_markup: { inline_keyboard: $json.inlineKeyboard } }) }}",
@@ -761,7 +761,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/answerCallbackQuery",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/answerCallbackQuery",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.callbackAnswer }) }}"

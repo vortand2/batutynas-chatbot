@@ -116,7 +116,7 @@
           "parameters": [
             {
               "name": "x-sync-secret",
-              "value": "__N8N_SYNC_SECRET__"
+              "value": "={{ $env.N8N_SYNC_SECRET }}"
             },
             {
               "name": "Content-Type",

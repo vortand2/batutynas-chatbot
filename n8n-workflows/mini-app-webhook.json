@@ -48,7 +48,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot__TELEGRAM_BOT_TOKEN__/sendMessage",
+        "url": "=https://api.telegram.org/bot{{ $env.BATUTYNAS_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"chat_id\": {{ JSON.stringify($json.chatId || $('Build SQL').first().json.chatId) }},\n  \"text\": \"✅ Užsakymas patvirtintas ir išsaugotas!\",\n  \"parse_mode\": \"HTML\"\n}",

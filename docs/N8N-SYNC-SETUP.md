@@ -16,7 +16,7 @@ POST https://chat.batutynas.lt/api/webhook/n8n-sync
 ## Headers
 ```
 Content-Type: application/json
-x-sync-secret: __N8N_SYNC_SECRET__
+x-sync-secret: <N8N_SYNC_SECRET>
 ```
 
 ## Body (bk_ok atveju)
@@ -48,7 +48,7 @@ x-sync-secret: __N8N_SYNC_SECRET__
 | Authentication | None (naudojamas custom header) |
 | Send Headers | Yes |
 | Header Name 1 | `x-sync-secret` |
-| Header Value 1 | `__N8N_SYNC_SECRET__` |
+| Header Value 1 | `<N8N_SYNC_SECRET>` |
 | Body Content Type | JSON |
 | Specify Body | Using Fields Below |
 | Body Parameters | `orderId` = `{{ $json.orderId }}`, `status` = `confirmed` arba `rejected`, `source` = `telegram` |

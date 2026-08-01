@@ -34,8 +34,9 @@ OWNER_CHAT_ID = os.environ.get('BATUTYNAS_OWNER_CHAT_ID', '8258463322')
 # - Requires x-sync-secret header matching N8N_SYNC_SECRET env var
 # - Idempotent on form_data.taskIds (never creates duplicates)
 DASHBOARD_ORDERS_URL = "https://batutynas-chatbot.0uvai5.easypanel.host/api/webhook/n8n-tasks-import"
-# Shared secret pulled from Telegram Bot V3 workflow (same value backend uses)
-N8N_SYNC_SECRET_VALUE = "__N8N_SYNC_SECRET__"
+# Shared secret — MUST match N8N_SYNC_SECRET on the backend. Never hardcode: this file is
+# committed to a public repo, and the previous literal leaked the live value.
+N8N_SYNC_SECRET_VALUE = "={{ $env.N8N_SYNC_SECRET }}"  # resolved by n8n at runtime
 # Deprecated (kept for reference — do NOT use, sent to Google Calendar):
 # CALENDAR_BRIDGE_CREATE = "https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-calendar-create"
 

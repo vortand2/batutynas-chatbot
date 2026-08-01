@@ -26,7 +26,9 @@ POSTGRES_CRED = {"id": "Xc90UM12HHMH6z3A", "name": "Batutynas PostgreSQL"}
 TELEGRAM_CRED = {"id": "9BHFQfSuhUuhfdqW", "name": "Batutynas Telegram Bot"}
 
 # All secrets from env vars — NO hardcoded fallbacks. Set in .env before running.
-BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']
+BOT_TOKEN = os.environ['BATUTYNAS_BOT_TOKEN']  # real token — local helper output only, never baked into JSON
+# Baked into generated workflow JSON. n8n resolves $env at runtime, so exports stay secret-free.
+BOT_TOKEN_EXPR = '{{ $env.BATUTYNAS_BOT_TOKEN }}'
 OWNER_CHAT_ID = os.environ['BATUTYNAS_OWNER_CHAT_ID']
 OWNER_EMAIL = os.environ.get('BATUTYNAS_OWNER_EMAIL', 'dovydasdobrovolskis@gmail.com')
 # Calendar event creation removed — owner confirms booking manually
@@ -466,7 +468,7 @@ connect("IF Should Save to DB", "Prepare Telegram", 1)  # false branch → no DB
 add_node({
     "parameters": {
         "method": "POST",
-        "url": f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        "url": f"=https://api.telegram.org/bot{BOT_TOKEN_EXPR}/sendMessage",
         "sendBody": True,
         "specifyBody": "json",
         "jsonBody": "={{ $json.chatBody }}",

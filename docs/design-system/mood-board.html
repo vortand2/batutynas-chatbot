@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<title>Batutynas — Mood Board</title>
+<style>
+  @page{size:A4;margin:14mm}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito','Inter',system-ui,sans-serif;color:#0F172A;background:#fff;font-size:11pt;line-height:1.4}
+  .cover{height:280mm;background:linear-gradient(180deg,#7C3AED 0%,#5025D1 100%);color:#fff;padding:60mm 20mm;page-break-after:always;display:flex;flex-direction:column;justify-content:center}
+  .cover .eyebrow{font-size:10pt;letter-spacing:0.16em;text-transform:uppercase;opacity:0.7;margin-bottom:8mm}
+  .cover h1{font-size:36pt;font-weight:800;line-height:1.05;letter-spacing:-0.02em;margin-bottom:6mm;text-transform:uppercase}
+  .cover .sub{font-size:14pt;opacity:0.85;max-width:140mm}
+  .cover .footer{position:absolute;bottom:14mm;left:20mm;right:20mm;font-size:9pt;opacity:0.6}
+  section{page-break-inside:avoid;margin-bottom:8mm}
+  h2{font-size:18pt;font-weight:800;margin-bottom:3mm;color:#5025D1;text-transform:uppercase;letter-spacing:-0.01em}
+  .desc{color:#64748B;margin-bottom:6mm;max-width:160mm;font-size:10pt}
+  .grid{display:grid;gap:4mm}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .shot{border:1px solid #E2E8F0;border-radius:4mm;overflow:hidden;page-break-inside:avoid}
+  .shot img{width:100%;display:block}
+  .shot .lbl{padding:3mm 4mm;background:#F8FAFC;font-size:9pt;border-top:1px solid #E2E8F0}
+  .shot .lbl b{display:block;font-weight:700;color:#0F172A}
+  .shot .lbl span{color:#94A3B8;font-size:8pt;letter-spacing:0.04em}
+  .full{page-break-before:always}
+  .voice-quote{background:#F3E8FF;border-left:4px solid #7C3AED;padding:6mm 8mm;border-radius:0 4mm 4mm 0;font-size:12pt;line-height:1.45;color:#4C1D95;margin-bottom:4mm;font-weight:500}
+  .voice-quote em{color:#64748B;font-size:9pt;display:block;margin-top:3mm;font-style:italic}
+  .palette{display:flex;gap:0;border-radius:4mm;overflow:hidden}
+  .palette .sw{flex:1;height:30mm;display:flex;flex-direction:column;justify-content:flex-end;padding:3mm;color:#fff;font-size:8pt;font-family:'JetBrains Mono','SF Mono',monospace}
+  .palette .sw b{font-family:'Inter';font-weight:700;font-size:9pt;margin-bottom:1mm}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eyebrow">Batutynas.lt · Visual Mood Board · Gegužė 2026</div>
+  <h1>Real evidence,<br>not invention</h1>
+  <div class="sub">Visi kadrai paimti iš gyvos svetainės. Visi tekstai — tiesioginės citatos. Spalvos, šriftai, charakteris — atspindintys kas šiandien jau veikia, ne kas išgalvota.</div>
+  <div class="footer">batutynas.lt · 7 puslapiai · 13 screenshots · 2026-05-19</div>
+</div>
+
+<section>
+  <h2>Brand palette (real, used today)</h2>
+  <p class="desc">Surinkta iš gamybos chatbot'o ir gyvos svetainės. Violetinė + gintaro — pora.</p>
+  <div class="palette">
+    <div class="sw" style="background:#7C3AED"><b>brand.primary</b>#7C3AED</div>
+    <div class="sw" style="background:#5025D1"><b>primary-dark</b>#5025D1</div>
+    <div class="sw" style="background:linear-gradient(90deg,#D946EF,#A855F7)"><b>banner</b>D946EF→A855F7</div>
+    <div class="sw" style="background:#FBBF24;color:#581C87"><b>accent</b>#FBBF24</div>
+    <div class="sw" style="background:#E879F9"><b>spark</b>#E879F9</div>
+    <div class="sw" style="background:#18172A"><b>deep</b>#18172A</div>
+  </div>
+</section>
+
+<section>
+  <h2>Status colors — LOCKED (encode business meaning)</h2>
+  <div class="palette">
+    <div class="sw" style="background:#FBBF24;color:#92400E"><b>pending</b>#FBBF24<br>chatbot užklausa</div>
+    <div class="sw" style="background:#7C3AED"><b>confirmed</b>#7C3AED<br>Calendar</div>
+    <div class="sw" style="background:#0D9488"><b>synced</b>#0D9488<br>Google Tasks</div>
+    <div class="sw" style="background:#6B7280"><b>delivered</b>#6B7280<br>PRISTATYTA</div>
+  </div>
+</section>
+
+<section>
+  <h2>Wind safety tier — LIFE-SAFETY (LOCKED)</h2>
+  <p class="desc">Pripučiamų batutų saugumo skalė. Skaičiuojama max(sustained, gusts). Privaloma matomumas dashboard'e.</p>
+  <div class="palette">
+    <div class="sw" style="background:#16A34A"><b>🟢 SAUGU</b>iki 19 km/h</div>
+    <div class="sw" style="background:#D97706"><b>🟡 DĖMESIO</b>20–29 km/h</div>
+    <div class="sw" style="background:#EA580C"><b>🟠 RIZIKA</b>30–39 km/h</div>
+    <div class="sw" style="background:#DC2626"><b>🔴 PAVOJINGA</b>40+ km/h NELEIDŽIAMA</div>
+  </div>
+</section>
+
+<section class="full">
+  <h2>Mission (verbatim)</h2>
+  <div class="voice-quote">
+    „Mes nesiekiame tiesiog pristatyti batuto. Mes siekiame viršyti Jūsų lūkesčius ir sukurti erdvę, kurioje gimsta geriausi vaikystės prisiminimai."
+    <em>— /pripuciamu-batutu-nuoma-apie-mus</em>
+  </div>
+  <div class="voice-quote" style="border-left-color:#FBBF24;background:#FEF3C7;color:#581C87">
+    Batutynas.lt — Jūsų šventės emocijų architektai.
+    <em>— /apie-mus self-descriptor</em>
+  </div>
+  <div class="voice-quote">
+    „Pramogos be ribų — nuo kiemo iki miesto."
+    <em>— Homepage H1</em>
+  </div>
+  <div class="voice-quote">
+    „Mes nemiegame žiemos miegu! 2025/2026 m. sezoną pasitinkame su revoliucinėmis naujienomis."
+    <em>— /apie-mus, founder voice</em>
+  </div>
+  <div class="voice-quote">
+    „Esame Jūsų kaimynai. Greitai ir operatyviai aptarnaujame Tauragę, Šilutę, Jurbarką, Pagėgius, Kelmę."
+    <em>— /apie-mus, vietinis pasiekiamumas</em>
+  </div>
+</section>
+
+<section class="full">
+  <h2>Live site — Desktop screenshots (1440 px)</h2>
+  <p class="desc">7 puslapių pilnas kadrai. Surinkta 2026-05-19 per headless Chrome.</p>
+  <div class="grid g2">
+    <div class="shot"><img src="../screenshots/desktop-home.png"><div class="lbl"><b>Homepage</b><span>/ · purple hero, 3 service cards, value pillars</span></div></div>
+    <div class="shot"><img src="../screenshots/desktop-viesi.png"><div class="lbl"><b>Vieši renginiai</b><span>/viesi-renginiai · MŪSŲ PRAMOGŲ ARSENALAS</span></div></div>
+    <div class="shot"><img src="../screenshots/desktop-privatu.png"><div class="lbl"><b>Privačios šventės</b><span>/batutai-privacioms-sventems · NUO BATUTO IKI KĖDĖS</span></div></div>
+    <div class="shot"><img src="../screenshots/desktop-parduotuve.png"><div class="lbl"><b>Batutų parduotuvė</b><span>/batutai-parduotuve · 500+ modelių · remontas</span></div></div>
+    <div class="shot"><img src="../screenshots/desktop-duk.png"><div class="lbl"><b>DUK</b><span>/batutu-nuoma-duk · 10 klausimų + atsakymų</span></div></div>
+    <div class="shot"><img src="../screenshots/desktop-apie.png"><div class="lbl"><b>Apie mus</b><span>/apie-mus · 5 auksinės taisyklės · emocijų architektai</span></div></div>
+  </div>
+</section>
+
+<section class="full">
+  <h2>Live site — Mobile (390 px)</h2>
+  <p class="desc">Mobilus vaizdas, kuriame matosi turinio hierarchija mažiausiame ekrane.</p>
+  <div class="grid g3">
+    <div class="shot"><img src="../screenshots/mobile-home.png"><div class="lbl"><b>Home</b><span>390 × 4000</span></div></div>
+    <div class="shot"><img src="../screenshots/mobile-viesi.png"><div class="lbl"><b>Vieši</b><span>390 × 4000</span></div></div>
+    <div class="shot"><img src="../screenshots/mobile-privatu.png"><div class="lbl"><b>Privatu</b><span>390 × 4000</span></div></div>
+    <div class="shot"><img src="../screenshots/mobile-parduotuve.png"><div class="lbl"><b>Parduotuvė</b><span>390 × 4000</span></div></div>
+    <div class="shot"><img src="../screenshots/mobile-duk.png"><div class="lbl"><b>DUK</b><span>390 × 4000</span></div></div>
+    <div class="shot"><img src="../screenshots/mobile-apie.png"><div class="lbl"><b>Apie mus</b><span>390 × 4000</span></div></div>
+  </div>
+</section>
+
+<section class="full">
+  <h2>Safety page (manual review recommended)</h2>
+  <p class="desc">Šis puslapis daugiausia vizualus. Skirtas manual'iai dizainerio peržiūrai prieš redesigning.</p>
+  <div class="grid g2">
+    <div class="shot"><img src="../screenshots/desktop-saugumas.png"><div class="lbl"><b>Saugumas</b><span>/pripuciamu-batutu-nuoma-saugumas · image-heavy</span></div></div>
+  </div>
+</section>
+
+</body>
+</html>
