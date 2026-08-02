@@ -48,6 +48,7 @@ N8N_WEBHOOK_URL=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-booking-
 CALENDAR_BRIDGE_URL=https://n8n-n8n.0uvai5.easypanel.host/webhook/batutynas-availability
 ADMIN_PASSWORD=<saugus slaptažodis>
 N8N_SYNC_SECRET=<N8N_SYNC_SECRET>
+BRIDGE_SECRET=<turi sutapti su n8n 'Batutynas Bridge Auth' kredencialu>
 ```
 
 ---

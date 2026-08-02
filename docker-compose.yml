@@ -28,6 +28,9 @@ services:
       CALENDAR_BRIDGE_URL: ${CALENDAR_BRIDGE_URL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       N8N_SYNC_SECRET: ${N8N_SYNC_SECRET}
+      # Header auth for the Calendar Bridge webhooks. Without this every
+      # bridge call 401s and /api/health reports calendar_bridge:false.
+      BRIDGE_SECRET: ${BRIDGE_SECRET}
 
   # ── React Frontend (nginx) ─────────────────────────────────────────────────
   frontend:
